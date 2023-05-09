@@ -15,3 +15,8 @@ This repository contains the code and documentation for Iron Coder.
 * The [docs](./docs/) folder contains conventional documentation
 * The [mindmap](./mindmap/) folder contains Obsidian/Excalidraw brainstorming and notes
 * The [src](./src/) folder contains the Rust code for the application
+
+## Architecture
+The following tools are used:
+* `egui` for the GUI toolkit
+* TODO

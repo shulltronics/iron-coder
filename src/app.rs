@@ -56,6 +56,13 @@ impl eframe::App for TemplateApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
+                let texture: &egui::TextureHandle = &ui.ctx().load_texture(
+                    "my-image",
+                    egui::ColorImage::example(),
+                    Default::default()
+                );
+                // Show the image:
+                ui.image(texture, texture.size_vec2());
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
                         _frame.close();
@@ -66,14 +73,15 @@ impl eframe::App for TemplateApp {
                         println!("button clicked!");
                     }
                 });
+                ui.label("hello!");
             });
         });
 
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            ui.heading("Side Panel");
+            ui.heading("Spec Viewer");
 
             ui.horizontal(|ui| {
-                ui.label("Write something: ");
+                ui.label("3D model will show here: ");
                 ui.text_edit_singleline(label);
             });
 
@@ -83,6 +91,9 @@ impl eframe::App for TemplateApp {
             }
 
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+                ui.horizontal(|ui| {
+                    egui::warn_if_debug_build(ui);
+                });
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 0.0;
                     ui.label("powered by ");
@@ -97,25 +108,22 @@ impl eframe::App for TemplateApp {
             });
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
+        let central_frame = egui::Frame::default();
+        egui::CentralPanel::default().frame(central_frame).show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
-
-            ui.heading("eframe template");
-            ui.hyperlink("https://github.com/emilk/eframe_template");
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/master/",
-                "Source code."
-            ));
-            egui::warn_if_debug_build(ui);
+            // ui.heading("eframe template");
+            let mut s: String = "//test".into();
+            ui.add(
+                egui::TextEdit::multiline(&mut s)
+                    .font(egui::TextStyle::Monospace) // for cursor height
+                    .code_editor()
+                    .desired_rows(10)
+                    .lock_focus(true)
+                    .desired_width(f32::INFINITY)
+                    .frame(false),
+                    // .layouter(&mut layouter),
+            );
         });
 
-        if false {
-            egui::Window::new("Window").show(ctx, |ui| {
-                ui.label("Windows can be moved by dragging them.");
-                ui.label("They are automatically sized based on contents.");
-                ui.label("You can turn on resizing and scrolling if you like.");
-                ui.label("You would normally choose either panels OR windows.");
-            });
-        }
     }
 }

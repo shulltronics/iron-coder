@@ -25,7 +25,7 @@ impl TemplateApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customize the look and feel of egui using
         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
-
+        setup_custom_fonts(&cc.egui_ctx);
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
         if let Some(storage) = cc.storage {
@@ -58,7 +58,7 @@ impl eframe::App for TemplateApp {
             egui::menu::bar(ui, |ui| {
                 let texture: &egui::TextureHandle = &ui.ctx().load_texture(
                     "my-image",
-                    egui::ColorImage::example(),
+                    egui::ColorImage::new([64, 16], egui::Color32::WHITE),
                     Default::default()
                 );
                 // Show the image:
@@ -73,7 +73,7 @@ impl eframe::App for TemplateApp {
                         println!("button clicked!");
                     }
                 });
-                ui.label("hello!");
+                ui.label("IRON CODER");
             });
         });
 
@@ -126,4 +126,35 @@ impl eframe::App for TemplateApp {
         });
 
     }
+}
+
+fn setup_custom_fonts(ctx: &egui::Context) {
+    // Start with the default fonts (we will be adding to them rather than replacing them).
+    let mut fonts = egui::FontDefinitions::default();
+
+    // Install my own font (maybe supporting non-latin characters).
+    // .ttf and .otf files supported.
+    fonts.font_data.insert(
+        "my_font".to_owned(),
+        egui::FontData::from_static(include_bytes!(
+            "../assets/fonts/platinum-sign/Platinum-Sign.ttf"
+        )),
+    );
+
+    // Put my font first (highest priority) for proportional text:
+    fonts
+        .families
+        .entry(egui::FontFamily::Proportional)
+        .or_default()
+        .insert(0, "my_font".to_owned());
+
+    // Put my font as last fallback for monospace:
+    fonts
+        .families
+        .entry(egui::FontFamily::Monospace)
+        .or_default()
+        .push("my_font".to_owned());
+
+    // Tell egui to use these fonts:
+    ctx.set_fonts(fonts);
 }

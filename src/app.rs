@@ -7,6 +7,7 @@ pub struct IronCoderApp {
     // this how you opt-out of serialization of a member
     #[serde(skip)]
     value: f32,
+    code: String,
 }
 
 impl Default for IronCoderApp {
@@ -15,6 +16,7 @@ impl Default for IronCoderApp {
             // Example stuff:
             label: "Iron Coder".to_owned(),
             value: 2.7,
+            code: "// welcome to Iron Coder!".to_string(),
         }
     }
 }
@@ -46,7 +48,7 @@ impl eframe::App for IronCoderApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { label, value } = self;
+        let Self { label, value, code } = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -161,9 +163,8 @@ impl eframe::App for IronCoderApp {
             // egui::TopBottomPanel::top("editor_control_panel").show(ctx, |ui| {
             //     ui.label("test");
             // });
-            let mut s: String = "//test".into();
             ui.add(
-                egui::TextEdit::multiline(&mut s)
+                egui::TextEdit::multiline(code)
                     .font(egui::TextStyle::Monospace) // for cursor height
                     .code_editor()
                     .desired_rows(10)
@@ -180,6 +181,14 @@ impl eframe::App for IronCoderApp {
 fn setup_fonts_and_style(ctx: &egui::Context) {
 
     let mut fonts = egui::FontDefinitions::default();
+    // This font is used for the standard text
+    fonts.font_data.insert(
+        "roboto_mono_regular".to_owned(),
+        egui::FontData::from_static(include_bytes!(
+            "../assets/fonts/Roboto_Mono/static/RobotoMono-Regular.ttf"
+        )),
+    );
+    // These fonts are used for the project logo
     fonts.font_data.insert(
         "platinum_sign_under".to_owned(),    // serves as the unique font identifier?
         egui::FontData::from_static(include_bytes!(
@@ -202,11 +211,11 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         vec!(String::from("platinum_sign_over"))
     );
     //   example of how to install font to an existing style 
-    // fonts
-    //     .families
-    //     .entry(egui::FontFamily::Monospace)
-    //     .or_default()
-    //     .push("platinum_sign_over".to_owned());
+    fonts
+        .families
+        .entry(egui::FontFamily::Monospace)
+        .or_default()
+        .insert(0, "roboto_mono_regular".to_owned());
 
     ctx.set_fonts(fonts);
 

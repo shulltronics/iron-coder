@@ -6,6 +6,6 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Iron Coder",
         native_options,
-        Box::new(|cc| Box::new(iron_coder::TemplateApp::new(cc))),
+        Box::new(|cc| Box::new(iron_coder::IronCoderApp::new(cc))),
     )
 }

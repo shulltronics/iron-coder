@@ -131,6 +131,16 @@ impl eframe::App for IronCoderApp {
                 ui.text_edit_singleline(label);
             });
 
+            use egui_extras::RetainedImage;
+            let image = RetainedImage::from_image_bytes("feather_rp2040",
+                include_bytes!("../assets/images/feather_rp2040.jpg")
+            ).unwrap();
+
+            println!("available size is {:?}", ui.available_size());
+            println!("image size is {:?}", image.size_vec2());
+            image.show_max_size(ui, ui.available_size());
+            //ui.add(egui::widgets::Image::new(image.texture_id(), image.size_vec2()));
+
             ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
             if ui.button("Increment").clicked() {
                 *value += 1.0;

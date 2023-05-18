@@ -16,3 +16,5 @@ eframe = { version = "0.21.0", default-features = false, features = [
 tracing-subscriber = "0.3"
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }
+egui_extras = { version = "0.21.0", features = ["image"] }
+image = { version = "0.24.6", features = ["jpeg"] }

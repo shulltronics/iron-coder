@@ -1,6 +1,7 @@
 //! Iron Coder is an app for developing embedded firmware in Rust
 
 use crate::board;
+use std::path::Path;
 
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -20,16 +21,24 @@ pub struct IronCoderApp {
     value: f32,
     code: String,
     mode: Mode,
+    #[serde(skip)]
+    boards: Vec<board::Board>,
 }
 
 impl Default for IronCoderApp {
     fn default() -> Self {
+
+        // Populate the boards
+        let boards_dir: &Path = Path::new("./boards");
+        let boards: Vec<board::Board> = board::get_boards(boards_dir);
+
         Self {
             // Example stuff:
             label: "Iron Coder".to_owned(),
             value: 2.7,
             code: "// welcome to Iron Coder!".to_string(),
             mode: Mode::Editor,
+            boards: boards,
         }
     }
 }
@@ -61,7 +70,13 @@ impl eframe::App for IronCoderApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { label, value, code, mode } = self;
+        let Self {
+            label,
+            value,
+            code,
+            mode,
+            boards
+        } = self;
 
         // The top panel containing menu items and logo will alway be present
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -136,10 +151,13 @@ impl eframe::App for IronCoderApp {
 
             // BoardSelector mode is the mode when selecting a new project
             Mode::BoardSelector => {
+
                 let central_frame = egui::Frame::default();
                 egui::CentralPanel::default().frame(central_frame).show(ctx, |ui| {
                     ui.label("Board Selector");
-
+                    for (idx, board) in boards.iter().enumerate() {
+                        println!("board {idx} name: {}", board.get_name());
+                    }
                     ui.add(board::BoardSelectorWidget::new()).on_hover_text("hovered!");
                 });
             },

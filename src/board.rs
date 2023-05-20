@@ -1,3 +1,35 @@
+use std::path::Path;
+use std::fs;
+use std::vec::Vec;
+// this function reads the boards directory and returns a Vec in RAM
+// the boards directory is structured as:
+// boards/
+// -- manufacturer/
+// -- -- board/
+// -- -- -- <name>.toml
+// -- -- -- <name>.png
+pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
+    println!("Installing boards...");
+    // iterate through and construct the boards
+    for manufacturer in fs::read_dir(boards_dir).expect("Error opening boards directory!") {
+        let man = manufacturer.expect("Error with entry!");
+        println!("{:?}", man.path());
+        if man.path().is_dir() {
+            for b in fs::read_dir(man.path()).expect("Error opening manufacturer directory!") {
+                let b = b.expect("Error with b!");
+                println!("{:?}", b.path());
+                if b.path().is_dir() {
+                    for file in fs::read_dir(b.path()).expect("error reading files") {
+                        let file = file.expect("error opening file");
+                        println!("{:?}", file.path());
+                    }
+                }
+            }
+        }
+    }
+    return Vec::new();
+}
+
 // These are the various standard development board specifications
 pub enum BoardStandards {
     Feather,
@@ -14,11 +46,11 @@ pub struct Board {
     manufacturer: &'static str,
 }
 
-pub const FEATHER_RP2040: Board = Board {
-    name: "Adafruit Feather RP2040",
-    standard: BoardStandards::Feather,
-    manufacturer: "Adafruit Industries",
-};
+impl Board {
+    pub fn get_name(&self) -> &'static str {
+        self.name
+    }
+}
 
 pub struct BoardSelectorWidget;
 
@@ -47,3 +79,4 @@ impl Widget for BoardSelectorWidget {
     }
 
 }
+

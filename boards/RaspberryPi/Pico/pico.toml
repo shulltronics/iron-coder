@@ -1,2 +1,3 @@
-[board]
-name="Pico"
+
+name = "Pico"
+manufacturer = "Raspberry Pi"

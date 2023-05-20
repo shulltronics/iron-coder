@@ -8,26 +8,26 @@ use std::vec::Vec;
 // -- -- board/
 // -- -- -- <name>.toml
 // -- -- -- <name>.png
-pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
-    println!("Installing boards...");
-    // iterate through and construct the boards
-    for manufacturer in fs::read_dir(boards_dir).expect("Error opening boards directory!") {
-        let man = manufacturer.expect("Error with entry!");
-        println!("{:?}", man.path());
-        if man.path().is_dir() {
-            for b in fs::read_dir(man.path()).expect("Error opening manufacturer directory!") {
-                let b = b.expect("Error with b!");
-                println!("{:?}", b.path());
-                if b.path().is_dir() {
-                    for file in fs::read_dir(b.path()).expect("error reading files") {
-                        let file = file.expect("error opening file");
-                        println!("{:?}", file.path());
-                    }
-                }
+pub fn get_boards_test(boards_dir: &Path) -> Vec<Board> {
+    let mut r = Vec::new();
+    if let Ok(entries) = fs::read_dir(boards_dir) {
+        for entry in entries {
+            let entry = entry.expect("error with entry");
+            // if the entry is a directory, recursively go get the files
+            if entry.file_type().expect("error parsing file type").is_dir() {
+                println!("recursing.. {:?}", entry.path());
+                r.append(&mut get_boards_test(&entry.path()));
+            } else if entry.path().extension().unwrap() == "toml" {
+            // the entry is a board file in toml format
+                println!("got file {:?}", entry.file_name());
+                // TODO gracefully handle improperly formatted board files
+                let toml_str = fs::read_to_string(entry.path()).unwrap();
+                let b: Board = toml::from_str(&toml_str).unwrap();
+                r.push(b);
             }
         }
     }
-    return Vec::new();
+    return r;
 }
 
 // These are the various standard development board specifications
@@ -40,15 +40,17 @@ pub enum BoardStandards {
 }
 
 // The board struct defines a board type
+use serde::Deserialize;
+#[derive(Deserialize, Debug, Clone)]
 pub struct Board {
-    name: &'static str,
-    standard: BoardStandards,
-    manufacturer: &'static str,
+    name: String,
+    // standard: Option<BoardStandards>,
+    manufacturer: String,
 }
 
 impl Board {
-    pub fn get_name(&self) -> &'static str {
-        self.name
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
     }
 }
 
@@ -75,6 +77,27 @@ impl Widget for BoardSelectorWidget {
         //     egui::Color32::YELLOW,
         // );
         ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
+        return response;
+    }
+}
+
+impl Widget for Board {
+
+    fn ui(self, ui: &mut Ui) -> Response {
+        // let Self {
+        //     name,
+        //     manufacturer,
+        // } = self;
+        let response = ui.allocate_response(egui::vec2(100.0, 200.0), egui::Sense::click());
+        // let (pos, text_galley, response) = self.layout_in_ui(ui);
+        // let rect = ui.painter().clip_rect();
+        // ui.painter().rect_filled(
+        //     egui::Rect::from_two_pos(egui::Pos2::ZERO, egui::Pos2::new(20.0, 20.0)),
+        //     egui::Rounding::none(),
+        //     egui::Color32::YELLOW,
+        // );
+        ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
+        ui.label(self.get_name());
         return response;
     }
 

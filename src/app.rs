@@ -30,7 +30,7 @@ impl Default for IronCoderApp {
 
         // Populate the boards
         let boards_dir: &Path = Path::new("./boards");
-        let boards: Vec<board::Board> = board::get_boards(boards_dir);
+        let boards: Vec<board::Board> = board::get_boards_test(boards_dir);
 
         Self {
             // Example stuff:
@@ -155,10 +155,19 @@ impl eframe::App for IronCoderApp {
                 let central_frame = egui::Frame::default();
                 egui::CentralPanel::default().frame(central_frame).show(ctx, |ui| {
                     ui.label("Board Selector");
-                    for (idx, board) in boards.iter().enumerate() {
-                        println!("board {idx} name: {}", board.get_name());
-                    }
+                    // for (idx, board) in boards.iter().enumerate() {
+                    //     println!("board {idx} name: {}", board.get_name());
+                    // }
                     ui.add(board::BoardSelectorWidget::new()).on_hover_text("hovered!");
+                    // for board in boards {
+                    //     ui.add(board);
+                    //     println!("{:?}", board);
+                    // }
+                    for b in boards.clone() {
+                        ui.add(b);
+                    }
+                    // let b = boards[0];
+                    // ui.add(b);
                 });
             },
 

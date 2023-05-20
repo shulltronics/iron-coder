@@ -139,6 +139,7 @@ impl eframe::App for IronCoderApp {
                 let central_frame = egui::Frame::default();
                 egui::CentralPanel::default().frame(central_frame).show(ctx, |ui| {
                     ui.label("Board Selector");
+
                     ui.add(board::BoardSelectorWidget::new()).on_hover_text("hovered!");
                 });
             },
@@ -151,13 +152,9 @@ impl eframe::App for IronCoderApp {
                         ui.heading("SPEC VIEWER");
                     });
 
-                    ui.horizontal(|ui| {
-                        ui.label("3D model will show here: ");
-                    });
-
                     use egui_extras::RetainedImage;
                     let image = RetainedImage::from_image_bytes("feather_rp2040",
-                        include_bytes!("../assets/images/feather_rp2040.png")
+                        include_bytes!("../boards/RaspberryPi/Pico/pico.png")
                     ).unwrap();
 
                     // println!("available size is {:?}", ui.available_size());

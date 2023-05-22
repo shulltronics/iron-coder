@@ -18,11 +18,27 @@ pub fn get_boards_test(boards_dir: &Path) -> Vec<Board> {
                 println!("recursing.. {:?}", entry.path());
                 r.append(&mut get_boards_test(&entry.path()));
             } else if entry.path().extension().unwrap() == "toml" {
-            // the entry is a board file in toml format
-                println!("got file {:?}", entry.file_name());
+                let file_name = entry.file_name();
+                println!("got file {:?}", file_name);
                 // TODO gracefully handle improperly formatted board files
                 let toml_str = fs::read_to_string(entry.path()).unwrap();
                 let b: Board = toml::from_str(&toml_str).unwrap();
+
+                // See if there is an image
+                let path = entry.path();
+                let parent = path.parent().unwrap();
+                println!("parent directory: {:?}", parent);
+                let pic_name = &b.name;
+                //pic_name.join(".png");
+                //let pic_path = parent.join(pic_name);
+                let pic_path = parent.join("pico.png");
+                println!("picture at {:?}", pic_path);
+
+                // if parent.contains(pic_path) {
+                //     println!("true");
+                //     b.pic = Some(pic_path.to_string());
+                // }
+
                 r.push(b);
             }
         }
@@ -31,6 +47,7 @@ pub fn get_boards_test(boards_dir: &Path) -> Vec<Board> {
 }
 
 // These are the various standard development board specifications
+#[derive(Deserialize, Debug, Clone)]
 pub enum BoardStandards {
     Feather,
     Arduino,
@@ -44,8 +61,9 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug, Clone)]
 pub struct Board {
     name: String,
-    // standard: Option<BoardStandards>,
+    standard: Option<BoardStandards>,
     manufacturer: String,
+    pic: Option<String>,
 }
 
 impl Board {

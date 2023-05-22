@@ -159,12 +159,10 @@ impl eframe::App for IronCoderApp {
                     //     println!("board {idx} name: {}", board.get_name());
                     // }
                     ui.add(board::BoardSelectorWidget::new()).on_hover_text("hovered!");
-                    // for board in boards {
-                    //     ui.add(board);
-                    //     println!("{:?}", board);
-                    // }
-                    for b in boards.clone() {
-                        ui.add(b);
+                    for (i, b) in boards.clone().into_iter().enumerate() {
+                        if ui.add(b).clicked() {
+                            println!("{:?}", boards[i]);
+                        }
                     }
                     // let b = boards[0];
                     // ui.add(b);

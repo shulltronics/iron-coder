@@ -158,7 +158,7 @@ impl eframe::App for IronCoderApp {
                     // for (idx, board) in boards.iter().enumerate() {
                     //     println!("board {idx} name: {}", board.get_name());
                     // }
-                    ui.add(board::BoardSelectorWidget::new()).on_hover_text("hovered!");
+                    //ui.add(board::BoardSelectorWidget::new()).on_hover_text("hovered!");
                     for (i, b) in boards.clone().into_iter().enumerate() {
                         if ui.add(b).clicked() {
                             println!("{:?}", boards[i]);

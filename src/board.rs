@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs;
 use std::vec::Vec;
 // this function reads the boards directory and returns a Vec in RAM
@@ -22,23 +22,20 @@ pub fn get_boards_test(boards_dir: &Path) -> Vec<Board> {
                 println!("got file {:?}", file_name);
                 // TODO gracefully handle improperly formatted board files
                 let toml_str = fs::read_to_string(entry.path()).unwrap();
-                let b: Board = toml::from_str(&toml_str).unwrap();
+                let mut b: Board = toml::from_str(&toml_str).unwrap();
 
                 // See if there is an image
-                let path = entry.path();
-                let parent = path.parent().unwrap();
-                println!("parent directory: {:?}", parent);
-                let pic_name = &b.name;
-                //pic_name.join(".png");
-                //let pic_path = parent.join(pic_name);
-                let pic_path = parent.join("pico.png");
+                let pic_path = entry.path().with_extension("png");
                 println!("picture at {:?}", pic_path);
 
+                //Should there be a check like this?
+                //Or i guess we'll do this later, when rendering the image
                 // if parent.contains(pic_path) {
                 //     println!("true");
                 //     b.pic = Some(pic_path.to_string());
                 // }
 
+                b.pic = Some(pic_path);
                 r.push(b);
             }
         }
@@ -63,7 +60,7 @@ pub struct Board {
     name: String,
     standard: Option<BoardStandards>,
     manufacturer: String,
-    pic: Option<String>,
+    pic: Option<PathBuf>,
 }
 
 impl Board {

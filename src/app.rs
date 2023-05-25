@@ -17,8 +17,6 @@ pub struct IronCoderApp {
     // Example stuff:
     label: String,
     // this how you opt-out of serialization of a member
-    #[serde(skip)]
-    value: f32,
     code: String,
     mode: Mode,
     #[serde(skip)]
@@ -30,12 +28,11 @@ impl Default for IronCoderApp {
 
         // Populate the boards
         let boards_dir: &Path = Path::new("./boards");
-        let boards: Vec<board::Board> = board::get_boards_test(boards_dir);
+        let boards: Vec<board::Board> = board::get_boards(boards_dir);
 
         Self {
             // Example stuff:
             label: "Iron Coder".to_owned(),
-            value: 2.7,
             code: "// welcome to Iron Coder!".to_string(),
             mode: Mode::Editor,
             boards: boards,
@@ -62,17 +59,17 @@ impl IronCoderApp {
 }
 
 impl eframe::App for IronCoderApp {
-    /// Called by the frame work to save state before shutdown.
+
+    // Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
     }
 
-    /// Called each time the UI needs repainting, which may be many times per second.
-    /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
+    // Called each time the UI needs repainting, which may be many times per second.
+    // Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
-            label,
-            value,
+            label: _,
             code,
             mode,
             boards
@@ -160,7 +157,7 @@ impl eframe::App for IronCoderApp {
                     // }
                     //ui.add(board::BoardSelectorWidget::new()).on_hover_text("hovered!");
                     for (i, b) in boards.clone().into_iter().enumerate() {
-                        if ui.add(b).clicked() {
+                        if ui.add(b).on_hover_text(boards[i].get_name()).clicked() {
                             println!("board {} was clicked!", i);
                         }
                     }

@@ -161,11 +161,9 @@ impl eframe::App for IronCoderApp {
                     //ui.add(board::BoardSelectorWidget::new()).on_hover_text("hovered!");
                     for (i, b) in boards.clone().into_iter().enumerate() {
                         if ui.add(b).clicked() {
-                            println!("{:?}", boards[i]);
+                            println!("board {} was clicked!", i);
                         }
                     }
-                    // let b = boards[0];
-                    // ui.add(b);
                 });
             },
 

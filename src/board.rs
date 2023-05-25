@@ -19,20 +19,21 @@ pub fn get_boards_test(boards_dir: &Path) -> Vec<Board> {
                 r.append(&mut get_boards_test(&entry.path()));
             } else if entry.path().extension().unwrap() == "toml" {
 
-                let path = entry.path();
-                let file_name = entry.file_name();
-                println!("got file {:?} at path {:?}", file_name, path);
-                // TODO gracefully handle improperly formatted board files
-                let toml_str = fs::read_to_string(entry.path()).unwrap();
-                let mut b: Board = toml::from_str(&toml_str).unwrap();
+                r.push(Board::load_from_toml(&entry.path()));
+                // let path = entry.path();
+                // let file_name = entry.file_name();
+                // println!("got file {:?} at path {:?}", file_name, path);
+                // // TODO gracefully handle improperly formatted board files
+                // let toml_str = fs::read_to_string(entry.path()).unwrap();
+                // let mut b: Board = toml::from_str(&toml_str).unwrap();
 
-                // See if there is an image
-                if let Ok(pic_path) = path.with_extension("png").canonicalize() {
-                    println!("picture at {:?}", pic_path);
-                    b.pic = Some(pic_path);
-                }
+                // // See if there is an image
+                // if let Ok(pic_path) = path.with_extension("png").canonicalize() {
+                //     println!("picture at {:?}", pic_path);
+                //     b.pic = Some(pic_path);
+                // }
 
-                r.push(b);
+                // r.push(b);
             }
         }
     }
@@ -51,15 +52,49 @@ pub enum BoardStandards {
 
 // The board struct defines a board type
 use serde::Deserialize;
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct Board {
     name: String,
     standard: Option<BoardStandards>,
     manufacturer: String,
-    pic: Option<PathBuf>,
+    #[serde(skip)]
+    pic: Option<egui::ColorImage>,
 }
 
 impl Board {
+
+    fn load_from_toml(path: &Path) -> Self {
+        // let path = entry.path();
+        // let file_name = entry.file_name();
+        // println!("got file {:?} at path {:?}", file_name, path);
+        // TODO gracefully handle improperly formatted board files
+        let toml_str = fs::read_to_string(path).unwrap();
+        let mut b: Board = toml::from_str(&toml_str).unwrap();
+
+        // See if there is an image
+        if let Ok(pic_path) = path.with_extension("png").canonicalize() {
+            println!("picture at {:?}", pic_path);
+            // b.pic = Some(pic_path);
+            let image = image::io::Reader::open(pic_path).unwrap().decode().unwrap();
+            let size = [image.width() as _, image.height() as _];
+            // if let Ok(image) = RetainedImage::from_image_bytes("pic", image_bytes) {
+            //     image.show_max_size(ui, response.rect.max.to_vec2());
+            // } else {
+            //     println!("Error loading image, skipping rendering!")
+            // }
+            let image_buffer = image.to_rgba8();
+            let pixels = image_buffer.as_flat_samples();
+            let color_image = egui::ColorImage::from_rgba_unmultiplied(
+                size,
+                pixels.as_slice(),
+            );
+
+            b.pic = Some(color_image);
+        }
+        
+        return b;
+    }
+
     pub fn get_name(&self) -> &str {
         self.name.as_str()
     }
@@ -92,33 +127,21 @@ impl Widget for BoardSelectorWidget {
     }
 }
 
-use egui_extras::RetainedImage;
+
 use image;
+use egui_extras::RetainedImage;
+
 impl Widget for Board {
 
     fn ui(self, ui: &mut Ui) -> Response {
         let response = ui.allocate_response(egui::vec2(128.0, 128.0), egui::Sense::click());
         ui.label(self.get_name());
-        if let Some(pic_path) = self.pic {
-            //println!("{:?}", pic_path);
-            let image = image::io::Reader::open(pic_path).unwrap().decode().unwrap();
-            let size = [image.width() as _, image.height() as _];
-            // if let Ok(image) = RetainedImage::from_image_bytes("pic", image_bytes) {
-            //     image.show_max_size(ui, response.rect.max.to_vec2());
-            // } else {
-            //     println!("Error loading image, skipping rendering!")
-            // }
-            let image_buffer = image.to_rgba8();
-            let pixels = image_buffer.as_flat_samples();
-            let color_image = egui::ColorImage::from_rgba_unmultiplied(
-                size,
-                pixels.as_slice(),
-            );
-            let image = RetainedImage::from_color_image(
+        if let Some(color_image) = self.pic {
+            let retained_image = RetainedImage::from_color_image(
                 "pic",
                 color_image,
             );
-            image.show_max_size(ui, response.rect.size());
+            retained_image.show_max_size(ui, response.rect.size());
         }
         return response;
     }

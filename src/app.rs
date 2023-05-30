@@ -18,6 +18,7 @@ enum Mode {
 pub struct IronCoderApp {
     #[serde(skip)]
     board: board::Board,
+    display_info: bool,
     code: String,
     mode: Mode,
     #[serde(skip)]
@@ -33,6 +34,7 @@ impl Default for IronCoderApp {
         Self {
             // Example stuff:
             board: boards[0].clone(),
+            display_info: false,
             code: "// welcome to Iron Coder!".to_string(),
             mode: Mode::Editor,
             boards: boards,
@@ -70,6 +72,7 @@ impl eframe::App for IronCoderApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
             board,
+            display_info,
             code,
             mode,
             boards
@@ -110,19 +113,16 @@ impl eframe::App for IronCoderApp {
                         println!("button clicked!");
                     }
                     if ui.button("ABOUT").clicked() {
-                        // egui::Window::new("My Window")
-                        //     .open(&mut true)
-                        //     .default_size(egui::vec2(512.0, 512.0))
-                        //     .resizable(true)
-                        //     .show(ctx, |ui| {
-                        //         ui.label("Hello World!");
-                        // });
-                        println!("learn how to open a sub window!");
+                        *display_info = !*display_info;
                     }
                     if ui.button("QUIT").clicked() {
                         _frame.close();
                     }
                 });
+
+                if (*display_info) {
+                    about_iron_coder(ctx, ui, display_info);
+                }
 
                 // add the logo, centered
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
@@ -185,7 +185,7 @@ impl eframe::App for IronCoderApp {
                     //ui.add(egui::widgets::Image::new(image.texture_id(), image.size_vec2()));
 
 
-                    ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+                    ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
                         ui.horizontal(|ui| {
                             egui::warn_if_debug_build(ui);
                         });
@@ -318,4 +318,22 @@ fn pretty_header(ui: &mut egui::Ui, text: &str) {
     let heading_fg = Label::new(text_fg);
     // let location = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::Vec2::ZERO);
     ui.put(rect, heading_fg);
+}
+
+fn about_iron_coder(ctx: &egui::Context, ui: &mut egui::Ui, is_shown: &mut bool) {
+    egui::Window::new("Iron Coder")
+        .open(is_shown)
+        .collapsible(false)
+        // .default_size(egui::vec2(512.0, 512.0))
+        .resizable(false)
+        .movable(false)
+        .show(ctx, |ui| {
+            ui.label(
+                "Iron Coder is an app for practicing embedded Rust development.\n\
+                With inspirations from Arduino and CircuitPython, Iron Coder aims\n\
+                to provide a fun environment for embedded development."
+            );
+            ui.label("Developed by Shulltronics");
+            ui.hyperlink_to("Iron Coder on Github", "https://github.com/shulltronics/iron-coder");
+    });
 }

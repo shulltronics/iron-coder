@@ -3,6 +3,8 @@
 use crate::board;
 use std::path::Path;
 
+use egui_extras::RetainedImage;
+
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
 enum Mode {
@@ -14,9 +16,8 @@ enum Mode {
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct IronCoderApp {
-    // Example stuff:
-    label: String,
-    // this how you opt-out of serialization of a member
+    #[serde(skip)]
+    board: board::Board,
     code: String,
     mode: Mode,
     #[serde(skip)]
@@ -25,14 +26,13 @@ pub struct IronCoderApp {
 
 impl Default for IronCoderApp {
     fn default() -> Self {
-
         // Populate the boards
         let boards_dir: &Path = Path::new("./boards");
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
 
         Self {
             // Example stuff:
-            label: "Iron Coder".to_owned(),
+            board: boards[0].clone(),
             code: "// welcome to Iron Coder!".to_string(),
             mode: Mode::Editor,
             boards: boards,
@@ -69,7 +69,7 @@ impl eframe::App for IronCoderApp {
     // Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
-            label: _,
+            board,
             code,
             mode,
             boards
@@ -151,14 +151,16 @@ impl eframe::App for IronCoderApp {
 
                 let central_frame = egui::Frame::default();
                 egui::CentralPanel::default().frame(central_frame).show(ctx, |ui| {
-                    ui.label("Board Selector");
-                    // for (idx, board) in boards.iter().enumerate() {
-                    //     println!("board {idx} name: {}", board.get_name());
-                    // }
-                    //ui.add(board::BoardSelectorWidget::new()).on_hover_text("hovered!");
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                        ui.label("\nBoard Selector\nCreate a new project with the given board\n");
+                    });
+                    // show all the boards
                     for (i, b) in boards.clone().into_iter().enumerate() {
                         if ui.add(b).on_hover_text(boards[i].get_name()).clicked() {
                             println!("board {} was clicked!", i);
+                            // TODO create a new project here
+                            *mode = Mode::Editor;
+                            *board = boards[i].clone();
                         }
                     }
                 });
@@ -172,14 +174,14 @@ impl eframe::App for IronCoderApp {
                         ui.heading("SPEC VIEWER");
                     });
 
-                    use egui_extras::RetainedImage;
-                    let image = RetainedImage::from_image_bytes("feather_rp2040",
-                        include_bytes!("../boards/RaspberryPi/Pico/pico.png")
-                    ).unwrap();
+                    // let image = RetainedImage::from_image_bytes("feather_rp2040",
+                    //     include_bytes!("../boards/RaspberryPi/Pico/pico.png")
+                    // ).unwrap();
+                    ui.add(board.clone());
 
                     // println!("available size is {:?}", ui.available_size());
                     // println!("image size is {:?}", image.size_vec2());
-                    image.show_max_size(ui, ui.available_size());
+                    // image.show_max_size(ui, ui.available_size());
                     //ui.add(egui::widgets::Image::new(image.texture_id(), image.size_vec2()));
 
 

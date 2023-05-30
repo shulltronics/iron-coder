@@ -125,7 +125,8 @@ impl Widget for Board {
                         // }
                     });
                 })
-                .response;
+                .response
+                .interact(egui::Sense::click());
 
             if ui.rect_contains_pointer(response.rect) {
                 // draw a bounding box

@@ -1,6 +1,15 @@
 use std::path::Path;
 use std::fs;
 use std::vec::Vec;
+
+use serde::Deserialize;
+
+// use image;
+use egui_extras::RetainedImage;
+
+use egui::{Ui, Response};
+use egui::widgets::Widget;
+
 // this function reads the boards directory and returns a Vec in RAM
 // the boards directory is structured as:
 // boards/
@@ -38,7 +47,6 @@ pub enum BoardStandards {
 }
 
 // The board struct defines a board type
-use serde::Deserialize;
 #[derive(Deserialize, Clone)]
 pub struct Board {
     name: String,
@@ -85,9 +93,6 @@ impl BoardSelectorWidget {
     }
 }
 
-use egui::{Ui, Response};
-use egui::widgets::Widget;
-// Trait implementation
 impl Widget for BoardSelectorWidget {
     
     fn ui(self, ui: &mut Ui) -> Response {
@@ -97,22 +102,35 @@ impl Widget for BoardSelectorWidget {
     }
 }
 
-
-use image;
-use egui_extras::RetainedImage;
-
 impl Widget for Board {
-
+    // How to display a board as a widget
     fn ui(self, ui: &mut Ui) -> Response {
         let mut response: egui::Response;
         if let Some(color_image) = self.pic {
-            // one way of doing it, can't get clicking to work but images scale nicely
-            let retained_image = RetainedImage::from_color_image(
-                "pic",
-                color_image,
-            );
-            response = retained_image.show_max_size(ui, egui::vec2(128.0, 128.0));
-            response.sense = egui::Sense::click();
+            
+            // Use a frame to display multiple widgets within our widget
+            response = egui::Frame::none()
+                .show(ui, |ui| {
+                    // center all text
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                        let retained_image = RetainedImage::from_color_image(
+                            "pic",
+                            color_image,
+                        );
+                        retained_image.show_max_size(ui, egui::vec2(128.0, 128.0));
+                        ui.label(self.name);
+                        ui.label(self.manufacturer);
+                        // if let Some(standard) = self.standard {
+                        //     ui.label(standard);
+                        // }
+                    });
+                })
+                .response;
+
+            if ui.rect_contains_pointer(response.rect) {
+                // draw a bounding box
+                ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
+            }
             
             //another way of doing it; clicking works but scaling is off
             // let th = ui.ctx().load_texture(

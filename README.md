@@ -5,7 +5,6 @@ An embedded Rust IDE with an emphasis on a fun and insightful coding experience
 
 ![Screenshot](screenshots/iron-coder.png)
 
-
 ## Concept
 Rust is a powerful and growing programming language. With a focus on safety and performance, it is an evolution in the ecosystem of systems programming. This project has a few inspirations and goals:
 * Help me learn and hone skills in developing a professional application in Rust

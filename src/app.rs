@@ -233,6 +233,10 @@ impl eframe::App for IronCoderApp {
 fn setup_fonts_and_style(ctx: &egui::Context) {
 
     let mut fonts = egui::FontDefinitions::default();
+
+    /*
+     *  The below fonts are used for standard text
+     */
     // This font is used for the standard text
     fonts.font_data.insert(
         "roboto_mono_regular".to_owned(),
@@ -240,7 +244,17 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
             "../assets/fonts/Roboto_Mono/static/RobotoMono-Regular.ttf"
         )),
     );
-    // These fonts are used for the project logo
+    // An alternative font
+    fonts.font_data.insert(
+        "chintzy_cpu".to_owned(),
+        egui::FontData::from_static(include_bytes!(
+            "../assets/fonts/chintzycpu/chintzy.ttf"
+        )),
+    );
+
+    /*
+     *  The below fonts are used for the project logo
+     */
     fonts.font_data.insert(
         "platinum_sign_under".to_owned(),    // serves as the unique font identifier?
         egui::FontData::from_static(include_bytes!(
@@ -253,6 +267,10 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
             "../assets/fonts/platinum-sign/Platinum-Sign-Over.ttf"
         )),
     );
+
+    /*
+     *  Now link "font family" names to the fonts for use in widgets
+     */
     // create a new font family called "heading_fonts"
     fonts.families.insert(
         egui::FontFamily::Name("HeadingBackground".into()),
@@ -262,12 +280,13 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         egui::FontFamily::Name("HeadingForeground".into()),
         vec!(String::from("platinum_sign_over"))
     );
-    //   example of how to install font to an existing style 
+
+    // example of how to install font to an existing style 
     fonts
         .families
         .entry(egui::FontFamily::Monospace)
         .or_default()
-        .insert(0, "roboto_mono_regular".to_owned());
+        .insert(0, "chintzy_cpu".to_owned());
 
     ctx.set_fonts(fonts);
 
@@ -291,8 +310,6 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         (Heading, FontId::new(14.0, FontFamily::Monospace)),
         (Name("HeadingBg".into()), FontId::new(18.0, FontFamily::Name("HeadingBackground".into()))),
         (Name("HeadingFg".into()), FontId::new(18.0, FontFamily::Name("HeadingForeground".into()))),
-        // example for creating a custom style
-        //(Name("Context".into()), FontId::new(23.0, FontFamily::Proportional)),
     ].into();
 
     // Make things look more square

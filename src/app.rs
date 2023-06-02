@@ -237,18 +237,22 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     /*
      *  The below fonts are used for standard text
      */
-    // This font is used for the standard text
     fonts.font_data.insert(
         "roboto_mono_regular".to_owned(),
         egui::FontData::from_static(include_bytes!(
             "../assets/fonts/Roboto_Mono/static/RobotoMono-Regular.ttf"
         )),
     );
-    // An alternative font
     fonts.font_data.insert(
         "chintzy_cpu".to_owned(),
         egui::FontData::from_static(include_bytes!(
             "../assets/fonts/chintzycpu/chintzy.ttf"
+        )),
+    );
+    fonts.font_data.insert(
+        "vcr_osd_mono".to_owned(),
+        egui::FontData::from_static(include_bytes!(
+            "../assets/fonts/vcr_osd_mono/VCR_OSD_MONO_1.001.ttf"
         )),
     );
 
@@ -286,7 +290,7 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         .families
         .entry(egui::FontFamily::Monospace)
         .or_default()
-        .insert(0, "chintzy_cpu".to_owned());
+        .insert(0, "vcr_osd_mono".to_owned());
 
     ctx.set_fonts(fonts);
 
@@ -340,9 +344,9 @@ fn pretty_header(ui: &mut egui::Ui, text: &str) {
 fn about_iron_coder(ctx: &egui::Context, ui: &mut egui::Ui, is_shown: &mut bool) {
     egui::Window::new("Iron Coder")
         .open(is_shown)
-        .collapsible(false)
-        // .default_size(egui::vec2(512.0, 512.0))
-        .resizable(false)
+        .collapsible(true)
+        .default_size(egui::vec2(512.0, 512.0))
+        .resizable(true)
         .movable(false)
         .show(ctx, |ui| {
             ui.label(

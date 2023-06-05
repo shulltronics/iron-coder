@@ -204,12 +204,7 @@ impl eframe::App for IronCoderApp {
 
                 // Editor panel
                 egui::CentralPanel::default().frame(egui::Frame::default()).show(ctx, |ui| {
-                    // Try adding a top panel to the centralpanel
-                    // TODO - why doesn't it push down the TextEdit?
-                    // egui::TopBottomPanel::top("editor_control_panel").show(ctx, |ui| {
-                    //     ui.label("test");
-                    // });
-                    ui.add(code_editor.clone());
+                    code_editor.display(ctx, ui);
                 });
 
             },

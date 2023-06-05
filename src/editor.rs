@@ -7,43 +7,118 @@ use std::string::String;
 use serde;
 use egui::Ui;
 use egui::containers::scroll_area::ScrollArea;
+use egui::text::LayoutJob;
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+use syntect::easy::HighlightLines;
+use syntect::parsing::SyntaxSet;
+use syntect::highlighting::{ThemeSet, Style, FontStyle};
+use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
+
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct CodeEditor {
     code: String,
+    #[serde(skip)]
+    ps: SyntaxSet,
+    #[serde(skip)]
+    ts: ThemeSet,
 }
 
 impl Default for CodeEditor {
     fn default() -> Self {
         Self {
-            code: "// welcome to Iron Coder!".to_string()
+            code: "// welcome to Iron Coder!".to_string(),
+            ps: SyntaxSet::load_defaults_newlines(),
+            ts: ThemeSet::load_defaults(),
         }
     }
 }
 
 impl CodeEditor {
+
     // I would honestly prefer to implement the CodeEditor display
     // via the Widget trait (see below -- commented out). But I was
     // fighting the borrow checker too much. This seems to work.
-    pub fn display(&mut self, ctx: &egui::Context, ui: &mut Ui) {
-        let CodeEditor { code } = self;
-        // control pane for editor actions
-        egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
-            ui.label("TODO -- editor control pane");
-        });
 
-        ui.add(
-            egui::TextEdit::multiline(code)
-                .font(egui::TextStyle::Monospace) // for cursor height
-                .code_editor()
-                .desired_rows(10)
-                .lock_focus(true)
-                .desired_width(f32::INFINITY)
-                .frame(false),
-                // .layouter(&mut layouter),
-        );
+    // TODO -- Lots of optimizations (and opportunities for benchmarking)
+    // regarding the syntax highlighting, as well as error checking and 
+    // bug fixes
+
+    pub fn display(&mut self, ctx: &egui::Context, ui: &mut Ui) {
+        // control pane for editor actions
+        // egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
+        //     ui.label("TODO -- editor control pane");
+        // });
+
+        // Destructure, and do the highlighting
+        let CodeEditor { code, ps, ts } = self;
+        let _code = code.clone();
+        let text = _code.as_str();
+
+        if let Some(syntax) = ps.find_syntax_by_extension("rs") {
+
+            let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+
+            use egui::text::{LayoutSection, TextFormat};
+
+            let mut layouter = |ui: &egui::Ui, string: &str, _wrap_width: f32| {
+                let mut job = LayoutJob {
+                    text: text.into(),
+                    ..Default::default()
+                };
+        
+                for line in LinesWithEndings::from(text) {
+                    for (style, range) in h.highlight_line(line, ps).ok().unwrap() {
+                        let fg = style.foreground;
+                        let text_color = egui::Color32::from_rgb(fg.r, fg.g, fg.b);
+                        let italics = style.font_style.contains(FontStyle::ITALIC);
+                        let underline = style.font_style.contains(FontStyle::ITALIC);
+                        let underline = if underline {
+                            egui::Stroke::new(1.0, text_color)
+                        } else {
+                            egui::Stroke::NONE
+                        };
+                        job.sections.push(LayoutSection {
+                            leading_space: 0.0,
+                            byte_range: as_byte_range(text, range),
+                            format: TextFormat {
+                                font_id: egui::FontId::monospace(12.0),
+                                color: text_color,
+                                italics,
+                                underline,
+                                ..Default::default()
+                            },
+                        });
+                    }
+                }
+                // layout_job.wrap.max_width = wrap_width; // no wrapping
+                ui.fonts(|f| f.layout_job(job))
+            };
+
+            ui.add(
+                egui::TextEdit::multiline(code)
+                    .font(egui::TextStyle::Monospace) // for cursor height
+                    .code_editor()
+                    .desired_rows(10)
+                    .lock_focus(true)
+                    .desired_width(f32::INFINITY)
+                    .frame(false)
+                    .layouter(&mut layouter),
+            );
+
+        } else {
+            return;
+        }
     }
 
+}
+
+fn as_byte_range(whole: &str, range: &str) -> std::ops::Range<usize> {
+    let whole_start = whole.as_ptr() as usize;
+    let range_start = range.as_ptr() as usize;
+    assert!(whole_start <= range_start);
+    assert!(range_start + range.len() <= whole_start + whole.len());
+    let offset = range_start - whole_start;
+    offset..(offset + range.len())
 }
 
 // impl Widget for CodeEditor {

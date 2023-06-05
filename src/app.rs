@@ -20,7 +20,8 @@ pub struct IronCoderApp {
     #[serde(skip)]
     board: board::Board,
     display_info: bool,
-    code_editor: editor::CodeEditor,
+    #[serde(skip)]                      // in the future this will be ok because
+    code_editor: editor::CodeEditor,    // we'll load to and from disk on power cycle
     mode: Mode,
     #[serde(skip)]
     boards: Vec<board::Board>,

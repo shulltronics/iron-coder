@@ -1,9 +1,10 @@
 //! Iron Coder is an app for developing embedded firmware in Rust
-
-use crate::board;
 use std::path::Path;
 
-use egui_extras::RetainedImage;
+use crate::board;
+use crate::editor;
+
+// use egui_extras::RetainedImage;
 
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -19,7 +20,7 @@ pub struct IronCoderApp {
     #[serde(skip)]
     board: board::Board,
     display_info: bool,
-    code: String,
+    code_editor: editor::CodeEditor,
     mode: Mode,
     #[serde(skip)]
     boards: Vec<board::Board>,
@@ -35,7 +36,7 @@ impl Default for IronCoderApp {
             // Example stuff:
             board: boards[0].clone(),
             display_info: false,
-            code: "// welcome to Iron Coder!".to_string(),
+            code_editor: editor::CodeEditor::default(),
             mode: Mode::Editor,
             boards: boards,
         }
@@ -73,7 +74,7 @@ impl eframe::App for IronCoderApp {
         let Self {
             board,
             display_info,
-            code,
+            code_editor,
             mode,
             boards
         } = self;
@@ -120,7 +121,7 @@ impl eframe::App for IronCoderApp {
                     }
                 });
 
-                if (*display_info) {
+                if *display_info {
                     about_iron_coder(ctx, ui, display_info);
                 }
 
@@ -168,15 +169,13 @@ impl eframe::App for IronCoderApp {
 
             // Editor mode is the main mode for editing and building code
             Mode::Editor => {
+                // Spec Viewer panel
                 egui::SidePanel::right("side_panel").show(ctx, |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                         // pretty_header(ui, "SPEC VIEWER");
                         ui.heading("SPEC VIEWER");
                     });
 
-                    // let image = RetainedImage::from_image_bytes("feather_rp2040",
-                    //     include_bytes!("../boards/RaspberryPi/Pico/pico.png")
-                    // ).unwrap();
                     ui.add(board.clone());
 
                     // println!("available size is {:?}", ui.available_size());
@@ -203,25 +202,14 @@ impl eframe::App for IronCoderApp {
                     });
                 });
 
-                let central_frame = egui::Frame::default();
-                egui::CentralPanel::default().frame(central_frame).show(ctx, |ui| {
-                    // The central panel the region left after adding TopPanel's and SidePanel's
-                    // ui.heading("eframe template");
+                // Editor panel
+                egui::CentralPanel::default().frame(egui::Frame::default()).show(ctx, |ui| {
                     // Try adding a top panel to the centralpanel
                     // TODO - why doesn't it push down the TextEdit?
                     // egui::TopBottomPanel::top("editor_control_panel").show(ctx, |ui| {
                     //     ui.label("test");
                     // });
-                    ui.add(
-                        egui::TextEdit::multiline(code)
-                            .font(egui::TextStyle::Monospace) // for cursor height
-                            .code_editor()
-                            .desired_rows(10)
-                            .lock_focus(true)
-                            .desired_width(f32::INFINITY)
-                            .frame(false),
-                            // .layouter(&mut layouter),
-                    );
+                    ui.add(code_editor.clone());
                 });
 
             },

@@ -85,22 +85,24 @@ impl Board {
     }
 }
 
-pub struct BoardSelectorWidget;
+// I might want to use this idea in the future:
 
-impl BoardSelectorWidget {
-    pub fn new() -> BoardSelectorWidget {
-        return Self;
-    }
-}
+// pub struct BoardSelectorWidget;
 
-impl Widget for BoardSelectorWidget {
+// impl BoardSelectorWidget {
+//     pub fn new() -> BoardSelectorWidget {
+//         return Self;
+//     }
+// }
+
+// impl Widget for BoardSelectorWidget {
     
-    fn ui(self, ui: &mut Ui) -> Response {
-        let response = ui.allocate_response(egui::vec2(100.0, 200.0), egui::Sense::click());
-        ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
-        return response;
-    }
-}
+//     fn ui(self, ui: &mut Ui) -> Response {
+//         let response = ui.allocate_response(egui::vec2(100.0, 200.0), egui::Sense::click());
+//         ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
+//         return response;
+//     }
+// }
 
 impl Widget for Board {
     // How to display a board as a widget

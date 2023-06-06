@@ -26,7 +26,7 @@ pub struct CodeEditor {
 impl Default for CodeEditor {
     fn default() -> Self {
         Self {
-            code: "// welcome to Iron Coder!".to_string(),
+            code: "// welcome to Iron Coder!\n".to_string(),
             ps: SyntaxSet::load_defaults_newlines(),
             ts: ThemeSet::load_defaults(),
         }
@@ -35,12 +35,10 @@ impl Default for CodeEditor {
 
 impl CodeEditor {
 
-    fn highlight(&mut self, code: &str, language: &str) -> LayoutJob {
+    fn highlight(&mut self, text: &str, language: &str) -> LayoutJob {
 
         // Destructure, and do the highlighting
         let CodeEditor { code, ps, ts } = self;
-        let _code = code.clone();
-        let text = _code.as_str();
 
         let syntax = ps.find_syntax_by_extension(language).unwrap();
 
@@ -49,7 +47,7 @@ impl CodeEditor {
         use egui::text::{LayoutSection, TextFormat};
 
         let mut job = LayoutJob {
-            text: text.into(),
+            text: text.to_string(),
             ..Default::default()
         };
 
@@ -97,19 +95,19 @@ impl CodeEditor {
 
         // Destructure, and do the highlighting
         let CodeEditor { code, ps, ts } = self;
-        let _code = code.clone();
-        let text = _code.as_str();
+        // let _code = code.clone();
+        // let mut text = _code.as_str();
 
         let mut layouter = |ui: &egui::Ui, string: &str, _wrap_width: f32| {
-            let layout_job = highlight(ctx, text, "rs");
+            let layout_job = highlight(ctx, string, "rs");
             ui.fonts(|f| f.layout_job(layout_job))
         };
 
         ui.add(
             egui::TextEdit::multiline(code)
-                .font(egui::TextStyle::Monospace) // for cursor height
+                .font(egui::TextStyle::Monospace)
                 .code_editor()
-                .desired_rows(10)
+                .desired_rows(1)
                 .lock_focus(true)
                 .desired_width(f32::INFINITY)
                 .frame(false)

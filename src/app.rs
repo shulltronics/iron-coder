@@ -206,9 +206,13 @@ impl eframe::App for IronCoderApp {
                 });
 
                 // Editor panel
-                egui::CentralPanel::default().frame(egui::Frame::default()).show(ctx, |ui| {
+                // egui::CentralPanel::default().frame(egui::Frame::default()).show(ctx, |ui| {
+                //     code_editor.display(ctx, ui);
+                // });
+                egui::Area::new("editor area").show(ctx, |ui| {
                     code_editor.display(ctx, ui);
                 });
+
 
             },
         }

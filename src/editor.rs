@@ -121,16 +121,19 @@ impl CodeEditor {
             ui.fonts(|f| f.layout_job(layout_job))
         };
 
-        ui.add(
-            egui::TextEdit::multiline(code)
-                .font(egui::TextStyle::Monospace)
-                .code_editor()
-                .desired_rows(1)
-                .lock_focus(true)
-                .desired_width(f32::INFINITY)
-                .frame(false)
-                .layouter(&mut layouter),
-        );
+        egui::CentralPanel::default().frame(egui::Frame::default()).show(ctx, |ui| {
+            egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
+                ui.add(
+                    egui::TextEdit::multiline(code)
+                        .font(egui::TextStyle::Monospace)
+                        .code_editor()
+                        .lock_focus(true)
+                        .desired_width(f32::INFINITY)
+                        .frame(false)
+                        .layouter(&mut layouter),
+                );
+            });
+        });
 
     }
 

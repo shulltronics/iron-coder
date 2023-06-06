@@ -9,12 +9,12 @@
 use std::string::String;
 use serde;
 use egui::Ui;
-use egui::containers::scroll_area::ScrollArea;
+// use egui::containers::scroll_area::ScrollArea;
 use egui::text::LayoutJob;
 
 use syntect::easy::HighlightLines;
 use syntect::parsing::SyntaxSet;
-use syntect::highlighting::{ThemeSet, Style, FontStyle};
+use syntect::highlighting::{ThemeSet, FontStyle};
 use syntect::util::LinesWithEndings;
 
 use std::path::Path;    //
@@ -55,7 +55,11 @@ impl CodeEditor {
     // only call this method if the code changes
     fn highlight(&mut self, text: &str, language: &str) -> LayoutJob {
         // Destructure, and do the highlighting
-        let CodeEditor { code, ps, ts } = self;
+        let CodeEditor {
+            code: _,        // unused here
+            ps,
+            ts
+        } = self;
 
         let syntax = ps.find_syntax_by_extension(language).unwrap();
 
@@ -99,18 +103,16 @@ impl CodeEditor {
     // I would prefer to implement the CodeEditor display
     // via the Widget trait I think (see below -- commented out).
     // But I was fighting the borrow checker too much. This seems to work.
-
-    // TODO -- Lots of optimizations (and opportunities for benchmarking)
+    // TODO -- optimizations (and opportunities for benchmarking) 
     // regarding the syntax highlighting, as well as error checking and 
     // bug fixes
-
     pub fn display(&mut self, ctx: &egui::Context, ui: &mut Ui) {
         // control pane for editor actions
         egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
             ui.label("TODO -- editor control pane");
         });
 
-        let CodeEditor { code, ps, ts } = self;
+        let CodeEditor { code, .. } = self;
 
         let mut layouter = |ui: &egui::Ui, string: &str, _wrap_width: f32| {
             // Call the highlight function (below), which is a memoized version

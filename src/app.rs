@@ -327,7 +327,7 @@ fn pretty_header(ui: &mut egui::Ui, text: &str) {
     ui.put(rect, heading_fg);
 }
 
-fn about_iron_coder(ctx: &egui::Context, ui: &mut egui::Ui, is_shown: &mut bool) {
+fn about_iron_coder(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool) {
     egui::Window::new("Iron Coder")
         .open(is_shown)
         .collapsible(true)

@@ -121,8 +121,11 @@ impl CodeEditor {
             ui.fonts(|f| f.layout_job(layout_job))
         };
 
-        egui::CentralPanel::default().frame(egui::Frame::default()).show(ctx, |ui| {
+        let frame = egui::Frame::canvas(&ctx.style());
+        egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
+            // ui.set_style(ui.ctx().style());
             egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
+                // ui.style().code_bg_color = egui::Color32::RED;
                 ui.add(
                     egui::TextEdit::multiline(code)
                         .font(egui::TextStyle::Monospace)

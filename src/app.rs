@@ -280,7 +280,7 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         .families
         .entry(egui::FontFamily::Monospace)
         .or_default()
-        .insert(0, "vcr_osd_mono".to_owned());
+        .insert(0, "roboto_mono_regular".to_owned());
 
     ctx.set_fonts(fonts);
 
@@ -309,7 +309,11 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     // Make things look more square
     style.visuals.menu_rounding   = egui::Rounding::none();
     style.visuals.window_rounding = egui::Rounding::none();
+    // change width of scroll bar
+    style.spacing.scroll_bar_width = 6.0;
+    style.spacing.scroll_bar_inner_margin = 6.0;    // this keeps some space
 
+    println!("{:#?}", style);
     ctx.set_style(style);
 }
 

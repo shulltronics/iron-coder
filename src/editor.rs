@@ -36,7 +36,6 @@ impl Default for CodeEditor {
 impl CodeEditor {
 
     fn highlight(&mut self, text: &str, language: &str) -> LayoutJob {
-
         // Destructure, and do the highlighting
         let CodeEditor { code, ps, ts } = self;
 
@@ -89,16 +88,15 @@ impl CodeEditor {
 
     pub fn display(&mut self, ctx: &egui::Context, ui: &mut Ui) {
         // control pane for editor actions
-        // egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
-        //     ui.label("TODO -- editor control pane");
-        // });
+        egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
+            ui.label("TODO -- editor control pane");
+        });
 
-        // Destructure, and do the highlighting
         let CodeEditor { code, ps, ts } = self;
-        // let _code = code.clone();
-        // let mut text = _code.as_str();
 
         let mut layouter = |ui: &egui::Ui, string: &str, _wrap_width: f32| {
+            // Call the highlight function (below), which is a memoized version
+            // of this struct's highlight method
             let layout_job = highlight(ctx, string, "rs");
             ui.fonts(|f| f.layout_job(layout_job))
         };
@@ -144,7 +142,6 @@ pub fn highlight(ctx: &egui::Context, code: &str, language: &str) -> LayoutJob {
             .get((code, language))
     })
 }
-
 
 // impl Widget for CodeEditor {
 //     fn ui(&mut self, ui: &mut Ui) -> Response {

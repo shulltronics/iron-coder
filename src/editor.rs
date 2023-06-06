@@ -17,9 +17,12 @@ use syntect::parsing::SyntaxSet;
 use syntect::highlighting::{ThemeSet, FontStyle};
 use syntect::util::LinesWithEndings;
 
-use std::path::Path;    //
-use std::fs;            // for reading code to and from disk
-use std::io::Read;      //
+use std::path::Path;        //
+use std::fs;                // for reading code to and from disk
+use std::io::{Read, Write}; //
+
+// for invoking external programs
+use std::process::Command;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct CodeEditor {
@@ -48,6 +51,19 @@ impl CodeEditor {
         code.clear();
         fs::File::open(file_path)?.read_to_string(code)?;
         Ok(())
+    }
+
+    pub fn build_code(&self) {
+        println!("Building code...");
+        if let Ok(cargo_v) = Command::new("cargo")
+                                     .args(["version"])
+                                     .output()
+        {
+            // println!("cargo version is: {:?}", cargo_v.stdout);
+            std::io::stdout().write_all(&cargo_v.stdout).unwrap();
+        } else {
+            println!("error executing cargo command!");
+        }
     }
 
     // This method computes the syntax highlighting.
@@ -109,7 +125,10 @@ impl CodeEditor {
     pub fn display(&mut self, ctx: &egui::Context, _ui: &mut Ui) {
         // control pane for editor actions
         egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
-            ui.label("TODO -- editor control pane");
+            // Buttons for various code actions, like compilation
+            if ui.button("BUILD").clicked() {
+                self.build_code();
+            };
         });
 
         let CodeEditor { code, .. } = self;

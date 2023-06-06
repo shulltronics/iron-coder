@@ -2,6 +2,9 @@
 // The namesake struct CodeEditor contains the state of the editor,
 // which includes:
 // * multiple tabs of source files
+//
+// most of the code for syntaxt highlighting was adapted from the code_editor of
+// the egui demo app: https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/syntax_highlighting.rs
 
 use std::string::String;
 use serde;
@@ -12,7 +15,11 @@ use egui::text::LayoutJob;
 use syntect::easy::HighlightLines;
 use syntect::parsing::SyntaxSet;
 use syntect::highlighting::{ThemeSet, Style, FontStyle};
-use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
+use syntect::util::LinesWithEndings;
+
+use std::path::Path;    //
+use std::fs;            // for reading code to and from disk
+use std::io::Read;      //
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct CodeEditor {
@@ -35,6 +42,17 @@ impl Default for CodeEditor {
 
 impl CodeEditor {
 
+    // Load some code from a path
+    pub fn load_from_file(&mut self, file_path: &Path) -> std::io::Result<()> {
+        let CodeEditor { code, .. } = self;
+        code.clear();
+        fs::File::open(file_path)?.read_to_string(code)?;
+        Ok(())
+    }
+
+    // This method computes the syntax highlighting.
+    // The module function `highlight` caches the result and should
+    // only call this method if the code changes
     fn highlight(&mut self, text: &str, language: &str) -> LayoutJob {
         // Destructure, and do the highlighting
         let CodeEditor { code, ps, ts } = self;
@@ -128,6 +146,7 @@ fn as_byte_range(whole: &str, range: &str) -> std::ops::Range<usize> {
 
 pub fn highlight(ctx: &egui::Context, code: &str, language: &str) -> LayoutJob {
     // Implement this trait for the CodeEditor struct
+    // should this be moved outside of the function?
     impl egui::util::cache::ComputerMut<(&str, &str), LayoutJob> for CodeEditor {
         fn compute(&mut self, (code, lang): (&str, &str)) -> LayoutJob {
             self.highlight(code, lang)

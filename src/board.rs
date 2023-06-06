@@ -4,7 +4,6 @@ use std::vec::Vec;
 
 use serde::Deserialize;
 
-// use image;
 use egui_extras::RetainedImage;
 
 use egui::{Ui, Response};
@@ -44,6 +43,19 @@ pub enum BoardStandards {
     RaspberryPi,
     ThingPlus,
     MicroMod,
+}
+
+use std::fmt;
+impl fmt::Display for BoardStandards {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            BoardStandards::Feather => write!(f, "Feather"),
+            BoardStandards::Arduino => write!(f, "Arduino"),
+            BoardStandards::RaspberryPi => write!(f, "RaspberryPi"),
+            BoardStandards::ThingPlus => write!(f, "ThingPlus"),
+            BoardStandards::MicroMod => write!(f, "MicroMod"),
+        }
+    }
 }
 
 // The board struct defines a board type
@@ -122,9 +134,9 @@ impl Widget for Board {
                         retained_image.show_max_size(ui, egui::vec2(128.0, 128.0));
                         ui.label(self.name);
                         ui.label(self.manufacturer);
-                        // if let Some(standard) = self.standard {
-                        //     ui.label(standard);
-                        // }
+                        if let Some(standard) = self.standard {
+                            ui.label(standard.to_string());
+                        }
                     });
                 })
                 .response

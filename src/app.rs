@@ -4,8 +4,6 @@ use std::path::Path;
 use crate::board;
 use crate::editor;
 
-// use egui_extras::RetainedImage;
-
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
 enum Mode {
@@ -20,8 +18,8 @@ pub struct IronCoderApp {
     #[serde(skip)]
     board: board::Board,
     display_info: bool,
-    #[serde(skip)]                      // in the future this will be ok because
-    code_editor: editor::CodeEditor,    // we'll load to and from disk on power cycle
+    #[serde(skip)]                      // serde isn't crutial b.e. in the future
+    code_editor: editor::CodeEditor,    // we will load to and from disk on power cycle
     mode: Mode,
     #[serde(skip)]
     boards: Vec<board::Board>,
@@ -33,11 +31,15 @@ impl Default for IronCoderApp {
         let boards_dir: &Path = Path::new("./boards");
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
 
+        let mut editor = editor::CodeEditor::default();
+        let code_path: &Path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/main.rs");
+        editor.load_from_file(code_path).unwrap();
+
         Self {
             // Example stuff:
             board: boards[0].clone(),
             display_info: false,
-            code_editor: editor::CodeEditor::default(),
+            code_editor: editor,
             mode: Mode::Editor,
             boards: boards,
         }

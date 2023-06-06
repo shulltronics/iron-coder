@@ -18,6 +18,7 @@ pub struct IronCoderApp {
     #[serde(skip)]
     board: board::Board,
     display_info: bool,
+    display_settings: bool,
     #[serde(skip)]                      // serde isn't crutial b.e. in the future
     code_editor: editor::CodeEditor,    // we will load to and from disk on power cycle
     mode: Mode,
@@ -39,6 +40,7 @@ impl Default for IronCoderApp {
             // Example stuff:
             board: boards[0].clone(),
             display_info: false,
+            display_settings: false,
             code_editor: editor,
             mode: Mode::Editor,
             boards: boards,
@@ -77,6 +79,7 @@ impl eframe::App for IronCoderApp {
         let Self {
             board,
             display_info,
+            display_settings,
             code_editor,
             mode,
             boards
@@ -114,7 +117,7 @@ impl eframe::App for IronCoderApp {
                         }
                     }
                     if ui.button("SETTINGS").clicked() {
-                        println!("button clicked!");
+                        *display_settings = !*display_settings;
                     }
                     if ui.button("ABOUT").clicked() {
                         *display_info = !*display_info;
@@ -124,8 +127,12 @@ impl eframe::App for IronCoderApp {
                     }
                 });
 
+                // Determine if we need to display any overlay windows
                 if *display_info {
                     about_iron_coder(ctx, ui, display_info);
+                }
+                if *display_settings {
+                    settings(ctx, ui, display_settings);
                 }
 
                 // add the logo, centered
@@ -312,6 +319,9 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     // change width of scroll bar
     style.spacing.scroll_bar_width = 6.0;
     style.spacing.scroll_bar_inner_margin = 6.0;    // this keeps some space
+    // Remove shadows
+    style.visuals.window_shadow = eframe::epaint::Shadow::NONE;
+    style.visuals.popup_shadow = eframe::epaint::Shadow::NONE;
 
     println!("{:#?}", style);
     ctx.set_style(style);
@@ -341,7 +351,7 @@ fn about_iron_coder(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool
         .collapsible(true)
         .default_size(egui::vec2(512.0, 512.0))
         .resizable(true)
-        .movable(false)
+        .movable(true)
         .show(ctx, |ui| {
             ui.label(
                 "Iron Coder is an app for practicing embedded Rust development.\n\
@@ -350,5 +360,27 @@ fn about_iron_coder(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool
             );
             ui.label("Developed by Shulltronics");
             ui.hyperlink_to("Iron Coder on Github", "https://github.com/shulltronics/iron-coder");
+    });
+}
+
+// This function opens a window to change settings of the app
+fn settings(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool) {
+    egui::Window::new("App Settings")
+        .open(is_shown)
+        .collapsible(true)
+        .default_size(egui::vec2(512.0, 512.0))
+        .resizable(true)
+        .movable(true)
+        .show(ctx, |ui| {
+            let mut visuals = ctx.style().visuals.clone();
+            ui.checkbox(&mut visuals.dark_mode, "Dark Mode");
+            if visuals.dark_mode {
+                visuals.extreme_bg_color = egui::Color32::BLACK;
+                visuals.panel_fill       = egui::Color32::BLACK;
+            } else {
+                visuals.extreme_bg_color = egui::Color32::WHITE;
+                visuals.panel_fill       = egui::Color32::WHITE;
+            }
+            ctx.set_visuals(visuals);
     });
 }

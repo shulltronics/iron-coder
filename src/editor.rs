@@ -106,7 +106,7 @@ impl CodeEditor {
     // TODO -- optimizations (and opportunities for benchmarking) 
     // regarding the syntax highlighting, as well as error checking and 
     // bug fixes
-    pub fn display(&mut self, ctx: &egui::Context, ui: &mut Ui) {
+    pub fn display(&mut self, ctx: &egui::Context, _ui: &mut Ui) {
         // control pane for editor actions
         egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
             ui.label("TODO -- editor control pane");

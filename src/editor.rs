@@ -17,19 +17,22 @@ use syntect::parsing::SyntaxSet;
 use syntect::highlighting::{ThemeSet, FontStyle};
 use syntect::util::LinesWithEndings;
 
-use std::path::Path;        //
-use std::fs;                // for reading code to and from disk
-use std::io::{Read, Write}; //
+// Imports for reading & writing to/from files and opening via Path
+use std::path::{Path, PathBuf};
+use std::fs;
+use std::io::{Read, Write, Seek};
 
 // for invoking external programs
 use std::process::Command;
 
-#[derive(serde::Deserialize, serde::Serialize)]
+// #[derive(serde::Deserialize, serde::Serialize)]
 pub struct CodeEditor {
     code: String,
-    #[serde(skip)]
+    path: Option<PathBuf>,
+    file: Option<fs::File>,
+    // #[serde(skip)]
     ps: SyntaxSet,
-    #[serde(skip)]
+    // #[serde(skip)]
     ts: ThemeSet,
 }
 
@@ -37,6 +40,8 @@ impl Default for CodeEditor {
     fn default() -> Self {
         Self {
             code: "// welcome to Iron Coder!\n".to_string(),
+            path: None,
+            file: None,
             ps: SyntaxSet::load_defaults_newlines(),
             ts: ThemeSet::load_defaults(),
         }
@@ -49,20 +54,60 @@ impl CodeEditor {
     pub fn load_from_file(&mut self, file_path: &Path) -> std::io::Result<()> {
         let CodeEditor { code, .. } = self;
         code.clear();
-        fs::File::open(file_path)?.read_to_string(code)?;
+        self.path = Some(file_path.canonicalize()?);
+        self.file = Some(
+            fs::OpenOptions::new()
+                            .read(true)
+                            .write(true)
+                            .open(file_path)?
+                        );
+        println!("{:?}", self.file);
+        if let Some(file) = &mut self.file {
+            file.read_to_string(code)?;
+        }
         Ok(())
     }
 
-    pub fn build_code(&self) {
-        println!("Building code...");
-        if let Ok(cargo_v) = Command::new("cargo")
-                                     .args(["version"])
-                                     .output()
-        {
+    pub fn save(&mut self) -> std::io::Result<()> {
+        if let Some(file) = &mut self.file {
+            file.rewind()?;
+            file.set_len(0)?;
+            file.write(self.code.as_bytes())?;
+            file.sync_all()?;
+        }
+        Ok(())
+    }
+
+    pub fn build_code(&mut self) {
+        println!("Saving code...");
+        // Save file first
+        match self.save() {
+            Ok(()) => (),
+            Err(e) => println!("error saving file: {:?}", e),
+        }
+        // Make sure we have a valid path
+        println!("{:?}", &self.path);
+        let path = match &self.path {
+            Some(p) => {
+                let p = p.parent().unwrap().parent().unwrap().to_str().unwrap();
+                println!("{:?}", p);
+                p
+            }
+            None    => {
+                println!("no valid path for cargo build!");
+                return;
+            }
+        };
+        let args = ["-Z", "unstable-options", "-C", path, "build"];
+        // let args = ["version"];
+        let mut build_command = Command::new("cargo");
+        build_command.args(args);
+        if let Ok(output) = build_command.output() {
             // println!("cargo version is: {:?}", cargo_v.stdout);
-            std::io::stdout().write_all(&cargo_v.stdout).unwrap();
+            std::io::stdout().write_all(&output.stdout).unwrap();
+            std::io::stderr().write_all(&output.stderr).unwrap();
         } else {
-            println!("error executing cargo command!");
+            println!("error executing cargo build!");
         }
     }
 
@@ -72,9 +117,9 @@ impl CodeEditor {
     fn highlight(&mut self, text: &str, language: &str) -> LayoutJob {
         // Destructure, and do the highlighting
         let CodeEditor {
-            code: _,        // unused here
             ps,
-            ts
+            ts,
+            ..
         } = self;
 
         let syntax = ps.find_syntax_by_extension(language).unwrap();
@@ -125,10 +170,19 @@ impl CodeEditor {
     pub fn display(&mut self, ctx: &egui::Context, _ui: &mut Ui) {
         // control pane for editor actions
         egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
-            // Buttons for various code actions, like compilation
-            if ui.button("BUILD").clicked() {
-                self.build_code();
-            };
+            ui.horizontal(|ui| {
+                // Buttons for various code actions, like compilation
+                if ui.button("BUILD").clicked() {
+                    self.build_code();
+                };
+                if ui.button("LOAD").clicked() {
+                    println!("Todo -- load onto board based on bootloader/degubber type (uf2, etc)");
+                };
+            });
+        });
+
+        egui::TopBottomPanel::top("editor_tabs_pane").show(ctx, |ui| {
+            ui.label("tabs will go here...");
         });
 
         let CodeEditor { code, .. } = self;

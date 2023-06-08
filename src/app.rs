@@ -33,7 +33,7 @@ impl Default for IronCoderApp {
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
 
         let mut editor = editor::CodeEditor::default();
-        let code_path: &Path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/main.rs");
+        let code_path: &Path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/main.rs");
         editor.load_from_file(code_path).unwrap();
 
         Self {
@@ -323,7 +323,7 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     style.visuals.window_shadow = eframe::epaint::Shadow::NONE;
     style.visuals.popup_shadow = eframe::epaint::Shadow::NONE;
 
-    println!("{:#?}", style);
+    // println!("{:#?}", style);
     ctx.set_style(style);
 }
 

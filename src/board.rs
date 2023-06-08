@@ -23,6 +23,10 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
             let entry = entry.expect("error with entry");
             // if the entry is a directory, recursively go get the files
             if entry.file_type().expect("error parsing file type").is_dir() {
+                // don't recurse into the examples
+                if entry.path().ends_with("examples") {
+                    continue;
+                }
                 // println!("recursing.. {:?}", entry.path());
                 r.append(&mut get_boards(&entry.path()));
             // otherwise, if the entry is a file ending in "toml" try to parse it

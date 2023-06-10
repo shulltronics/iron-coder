@@ -66,8 +66,8 @@ impl fmt::Display for BoardStandards {
 #[derive(Deserialize, Clone)]
 pub struct Board {
     name: String,
-    standard: Option<BoardStandards>,
     manufacturer: String,
+    standard: Option<BoardStandards>,
     #[serde(skip)]
     pic: Option<egui::ColorImage>,
 }

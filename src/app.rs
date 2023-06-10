@@ -24,6 +24,8 @@ pub struct IronCoderApp {
     mode: Mode,
     #[serde(skip)]
     boards: Vec<board::Board>,
+    #[serde(skip)]
+    icons: Icons,
 }
 
 impl Default for IronCoderApp {
@@ -44,6 +46,7 @@ impl Default for IronCoderApp {
             code_editor: editor,
             mode: Mode::Editor,
             boards: boards,
+            icons: Icons::load(Path::new("assets/icons/pack/black/"))
         }
     }
 }
@@ -82,7 +85,8 @@ impl eframe::App for IronCoderApp {
             display_settings,
             code_editor,
             mode,
-            boards
+            boards,
+            icons,
         } = self;
 
         // The top panel containing menu items and logo will alway be present
@@ -125,6 +129,13 @@ impl eframe::App for IronCoderApp {
                     if ui.button("QUIT").clicked() {
                         _frame.close();
                     }
+                    let i = icons.icons.get("build_icon").unwrap().texture_id(ctx);
+                    let ib = egui::widgets::ImageButton::new(i, egui::Vec2::new(12.0, 12.0))
+                                                        .tint(egui::Color32::WHITE);
+                    // TODO: set tint to the appropriate value for the current colorscheme
+                    if ui.add(ib).clicked() {
+                        println!("TODO -- an icon was clicked!")
+                    };
                 });
 
                 // Determine if we need to display any overlay windows
@@ -325,6 +336,32 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
 
     // println!("{:#?}", style);
     ctx.set_style(style);
+}
+
+struct Icons {
+    icons: std::collections::HashMap<&'static str, egui_extras::RetainedImage>,
+}
+
+use image;
+impl Icons {
+    pub fn load(icon_path: &Path) -> Self {
+        let mut icon_map = std::collections::HashMap::new();
+        let p = icon_path.join("005b_35_w.gif");
+        println!("{:?}", p);
+        let image = image::io::Reader::open(p).unwrap().decode().unwrap();
+        let size = [image.width() as _, image.height() as _];
+        let image_buffer = image.to_rgba8();
+        let pixels = image_buffer.as_flat_samples();
+        let color_image = egui::ColorImage::from_rgba_unmultiplied(
+            size,
+            pixels.as_slice(),
+        );
+        icon_map.insert("build_icon", egui_extras::RetainedImage::from_color_image("build_icon", color_image));
+        
+        Self {
+            icons: icon_map,
+        }
+    }
 }
 
 fn pretty_header(ui: &mut egui::Ui, text: &str) {

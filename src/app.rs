@@ -93,49 +93,49 @@ impl eframe::App for IronCoderApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
-                // ui.spacing_mut().window_margin.left  = 24.0;
-                // ui.spacing_mut().window_margin.right = 24.0;
-                // ui.spacing_mut().menu_margin.left  = 24.0;
-                // ui.spacing_mut().menu_margin.right = 24.0;
-                //   example of how to create and display an image
-                //   TODO - figure out how to load from a file
-                // let texture: &egui::TextureHandle = &ui.ctx().load_texture(
-                //     "my-image",
-                //     egui::ColorImage::new([64, 16], egui::Color32::WHITE),
-                //     Default::default()
-                // );
-                // // Show the image:
-                // ui.image(texture, texture.size_vec2());
-
-                ui.menu_button("MENU", |ui| {
-                    if ui.button("SAVE").clicked() {
-                        println!("todo!");
-                    }
-                    if ui.button("OPEN").clicked() {
-                        println!("todo!");
-                    }
-                    if ui.button("BOARDS").clicked() {
-                        match mode {
-                            Mode::BoardSelector => *mode = Mode::Editor,
-                            Mode::Editor        => *mode = Mode::BoardSelector,
+                // Create a NOTHING Rect so we can track where the header is drawn
+                let mut r = egui::Rect::NOTHING;
+                let start_r = ui.available_size();
+                ui.centered_and_justified(|ui| {
+                    // This will store the Rect that the header was drawn to
+                    r = pretty_header(ui, "IRON CODER");
+                    // update the max value to be the original Ui size
+                    r.max.x = start_r.x;
+                    println!("{:?}", r);
+                });
+                // Now use that Rect to draw the menu icon at the proper place
+                ui.allocate_ui_at_rect(r, |ui| {
+                    let tid = icons.icons.get("menu_icon").unwrap().texture_id(ctx);
+                    ui.menu_image_button(tid, icons.size, |ui| {
+                        if ui.button("SAVE").clicked() {
+                            println!("todo!");
                         }
-                    }
-                    if ui.button("SETTINGS").clicked() {
-                        *display_settings = !*display_settings;
-                    }
-                    if ui.button("ABOUT").clicked() {
-                        *display_info = !*display_info;
-                    }
-                    if ui.button("QUIT").clicked() {
-                        _frame.close();
-                    }
-                    let i = icons.icons.get("build_icon").unwrap().texture_id(ctx);
-                    let ib = egui::widgets::ImageButton::new(i, egui::Vec2::new(12.0, 12.0))
-                                                        .tint(egui::Color32::WHITE);
-                    // TODO: set tint to the appropriate value for the current colorscheme
-                    if ui.add(ib).clicked() {
-                        println!("TODO -- an icon was clicked!")
-                    };
+                        if ui.button("OPEN").clicked() {
+                            println!("todo!");
+                        }
+                        if ui.button("BOARDS").clicked() {
+                            match mode {
+                                Mode::BoardSelector => *mode = Mode::Editor,
+                                Mode::Editor        => *mode = Mode::BoardSelector,
+                            }
+                        }
+                        if ui.button("SETTINGS").clicked() {
+                            *display_settings = !*display_settings;
+                        }
+                        if ui.button("ABOUT").clicked() {
+                            *display_info = !*display_info;
+                        }
+                        if ui.button("QUIT").clicked() {
+                            _frame.close();
+                        }
+                        let i = icons.icons.get("build_icon").unwrap().texture_id(ctx);
+                        let ib = egui::widgets::ImageButton::new(i, egui::Vec2::new(12.0, 12.0))
+                                                            .tint(egui::Color32::WHITE);
+                        // TODO: set tint to the appropriate value for the current colorscheme
+                        if ui.add(ib).clicked() {
+                            println!("TODO -- an icon was clicked!")
+                        };
+                    });
                 });
 
                 // Determine if we need to display any overlay windows
@@ -145,22 +145,6 @@ impl eframe::App for IronCoderApp {
                 if *display_settings {
                     settings(ctx, ui, display_settings);
                 }
-
-                // add the logo, centered
-                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    pretty_header(ui, "IRON CODER");
-                });
-                // TODO - Understand the layout better and get the alignments right
-                // ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    // ui.menu_button("MENU", |ui| {
-                    //     if ui.button("SETTINGS").clicked() {
-                    //         println!("button clicked!");
-                    //     }
-                    //     if ui.button("QUIT").clicked() {
-                    //         _frame.close();
-                    //     }
-                    // });
-                // });
 
             });
         });
@@ -339,6 +323,7 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
 }
 
 struct Icons {
+    size: egui::Vec2,
     icons: std::collections::HashMap<&'static str, egui_extras::RetainedImage>,
 }
 
@@ -347,7 +332,6 @@ impl Icons {
     pub fn load(icon_path: &Path) -> Self {
         let mut icon_map = std::collections::HashMap::new();
         let p = icon_path.join("005b_35_w.gif");
-        println!("{:?}", p);
         let image = image::io::Reader::open(p).unwrap().decode().unwrap();
         let size = [image.width() as _, image.height() as _];
         let image_buffer = image.to_rgba8();
@@ -358,21 +342,38 @@ impl Icons {
         );
         icon_map.insert("build_icon", egui_extras::RetainedImage::from_color_image("build_icon", color_image));
         
+        let p = icon_path.join("005b_44_w.gif");
+        let image = image::io::Reader::open(p).unwrap().decode().unwrap();
+        let size = [image.width() as _, image.height() as _];
+        let image_buffer = image.to_rgba8();
+        let pixels = image_buffer.as_flat_samples();
+        let color_image = egui::ColorImage::from_rgba_unmultiplied(
+            size,
+            pixels.as_slice(),
+        );
+        icon_map.insert("menu_icon", egui_extras::RetainedImage::from_color_image("build_icon", color_image));
+
         Self {
+            size: egui::Vec2::new(12.0, 12.0),
             icons: icon_map,
         }
     }
 }
 
-fn pretty_header(ui: &mut egui::Ui, text: &str) {
-    /* Displays a cool looking header in the Ui element,
-     *  utilizing our custom fonts */
+/* Displays a cool looking header in the Ui element, utilizing our custom fonts
+ * and returns the rect that was drawn to
+ */
+fn pretty_header(ui: &mut egui::Ui, text: &str) -> egui::Rect {
     use egui::{RichText, Label, Color32};
     // draw the background and get the rectangle we drew to
     let text_bg = RichText::new(text.to_uppercase())
         .text_style(egui::TextStyle::Name("HeadingBg".into()));
     let heading_bg = Label::new(text_bg);
-    let rect = ui.add(heading_bg).rect;
+    // expand the rectangle slightly to prevent the bug where the next
+    // font draw will wrap to a new line
+    let mut rect = ui.add(heading_bg).rect;
+    rect.min.x -= 1.0;
+    rect.max.x += 1.0;
     // put the overlay text
     let text_fg = RichText::new(text)
         .color(Color32::WHITE)
@@ -380,6 +381,7 @@ fn pretty_header(ui: &mut egui::Ui, text: &str) {
     let heading_fg = Label::new(text_fg);
     // let location = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::Vec2::ZERO);
     ui.put(rect, heading_fg);
+    return rect;
 }
 
 fn about_iron_coder(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool) {

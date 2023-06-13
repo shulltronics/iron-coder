@@ -1,6 +1,14 @@
 //! Iron Coder is an app for developing embedded firmware in Rust
-use std::path::Path;
 
+use std::path::Path;
+use std::collections::HashMap;
+
+// Imports for loading and saving images
+use image;
+use egui::ColorImage;
+use egui_extras::image::RetainedImage;
+
+// Separate modules
 use crate::board;
 use crate::editor;
 
@@ -25,28 +33,30 @@ pub struct IronCoderApp {
     #[serde(skip)]
     boards: Vec<board::Board>,
     #[serde(skip)]
-    icons: Icons,
+    icons: HashMap<&'static str, RetainedImage>,
 }
 
 impl Default for IronCoderApp {
     fn default() -> Self {
         // Populate the boards
-        let boards_dir: &Path = Path::new("./boards");
+        let boards_dir = Path::new("./boards");
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
 
         let mut editor = editor::CodeEditor::default();
-        let code_path: &Path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/main.rs");
+        let code_path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/main.rs");
         editor.load_from_file(code_path).unwrap();
 
+        let icons_dir = Path::new("assets/icons/pack/white/");
+        let icons = load_icons(icons_dir);
+
         Self {
-            // Example stuff:
             board: boards[0].clone(),
             display_info: false,
             display_settings: false,
             code_editor: editor,
             mode: Mode::Editor,
             boards: boards,
-            icons: Icons::load(Path::new("assets/icons/pack/white/"))
+            icons: icons,
         }
     }
 }
@@ -104,33 +114,62 @@ impl eframe::App for IronCoderApp {
                 });
                 // Now use that Rect to draw the menu icon at the proper place
                 ui.allocate_ui_at_rect(r, |ui| {
-                    let tid = icons.icons.get("menu_icon").unwrap().texture_id(ctx);
-                    ui.menu_image_button(tid, icons.size, |ui| {
-                        if ui.button("SAVE").clicked() {
+                    let tid = icons.get("menu_icon").unwrap().texture_id(ctx);
+                    ui.menu_image_button(tid, egui::Vec2::new(12.0, 12.0), |ui| {
+                        let ib = egui::widgets::Button::image_and_text(
+                            icons.get("save_icon").unwrap().texture_id(ctx),
+                            egui::Vec2::new(8.0, 8.0),
+                            "save"
+                        ).shortcut_text("ctrl+s");
+                        if ui.add(ib).clicked() {
                             println!("todo!");
                         }
-                        if ui.button("OPEN").clicked() {
+
+                        let ib = egui::widgets::Button::image_and_text(
+                            icons.get("folder_icon").unwrap().texture_id(ctx),
+                            egui::Vec2::new(8.0, 8.0),
+                            "open"
+                        ).shortcut_text("ctrl+o");
+                        if ui.add(ib).clicked() {
                             println!("todo!");
                         }
-                        if ui.button("BOARDS").clicked() {
+                        
+                        let ib = egui::widgets::Button::image_and_text(
+                            icons.get("boards_icon").unwrap().texture_id(ctx),
+                            egui::Vec2::new(8.0, 8.0),
+                            "boards"
+                        ).shortcut_text("ctrl+n");
+                        if ui.add(ib).clicked() {
                             match mode {
                                 Mode::BoardSelector => *mode = Mode::Editor,
                                 Mode::Editor        => *mode = Mode::BoardSelector,
                             }
                         }
-                        if ui.button("SETTINGS").clicked() {
+
+                        let ib = egui::widgets::Button::image_and_text(
+                            icons.get("settings_icon").unwrap().texture_id(ctx),
+                            egui::Vec2::new(8.0, 8.0),
+                            "setting"
+                        );
+                        if ui.add(ib).clicked() {
                             *display_settings = !*display_settings;
                         }
-                        if ui.button("ABOUT").clicked() {
+
+                        let ib = egui::widgets::Button::image_and_text(
+                            icons.get("about_icon").unwrap().texture_id(ctx),
+                            egui::Vec2::new(8.0, 8.0),
+                            "about"
+                        );
+                        if ui.add(ib).clicked() {
                             *display_info = !*display_info;
                         }
-                        let i = icons.icons.get("quit_icon").unwrap().texture_id(ctx);
+                   
                         let ib = egui::widgets::Button::image_and_text(
-                            i,
+                            icons.get("quit_icon").unwrap().texture_id(ctx),
                             egui::Vec2::new(8.0, 8.0),
                             "quit"
                         ).shortcut_text("ctrl+q");
-                        ;//.tint(egui::Color32::WHITE);
+                        //.tint(egui::Color32::WHITE);
                         // TODO: set tint to the appropriate value for the current colorscheme
                         if ui.add(ib).clicked() {
                             _frame.close();
@@ -322,54 +361,58 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     ctx.set_style(style);
 }
 
-struct Icons {
-    size: egui::Vec2,
-    icons: std::collections::HashMap<&'static str, egui_extras::RetainedImage>,
-}
+// This function returns a mapping of icon names to RetainedImages 
+fn load_icons(icon_path: &Path) -> HashMap<&'static str, RetainedImage> {
 
-use image;
-impl Icons {
-    pub fn load(icon_path: &Path) -> Self {
-        let mut icon_map = std::collections::HashMap::new();
-        
-        let p = icon_path.join("005b_35.gif");
-        let image = image::io::Reader::open(p).unwrap().decode().unwrap();
+    let mut icon_map = std::collections::HashMap::new();
+
+    let icon_names_and_files: [(&str, &str); 8] = [
+        ("settings_icon", "gear.png"),
+        ("boards_icon", "chip.png"),
+        ("about_icon", "005b_13.gif"),
+        ("folder_icon", "005b_43.gif"),
+        ("save_icon", "005b_23.gif"),
+        ("build_icon", "005b_35.gif"),
+        ("menu_icon", "005b_44.gif"),
+        ("quit_icon", "005b_75.gif"),
+    ];
+
+    for (icon_name, icon_file) in icon_names_and_files.into_iter() {
+        let p = icon_path.join(icon_file);
+        // attempt to open the icon image file
+        let im_file = match image::io::Reader::open(p) {
+            Err(e) => {
+                println!("error reading icon file {:?}: {:?}", icon_file, e);
+                break;
+            },
+            Ok(im_file) => {
+                im_file
+            }
+        };
+        // attempt to decode it
+        let image = match im_file.decode() {
+            Err(e) => {
+                println!("error decoding icon file {:?}: {:?}", icon_file, e);
+                break;
+            },
+            Ok(image) => {
+                image
+            }
+        };
         let size = [image.width() as _, image.height() as _];
         let image_buffer = image.to_rgba8();
-        let pixels = image_buffer.as_flat_samples();
-        let color_image = egui::ColorImage::from_rgba_unmultiplied(
+        let image_samples = image_buffer.as_flat_samples();
+        let color_image = ColorImage::from_rgba_unmultiplied(
             size,
-            pixels.as_slice(),
+            image_samples.as_slice(),
         );
-        icon_map.insert("build_icon", egui_extras::RetainedImage::from_color_image("build_icon", color_image));
-        
-        let p = icon_path.join("005b_44.gif");
-        let image = image::io::Reader::open(p).unwrap().decode().unwrap();
-        let size = [image.width() as _, image.height() as _];
-        let image_buffer = image.to_rgba8();
-        let pixels = image_buffer.as_flat_samples();
-        let color_image = egui::ColorImage::from_rgba_unmultiplied(
-            size,
-            pixels.as_slice(),
+        let retained_image = RetainedImage::from_color_image(
+            icon_name,
+            color_image,
         );
-        icon_map.insert("menu_icon", egui_extras::RetainedImage::from_color_image("menu_icon", color_image));
-
-        let p = icon_path.join("005b_75.gif");
-        let image = image::io::Reader::open(p).unwrap().decode().unwrap();
-        let size = [image.width() as _, image.height() as _];
-        let image_buffer = image.to_rgba8();
-        let pixels = image_buffer.as_flat_samples();
-        let color_image = egui::ColorImage::from_rgba_unmultiplied(
-            size,
-            pixels.as_slice(),
-        );
-        icon_map.insert("quit_icon", egui_extras::RetainedImage::from_color_image("quit_icon", color_image));
-
-        Self {
-            size: egui::Vec2::new(12.0, 12.0),
-            icons: icon_map,
-        }
+        icon_map.insert(icon_name, retained_image);
     }
+    return icon_map;
 }
 
 /* Displays a cool looking header in the Ui element, utilizing our custom fonts

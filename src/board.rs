@@ -154,7 +154,11 @@ impl Widget for Board {
                             pixels.as_slice(),
                         );
                         let ri = egui_extras::RetainedImage::from_color_image("logo", color_image);
-                        ui.image(ri.texture_id(ui.ctx()), egui::Vec2::new(47.0, 16.0));
+                        let image = egui::widgets::Image::new(
+                            ri.texture_id(ui.ctx()),
+                            egui::Vec2::new(47.0, 16.0)
+                        ).tint(egui::Color32::GREEN);   // TODO: replace with a val from current colorscheme
+                        ui.add(image);
                     });
                     ui.horizontal(|ui| {
                         ui.label("Ecosystem: ");

@@ -1,3 +1,7 @@
 
 name = "Feather RP2040"
 manufacturer = "Adafruit"
+standard = "Feather"
+cpu = "Cortex-M0"
+ram = 264
+flash = 8000

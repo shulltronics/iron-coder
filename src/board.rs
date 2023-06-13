@@ -70,6 +70,9 @@ pub struct Board {
     standard: Option<BoardStandards>,
     #[serde(skip)]
     pic: Option<egui::ColorImage>,
+    cpu: Option<String>,
+    ram: Option<isize>,   // in kb
+    flash: Option<isize>,
 }
 
 impl Board {
@@ -135,11 +138,54 @@ impl Widget for Board {
                             "pic",
                             color_image,
                         );
-                        retained_image.show_max_size(ui, egui::vec2(128.0, 128.0));
+                        retained_image.show_max_size(ui, egui::vec2(150.0, 150.0));
                         ui.label(self.name);
-                        ui.label(self.manufacturer);
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Manufacturer: ");
+                        // ui.label(self.manufacturer);
+                        let p = Path::new("./assets/images/Adafruit_logo_small.png");
+                        let image = image::io::Reader::open(p).unwrap().decode().unwrap();
+                        let size = [image.width() as _, image.height() as _];
+                        let image_buffer = image.to_rgba8();
+                        let pixels = image_buffer.as_flat_samples();
+                        let color_image = egui::ColorImage::from_rgba_unmultiplied(
+                            size,
+                            pixels.as_slice(),
+                        );
+                        let ri = egui_extras::RetainedImage::from_color_image("logo", color_image);
+                        ui.image(ri.texture_id(ui.ctx()), egui::Vec2::new(47.0, 16.0));
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Ecosystem: ");
                         if let Some(standard) = self.standard {
                             ui.label(standard.to_string());
+                        } else {
+                            ui.label("none");
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("CPU: ");
+                        if let Some(cpu) = self.cpu {
+                            ui.label(cpu);
+                        } else {
+                            ui.label("unknown");
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("RAM Amount (in kb): ");
+                        if let Some(ram) = self.ram {
+                            ui.label(ram.to_string());
+                        } else {
+                            ui.label("unknown");
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Flash Amount (in kb): ");
+                        if let Some(flash) = self.flash {
+                            ui.label(flash.to_string());
+                        } else {
+                            ui.label("unknown");
                         }
                     });
                 })

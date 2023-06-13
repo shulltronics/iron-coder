@@ -331,6 +331,7 @@ use image;
 impl Icons {
     pub fn load(icon_path: &Path) -> Self {
         let mut icon_map = std::collections::HashMap::new();
+        
         let p = icon_path.join("005b_35.gif");
         let image = image::io::Reader::open(p).unwrap().decode().unwrap();
         let size = [image.width() as _, image.height() as _];

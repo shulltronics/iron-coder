@@ -483,30 +483,28 @@ fn settings(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool) {
 
                 // create a font selector:
                 for (text_style, font_id) in ctx.style().text_styles.iter() {
-                    println!("{:?}: {:?}", text_style, font_id);
+                    // println!("{:?}: {:?}", text_style, font_id);
                     match text_style {
                         egui::TextStyle::Name(name) => {
                             match (&**name).clone() {
-                                "HeadingBg" => continue,
-                                "HeadingFg" => continue,
+                                "HeadingBg" => continue,  // these are special fonts
+                                "HeadingFg" => continue,  //    we should ignore
                                 _ => (),
                             }
                             let egui::FontId {size: _, family} = font_id;
                             // I don't really understand this dereference syntax with the Arc...
                             let font_text = egui::RichText::new((&**name).clone())
                                             .family((*family).clone()).size(12.0);
-                            println!("{:?}", family);
-                            ui.label(font_text);    
+                            ui.label(font_text);
                         },
                         egui::TextStyle::Monospace => {
                             let egui::FontId {size: _, family} = font_id;
                             // I don't really understand this dereference syntax with the Arc...
                             let font_text = egui::RichText::new("Default Monospace")
                                             .family((*family).clone()).size(12.0);
-                            println!("{:?}", family);
                             ui.label(font_text);
                         }
-                        _ => println!("non"),
+                        _ => (),
                     }
                 }
 

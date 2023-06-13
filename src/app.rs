@@ -46,7 +46,7 @@ impl Default for IronCoderApp {
             code_editor: editor,
             mode: Mode::Editor,
             boards: boards,
-            icons: Icons::load(Path::new("assets/icons/pack/black/"))
+            icons: Icons::load(Path::new("assets/icons/pack/white/"))
         }
     }
 }
@@ -101,7 +101,6 @@ impl eframe::App for IronCoderApp {
                     r = pretty_header(ui, "IRON CODER");
                     // update the max value to be the original Ui size
                     r.max.x = start_r.x;
-                    println!("{:?}", r);
                 });
                 // Now use that Rect to draw the menu icon at the proper place
                 ui.allocate_ui_at_rect(r, |ui| {
@@ -125,15 +124,16 @@ impl eframe::App for IronCoderApp {
                         if ui.button("ABOUT").clicked() {
                             *display_info = !*display_info;
                         }
-                        if ui.button("QUIT").clicked() {
-                            _frame.close();
-                        }
-                        let i = icons.icons.get("build_icon").unwrap().texture_id(ctx);
-                        let ib = egui::widgets::ImageButton::new(i, egui::Vec2::new(12.0, 12.0))
-                                                            .tint(egui::Color32::WHITE);
+                        let i = icons.icons.get("quit_icon").unwrap().texture_id(ctx);
+                        let ib = egui::widgets::Button::image_and_text(
+                            i,
+                            egui::Vec2::new(8.0, 8.0),
+                            "quit"
+                        ).shortcut_text("ctrl+q");
+                        ;//.tint(egui::Color32::WHITE);
                         // TODO: set tint to the appropriate value for the current colorscheme
                         if ui.add(ib).clicked() {
-                            println!("TODO -- an icon was clicked!")
+                            _frame.close();
                         };
                     });
                 });
@@ -331,7 +331,7 @@ use image;
 impl Icons {
     pub fn load(icon_path: &Path) -> Self {
         let mut icon_map = std::collections::HashMap::new();
-        let p = icon_path.join("005b_35_w.gif");
+        let p = icon_path.join("005b_35.gif");
         let image = image::io::Reader::open(p).unwrap().decode().unwrap();
         let size = [image.width() as _, image.height() as _];
         let image_buffer = image.to_rgba8();
@@ -342,7 +342,7 @@ impl Icons {
         );
         icon_map.insert("build_icon", egui_extras::RetainedImage::from_color_image("build_icon", color_image));
         
-        let p = icon_path.join("005b_44_w.gif");
+        let p = icon_path.join("005b_44.gif");
         let image = image::io::Reader::open(p).unwrap().decode().unwrap();
         let size = [image.width() as _, image.height() as _];
         let image_buffer = image.to_rgba8();
@@ -351,7 +351,18 @@ impl Icons {
             size,
             pixels.as_slice(),
         );
-        icon_map.insert("menu_icon", egui_extras::RetainedImage::from_color_image("build_icon", color_image));
+        icon_map.insert("menu_icon", egui_extras::RetainedImage::from_color_image("menu_icon", color_image));
+
+        let p = icon_path.join("005b_75.gif");
+        let image = image::io::Reader::open(p).unwrap().decode().unwrap();
+        let size = [image.width() as _, image.height() as _];
+        let image_buffer = image.to_rgba8();
+        let pixels = image_buffer.as_flat_samples();
+        let color_image = egui::ColorImage::from_rgba_unmultiplied(
+            size,
+            pixels.as_slice(),
+        );
+        icon_map.insert("quit_icon", egui_extras::RetainedImage::from_color_image("quit_icon", color_image));
 
         Self {
             size: egui::Vec2::new(12.0, 12.0),

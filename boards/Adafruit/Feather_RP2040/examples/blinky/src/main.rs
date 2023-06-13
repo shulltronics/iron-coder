@@ -37,7 +37,7 @@ fn main() -> ! {
         &mut pac.RESETS,
         &mut watchdog,
     ).ok().unwrap();
-    
+
     // initialize the Single Cycle IO
     let sio = Sio::new(pac.SIO);
     // initialize the pins to default state

@@ -447,10 +447,10 @@ fn pretty_header(ui: &mut egui::Ui, text: &str) -> egui::Rect {
 fn about_iron_coder(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool) {
     egui::Window::new("Iron Coder")
         .open(is_shown)
-        .collapsible(true)
-        .default_size(egui::vec2(512.0, 512.0))
-        .resizable(true)
-        .movable(true)
+        .collapsible(false)
+        .resizable(false)
+        .movable(false)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ctx, |ui| {
             ui.label(
                 "Iron Coder is an app for practicing embedded Rust development.\n\
@@ -466,20 +466,50 @@ fn about_iron_coder(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool
 fn settings(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool) {
     egui::Window::new("App Settings")
         .open(is_shown)
-        .collapsible(true)
-        .default_size(egui::vec2(512.0, 512.0))
-        .resizable(true)
-        .movable(true)
+        .collapsible(false)
+        .resizable(false)
+        .movable(false)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ctx, |ui| {
             let mut visuals = ctx.style().visuals.clone();
-            ui.checkbox(&mut visuals.dark_mode, "Dark Mode");
-            if visuals.dark_mode {
-                visuals.extreme_bg_color = egui::Color32::BLACK;
-                visuals.panel_fill       = egui::Color32::BLACK;
-            } else {
-                visuals.extreme_bg_color = egui::Color32::WHITE;
-                visuals.panel_fill       = egui::Color32::WHITE;
-            }
+                ui.checkbox(&mut visuals.dark_mode, "Dark Mode");
+                if visuals.dark_mode {
+                    visuals.extreme_bg_color = egui::Color32::BLACK;
+                    visuals.panel_fill       = egui::Color32::BLACK;
+                } else {
+                    visuals.extreme_bg_color = egui::Color32::WHITE;
+                    visuals.panel_fill       = egui::Color32::WHITE;
+                }
+
+                // create a font selector:
+                for (text_style, font_id) in ctx.style().text_styles.iter() {
+                    println!("{:?}: {:?}", text_style, font_id);
+                    match text_style {
+                        egui::TextStyle::Name(name) => {
+                            match (&**name).clone() {
+                                "HeadingBg" => continue,
+                                "HeadingFg" => continue,
+                                _ => (),
+                            }
+                            let egui::FontId {size: _, family} = font_id;
+                            // I don't really understand this dereference syntax with the Arc...
+                            let font_text = egui::RichText::new((&**name).clone())
+                                            .family((*family).clone()).size(12.0);
+                            println!("{:?}", family);
+                            ui.label(font_text);    
+                        },
+                        egui::TextStyle::Monospace => {
+                            let egui::FontId {size: _, family} = font_id;
+                            // I don't really understand this dereference syntax with the Arc...
+                            let font_text = egui::RichText::new("Default Monospace")
+                                            .family((*family).clone()).size(12.0);
+                            println!("{:?}", family);
+                            ui.label(font_text);
+                        }
+                        _ => println!("non"),
+                    }
+                }
+
             ctx.set_visuals(visuals);
     });
 }

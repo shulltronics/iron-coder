@@ -148,7 +148,7 @@ impl CodeEditor {
                     leading_space: 0.0,
                     byte_range: as_byte_range(text, range),
                     format: TextFormat {
-                        font_id: egui::FontId::monospace(12.0),
+                        font_id: egui::FontId::new(12.0, egui::FontFamily::Name("EditorFont".into())),
                         color: text_color,
                         italics,
                         underline,
@@ -201,7 +201,7 @@ impl CodeEditor {
                 // ui.style().code_bg_color = egui::Color32::RED;
                 ui.add(
                     egui::TextEdit::multiline(code)
-                        .font(egui::TextStyle::Monospace)
+                        .font(egui::TextStyle::Name("EditorFont".into()))
                         .code_editor()
                         .lock_focus(true)
                         .desired_width(f32::INFINITY)

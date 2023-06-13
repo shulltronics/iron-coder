@@ -287,6 +287,13 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         )),
     );
 
+    // example of how to install font to an existing style 
+    fonts
+        .families
+        .entry(egui::FontFamily::Monospace)
+        .or_default()
+        .insert(0, "vcr_osd_mono".to_owned());
+
     /*
      *  The below fonts are used for the project logo
      */
@@ -315,13 +322,10 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         egui::FontFamily::Name("HeadingForeground".into()),
         vec!(String::from("platinum_sign_over"))
     );
-
-    // example of how to install font to an existing style 
-    fonts
-        .families
-        .entry(egui::FontFamily::Monospace)
-        .or_default()
-        .insert(0, "roboto_mono_regular".to_owned());
+    fonts.families.insert(
+        egui::FontFamily::Name("EditorFont".into()),
+        vec!(String::from("roboto_mono_regular"))
+    );
 
     ctx.set_fonts(fonts);
 
@@ -345,6 +349,7 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         (Heading, FontId::new(14.0, FontFamily::Monospace)),
         (Name("HeadingBg".into()), FontId::new(18.0, FontFamily::Name("HeadingBackground".into()))),
         (Name("HeadingFg".into()), FontId::new(18.0, FontFamily::Name("HeadingForeground".into()))),
+        (Name("EditorFont".into()), FontId::new(16.0, FontFamily::Name("EditorFont".into()))),
     ].into();
 
     // Make things look more square

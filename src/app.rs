@@ -194,20 +194,41 @@ impl eframe::App for IronCoderApp {
             // BoardSelector mode is the mode when selecting a new project
             Mode::BoardSelector => {
 
+                // TODO - add a top panel for a search bar, etc
+
                 let central_frame = egui::Frame::default();
                 egui::CentralPanel::default().frame(central_frame).show(ctx, |ui| {
-                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                        ui.label("\nBoard Selector\nCreate a new project with the given board\n");
-                    });
-                    // show all the boards
-                    for (i, b) in boards.clone().into_iter().enumerate() {
-                        if ui.add(b).on_hover_text(boards[i].get_name()).clicked() {
-                            println!("board {} was clicked!", i);
-                            // TODO create a new project here
-                            *mode = Mode::Editor;
-                            *board = boards[i].clone();
+                    
+                    // Create a grid-based layout to show all the board widgets
+                    // println!("{:?}", ui.available_width());
+                    // TODO determine # columns based on available width
+                    let num_cols = 3;
+                    ui.columns(num_cols, |columns| {
+                        for (i, b) in boards.clone().into_iter().enumerate() {
+                            let col = i % num_cols;
+                            if columns[col].add(b).on_hover_text(boards[i].get_name()).clicked() {
+                                println!("board {} was clicked!", i);
+                                // TODO create a new project here
+                                *mode = Mode::Editor;
+                                *board = boards[i].clone();
+                            }
                         }
-                    }
+                    });
+                    
+                    // ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    //     ui.label("\nBoard Selector\nCreate a new project with the given board\n");
+                    // });
+                    // // show all the boards
+                    // for (i, b) in boards.clone().into_iter().enumerate() {
+                    //     if ui.add(b).on_hover_text(boards[i].get_name()).clicked() {
+                    //         println!("board {} was clicked!", i);
+                    //         // TODO create a new project here
+                    //         *mode = Mode::Editor;
+                    //         *board = boards[i].clone();
+                    //     }
+                    // }
+
+                
                 });
             },
 
@@ -216,8 +237,7 @@ impl eframe::App for IronCoderApp {
                 // Spec Viewer panel
                 egui::SidePanel::right("side_panel").show(ctx, |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                        // pretty_header(ui, "SPEC VIEWER");
-                        ui.heading("SPEC VIEWER");
+                        ui.heading("Project View");
                     });
 
                     ui.add(board.clone());

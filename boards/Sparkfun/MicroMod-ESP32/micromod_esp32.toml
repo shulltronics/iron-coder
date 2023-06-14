@@ -1,0 +1,5 @@
+
+name = "MicroMod ESP32 Processor"
+manufacturer = "Sparkfun"
+standard = "MicroMod"
+cpu = "ESP32"

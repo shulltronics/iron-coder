@@ -2,12 +2,15 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::vec::Vec;
 
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 
 use egui_extras::RetainedImage;
 
 use egui::{Ui, Response};
 use egui::widgets::Widget;
+use egui::{FontFamily, FontId};
+use egui::Color32;
+use egui::text::{TextFormat, LayoutJob};
 
 // this function reads the boards directory and returns a Vec in RAM
 // the boards directory is structured as:
@@ -40,7 +43,7 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
 }
 
 // These are the various standard development board specifications
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum BoardStandards {
     Feather,
     Arduino,
@@ -63,7 +66,7 @@ impl fmt::Display for BoardStandards {
 }
 
 // The board struct defines a board type
-#[derive(Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Board {
     name: String,
     manufacturer: String,
@@ -154,8 +157,14 @@ impl Widget for Board {
             .show(ui, |ui| {
                 // center all text
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    let label = egui::RichText::new(self.name).underline();
-                    ui.label(label);
+                    // let label = egui::RichText::new(self.name).strong();
+                    ui.label(make_field_widget_text(
+                        "Board: ",
+                        ui.style().visuals.warn_fg_color,
+                        self.name.as_str(),
+                        ui.style().visuals.window_stroke.color,
+                    ));
+                    // ui.label(label);
                     let retained_image = RetainedImage::from_color_image(
                         "pic",
                         color_image,
@@ -163,8 +172,12 @@ impl Widget for Board {
                     retained_image.show_max_size(ui, egui::vec2(150.0, 150.0));
                 });
                 ui.horizontal(|ui| {
-                    ui.label("Manufacturer: ");
-                    ui.label(self.manufacturer);
+                    ui.label(make_field_widget_text(
+                        "Manufacturer: ",
+                        ui.style().visuals.warn_fg_color,
+                        self.manufacturer.as_str(),
+                        ui.style().visuals.window_stroke.color,
+                    ));
                 // TODO -- make the manufacturer logos an app-wide resource
                     // let p = Path::new("./assets/images/Adafruit_logo_small.png");
                     // let image = image::io::Reader::open(p).unwrap().decode().unwrap();
@@ -214,6 +227,7 @@ impl Widget for Board {
                         ui.label("unknown");
                     }
                 });
+                ui.separator();
                 // Show the examples
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     let label = egui::RichText::new("Examples").underline();
@@ -249,3 +263,29 @@ impl Widget for Board {
 
 }
 
+// This function will construct a LayoutJob with a bold heading
+fn make_field_widget_text(heading: &str,
+                          hcolor: Color32,
+                          content: &str,
+                          ccolor: Color32) -> LayoutJob {
+    let mut job = LayoutJob::default();
+    job.append(
+        heading,
+        0.0,
+        TextFormat {
+            font_id: FontId::new(12.0, FontFamily::Name("MonospaceBold".into())),
+            color: hcolor,
+            ..Default::default()
+        },
+    );
+    job.append(
+        content,
+        0.0,
+        TextFormat {
+            font_id: FontId::new(12.0, FontFamily::Monospace),
+            color: ccolor,
+            ..Default::default()
+        },
+    );
+    return job;
+}

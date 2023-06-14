@@ -24,7 +24,6 @@ enum Mode {
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct IronCoderApp {
-    #[serde(skip)]
     board: board::Board,
     display_info: bool,
     display_settings: bool,
@@ -244,18 +243,13 @@ impl eframe::App for IronCoderApp {
             // Editor mode is the main mode for editing and building code
             Mode::Editor => {
                 // Spec Viewer panel
-                egui::SidePanel::right("side_panel").show(ctx, |ui| {
+                egui::SidePanel::right("project_view").show(ctx, |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                         ui.heading("Project View");
+                        ui.separator();
                     });
 
                     ui.add(board.clone());
-
-                    // println!("available size is {:?}", ui.available_size());
-                    // println!("image size is {:?}", image.size_vec2());
-                    // image.show_max_size(ui, ui.available_size());
-                    //ui.add(egui::widgets::Image::new(image.texture_id(), image.size_vec2()));
-
 
                     ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
                         ui.horizontal(|ui| {
@@ -304,6 +298,12 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         )),
     );
     fonts.font_data.insert(
+        "roboto_mono_bold".to_owned(),
+        egui::FontData::from_static(include_bytes!(
+            "../assets/fonts/Roboto_Mono/static/RobotoMono-Bold.ttf"
+        )),
+    );
+    fonts.font_data.insert(
         "chintzy_cpu".to_owned(),
         egui::FontData::from_static(include_bytes!(
             "../assets/fonts/chintzycpu/chintzy.ttf"
@@ -327,7 +327,7 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         .families
         .entry(egui::FontFamily::Monospace)
         .or_default()
-        .insert(0, "unispace".to_owned());
+        .insert(0, "roboto_mono_regular".to_owned());
 
     /*
      *  The below fonts are used for the project logo
@@ -361,6 +361,10 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         egui::FontFamily::Name("EditorFont".into()),
         vec!(String::from("roboto_mono_regular"))
     );
+    fonts.families.insert(
+        egui::FontFamily::Name("MonospaceBold".into()),
+        vec!(String::from("roboto_mono_bold"))
+    );
 
     ctx.set_fonts(fonts);
 
@@ -384,6 +388,8 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         (Heading, FontId::new(14.0, FontFamily::Monospace)),
         (Name("HeadingBg".into()), FontId::new(18.0, FontFamily::Name("HeadingBackground".into()))),
         (Name("HeadingFg".into()), FontId::new(18.0, FontFamily::Name("HeadingForeground".into()))),
+        (Name("DefaultBold".into()), FontId::new(12.0, FontFamily::Name("MonospaceBold".into()))),
+        (Name("DefaultRegular".into()), FontId::new(12.0, FontFamily::Monospace)),
         (Name("EditorFont".into()), FontId::new(16.0, FontFamily::Name("EditorFont".into()))),
     ].into();
 

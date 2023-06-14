@@ -314,13 +314,19 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
             "../assets/fonts/vcr_osd_mono/VCR_OSD_MONO_1.001.ttf"
         )),
     );
+    fonts.font_data.insert(
+        "unispace".to_owned(),
+        egui::FontData::from_static(include_bytes!(
+            "../assets/fonts/unispace/unispace it.otf"
+        )),
+    );
 
     // example of how to install font to an existing style 
     fonts
         .families
         .entry(egui::FontFamily::Monospace)
         .or_default()
-        .insert(0, "vcr_osd_mono".to_owned());
+        .insert(0, "unispace".to_owned());
 
     /*
      *  The below fonts are used for the project logo
@@ -371,8 +377,8 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     use egui::TextStyle::*;
     style.text_styles = [
         (Small, FontId::new(10.0, FontFamily::Monospace)),
-        (Body, FontId::new(14.0, FontFamily::Monospace)),
-        (Monospace, FontId::new(14.0, FontFamily::Monospace)),
+        (Body, FontId::new(12.0, FontFamily::Monospace)),
+        (Monospace, FontId::new(12.0, FontFamily::Monospace)),
         (Button, FontId::new(12.0, FontFamily::Monospace)),
         (Heading, FontId::new(14.0, FontFamily::Monospace)),
         (Name("HeadingBg".into()), FontId::new(18.0, FontFamily::Name("HeadingBackground".into()))),

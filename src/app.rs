@@ -11,6 +11,7 @@ use egui_extras::image::RetainedImage;
 // Separate modules
 use crate::board;
 use crate::editor;
+use crate::colorscheme;
 
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -396,8 +397,9 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     style.visuals.window_shadow = eframe::epaint::Shadow::NONE;
     style.visuals.popup_shadow = eframe::epaint::Shadow::NONE;
 
-    // println!("{:#?}", style);
     ctx.set_style(style);
+
+    colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_DARK);
 }
 
 // This function returns a mapping of icon names to RetainedImages 
@@ -508,11 +510,9 @@ fn settings(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool) {
             let mut visuals = ctx.style().visuals.clone();
                 ui.checkbox(&mut visuals.dark_mode, "Dark Mode");
                 if visuals.dark_mode {
-                    visuals.extreme_bg_color = egui::Color32::BLACK;
-                    visuals.panel_fill       = egui::Color32::BLACK;
+                    colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_DARK);
                 } else {
-                    visuals.extreme_bg_color = egui::Color32::WHITE;
-                    visuals.panel_fill       = egui::Color32::WHITE;
+                    colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_LIGHT);
                 }
 
                 // create a font selector:
@@ -542,6 +542,6 @@ fn settings(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool) {
                     }
                 }
 
-            ctx.set_visuals(visuals);
+            // ctx.set_visuals(visuals);
     });
 }

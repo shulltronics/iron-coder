@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs;
 use std::vec::Vec;
 
@@ -69,6 +69,8 @@ pub struct Board {
     manufacturer: String,
     standard: Option<BoardStandards>,
     #[serde(skip)]
+    examples: Vec<PathBuf>,
+    #[serde(skip)]
     pic: Option<egui::ColorImage>,
     cpu: Option<String>,
     ram: Option<isize>,   // in kb
@@ -95,6 +97,17 @@ impl Board {
             );
             b.pic = Some(color_image);
         }  
+
+        // See if there are any examples
+        if let Ok(examples_path) = path.parent().unwrap().join("examples").canonicalize() {
+            // b.examples = ...;
+            println!("found examples dir for board: {}", b.name);
+            for (i, e) in examples_path.read_dir().unwrap().enumerate() {
+                let example_path = e.unwrap().path();
+                println!("  {}: {:?}", i, example_path.clone().file_name());
+                b.examples.push(example_path);
+            }
+        }
 
         return b;
     }
@@ -136,74 +149,84 @@ impl Widget for Board {
             // Use a frame to display multiple widgets within our widget,
             // with an inner margin
             response = egui::Frame::none()
-                .inner_margin(egui::Margin::same(10.0))
-                .outer_margin(egui::Margin::same(3.0))
-                .show(ui, |ui| {
-                    // center all text
-                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                        let label = egui::RichText::new(self.name).underline();
-                        ui.label(label);
-                        let retained_image = RetainedImage::from_color_image(
-                            "pic",
-                            color_image,
-                        );
-                        retained_image.show_max_size(ui, egui::vec2(150.0, 150.0));
-                    });
+            .inner_margin(egui::Margin::same(10.0))
+            .outer_margin(egui::Margin::same(3.0))
+            .show(ui, |ui| {
+                // center all text
+                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    let label = egui::RichText::new(self.name).underline();
+                    ui.label(label);
+                    let retained_image = RetainedImage::from_color_image(
+                        "pic",
+                        color_image,
+                    );
+                    retained_image.show_max_size(ui, egui::vec2(150.0, 150.0));
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Manufacturer: ");
+                    ui.label(self.manufacturer);
+                // TODO -- make the manufacturer logos an app-wide resource
+                    // let p = Path::new("./assets/images/Adafruit_logo_small.png");
+                    // let image = image::io::Reader::open(p).unwrap().decode().unwrap();
+                    // let size = [image.width() as _, image.height() as _];
+                    // let image_buffer = image.to_rgba8();
+                    // let pixels = image_buffer.as_flat_samples();
+                    // let color_image = egui::ColorImage::from_rgba_unmultiplied(
+                    //     size,
+                    //     pixels.as_slice(),
+                    // );
+                    // let ri = egui_extras::RetainedImage::from_color_image("logo", color_image);
+                    // let image = egui::widgets::Image::new(
+                    //     ri.texture_id(ui.ctx()),
+                    //     egui::Vec2::new(47.0, 16.0)
+                    // ).tint(egui::Color32::GREEN);   // TODO: replace with a val from current colorscheme
+                    // ui.add(image);
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Ecosystem: ");
+                    if let Some(standard) = self.standard {
+                        ui.label(standard.to_string());
+                    } else {
+                        ui.label("none");
+                    }
+                });
+                ui.horizontal(|ui| {
+                    ui.label("CPU: ");
+                    if let Some(cpu) = self.cpu {
+                        ui.label(cpu);
+                    } else {
+                        ui.label("unknown");
+                    }
+                });
+                ui.horizontal(|ui| {
+                    ui.label("RAM Amount (in kb): ");
+                    if let Some(ram) = self.ram {
+                        ui.label(ram.to_string());
+                    } else {
+                        ui.label("unknown");
+                    }
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Flash Amount (in kb): ");
+                    if let Some(flash) = self.flash {
+                        ui.label(flash.to_string());
+                    } else {
+                        ui.label("unknown");
+                    }
+                });
+                // Show the examples
+                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    let label = egui::RichText::new("Examples").underline();
+                    ui.label(label);
+                });
+                for e in self.examples {
                     ui.horizontal(|ui| {
-                        ui.label("Manufacturer: ");
-                        ui.label(self.manufacturer);
-                    // TODO -- make the manufacturer logos an app-wide resource
-                        // let p = Path::new("./assets/images/Adafruit_logo_small.png");
-                        // let image = image::io::Reader::open(p).unwrap().decode().unwrap();
-                        // let size = [image.width() as _, image.height() as _];
-                        // let image_buffer = image.to_rgba8();
-                        // let pixels = image_buffer.as_flat_samples();
-                        // let color_image = egui::ColorImage::from_rgba_unmultiplied(
-                        //     size,
-                        //     pixels.as_slice(),
-                        // );
-                        // let ri = egui_extras::RetainedImage::from_color_image("logo", color_image);
-                        // let image = egui::widgets::Image::new(
-                        //     ri.texture_id(ui.ctx()),
-                        //     egui::Vec2::new(47.0, 16.0)
-                        // ).tint(egui::Color32::GREEN);   // TODO: replace with a val from current colorscheme
-                        // ui.add(image);
+                        if ui.link(e.file_name().unwrap().to_str().unwrap()).clicked() {
+                            println!("TODO - open the example!")
+                        };
                     });
-                    ui.horizontal(|ui| {
-                        ui.label("Ecosystem: ");
-                        if let Some(standard) = self.standard {
-                            ui.label(standard.to_string());
-                        } else {
-                            ui.label("none");
-                        }
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("CPU: ");
-                        if let Some(cpu) = self.cpu {
-                            ui.label(cpu);
-                        } else {
-                            ui.label("unknown");
-                        }
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("RAM Amount (in kb): ");
-                        if let Some(ram) = self.ram {
-                            ui.label(ram.to_string());
-                        } else {
-                            ui.label("unknown");
-                        }
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("Flash Amount (in kb): ");
-                        if let Some(flash) = self.flash {
-                            ui.label(flash.to_string());
-                        } else {
-                            ui.label("unknown");
-                        }
-                    });
-                })
-                .response
-                .interact(egui::Sense::click());
+                }
+            }).response.interact(egui::Sense::click());
 
             if ui.rect_contains_pointer(response.rect) {
                 // draw a bounding box

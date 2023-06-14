@@ -11,6 +11,7 @@ use egui_extras::image::RetainedImage;
 // Separate modules
 use crate::board;
 use crate::editor;
+use crate::project;
 
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]

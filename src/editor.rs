@@ -25,14 +25,15 @@ use std::io::{Read, Write, Seek};
 // for invoking external programs
 use std::process::Command;
 
-// #[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct CodeEditor {
     code: String,
     path: Option<PathBuf>,
+    #[serde(skip)]
     file: Option<fs::File>,
-    // #[serde(skip)]
+    #[serde(skip)]
     ps: SyntaxSet,
-    // #[serde(skip)]
+    #[serde(skip)]
     ts: ThemeSet,
 }
 

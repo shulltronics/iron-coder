@@ -195,39 +195,47 @@ impl eframe::App for IronCoderApp {
             Mode::BoardSelector => {
 
                 // TODO - add a top panel for a search bar, etc
+                egui::TopBottomPanel::top("board_selector_top_panel").show(ctx, |ui| {
+                    ui.label("Select the boards for this project");
+                    ui.label("Search bar will go here...");
+                });
 
                 let central_frame = egui::Frame::default();
                 egui::CentralPanel::default().frame(central_frame).show(ctx, |ui| {
                     
                     // Create a grid-based layout to show all the board widgets
-                    // println!("{:?}", ui.available_width());
-                    // TODO determine # columns based on available width
-                    let num_cols = 3;
-                    ui.columns(num_cols, |columns| {
-                        for (i, b) in boards.clone().into_iter().enumerate() {
-                            let col = i % num_cols;
-                            if columns[col].add(b).on_hover_text(boards[i].get_name()).clicked() {
-                                println!("board {} was clicked!", i);
-                                // TODO create a new project here
-                                *mode = Mode::Editor;
-                                *board = boards[i].clone();
+                    let available_width = ui.available_width();
+                    let mut num_cols = (available_width / 260.0) as usize;
+                    if num_cols == 0 {
+                        num_cols = 1;
+                    }
+                    // println!("num cols: {:?}", num_cols);
+                    egui::containers::scroll_area::ScrollArea::vertical().show(ui, |ui| {
+                        ui.columns(num_cols, |columns| {
+                            for (i, b) in boards.clone().into_iter().enumerate() {
+                                let col = i % num_cols;
+                                if columns[col].add(b).on_hover_text(boards[i].get_name()).clicked() {
+                                    println!("board {} was clicked!", i);
+                                    // TODO create a new project here
+                                    *mode = Mode::Editor;
+                                    *board = boards[i].clone();
+                                }
                             }
-                        }
+                        });
+                        
+                        // ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                        //     ui.label("\nBoard Selector\nCreate a new project with the given board\n");
+                        // });
+                        // // show all the boards
+                        // for (i, b) in boards.clone().into_iter().enumerate() {
+                        //     if ui.add(b).on_hover_text(boards[i].get_name()).clicked() {
+                        //         println!("board {} was clicked!", i);
+                        //         // TODO create a new project here
+                        //         *mode = Mode::Editor;
+                        //         *board = boards[i].clone();
+                        //     }
+                        // }
                     });
-                    
-                    // ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    //     ui.label("\nBoard Selector\nCreate a new project with the given board\n");
-                    // });
-                    // // show all the boards
-                    // for (i, b) in boards.clone().into_iter().enumerate() {
-                    //     if ui.add(b).on_hover_text(boards[i].get_name()).clicked() {
-                    //         println!("board {} was clicked!", i);
-                    //         // TODO create a new project here
-                    //         *mode = Mode::Editor;
-                    //         *board = boards[i].clone();
-                    //     }
-                    // }
-
                 
                 });
             },

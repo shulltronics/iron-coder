@@ -11,6 +11,9 @@ use serde;
 use egui::Ui;
 // use egui::containers::scroll_area::ScrollArea;
 use egui::text::LayoutJob;
+use egui::Label;
+use egui::Sense;
+use egui::widget_text::RichText;
 
 use syntect::easy::HighlightLines;
 use syntect::parsing::SyntaxSet;
@@ -213,7 +216,25 @@ impl CodeEditor {
         });
 
         egui::TopBottomPanel::top("editor_tabs_pane").show(ctx, |ui| {
-            ui.label("tabs will go here...");
+            // ui.label("tabs will go here...");
+            ui.horizontal(|ui| {
+                for (i, code_file) in self.tabs.iter().enumerate() {
+                    let p = code_file.path.clone().unwrap();
+                    let fname = p.as_path().file_name().unwrap();
+                    let fname = fname.to_str().unwrap();
+                    let mut text = RichText::new(fname);
+                    if let Some(at) = self.active_tab {
+                        if at == i {
+                            text = text.strong();
+                        }
+                    }
+                    let label = Label::new(text).sense(Sense::click());
+                    if ui.add(label).clicked() {
+                        self.active_tab = Some(i);
+                    }
+                    ui.separator();
+                }
+            });
         });
 
         let CodeEditor { tabs, active_tab, .. } = self;

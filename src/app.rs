@@ -45,6 +45,8 @@ impl Default for IronCoderApp {
         let mut editor = editor::CodeEditor::default();
         let code_path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/main.rs");
         editor.load_from_file(code_path).unwrap();
+        let code_path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/test.rs");
+        editor.load_from_file(code_path).unwrap();
 
         let icons_dir = Path::new("assets/icons/pack/white/");
         let icons = load_icons(icons_dir);

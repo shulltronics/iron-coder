@@ -40,6 +40,10 @@ impl Project {
     //     Ok(())
     // }
 
+    pub fn get_name(&self) -> String {
+        return self.name.clone();
+    }
+
     pub fn open(&mut self) -> io::Result<()> {
         if let Some(project_folder) = FileDialog::new().pick_folder() {
             let project_file = project_folder.join(PROJECT_FILE_NAME);

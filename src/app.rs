@@ -25,13 +25,12 @@ enum Mode {
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct IronCoderApp {
-    #[serde(skip)]
     project: Project,
     board: board::Board,
     display_about: bool,
     display_settings: bool,
     mode: Mode,
-    #[serde(skip)]                      // serde isn't crutial b.e. in the future
+    #[serde(skip)]                      // serde isn't crutial b.c. in the future
     code_editor: editor::CodeEditor,    // we will load to and from disk on power cycle
     #[serde(skip)]
     boards: Vec<board::Board>,
@@ -179,6 +178,7 @@ impl IronCoderApp {
     // Show the main view
     pub fn main_view(&mut self, ctx: &egui::Context) {
         let Self {
+            project,
             board,
             display_about,
             display_settings,
@@ -229,6 +229,7 @@ impl IronCoderApp {
                 egui::SidePanel::right("project_view").show(ctx, |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                         ui.heading("Project View");
+                        ui.label(project.get_name());
                         ui.separator();
                     });
 
@@ -266,8 +267,7 @@ impl IronCoderApp {
 
     }
 
-    // This method will show or hide the settings window and update
-    // the appropriate app state.
+    // show/hide the settings window and update the appropriate app state.
     pub fn settings(&mut self, ctx: &egui::Context) {
         let Self {
             display_settings,
@@ -354,9 +354,9 @@ impl IronCoderApp {
 impl eframe::App for IronCoderApp {
 
     // Called by the frame work to save state before shutdown.
-    // fn save(&mut self, storage: &mut dyn eframe::Storage) {
-    //     eframe::set_value(storage, eframe::APP_KEY, self);
-    // }
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, eframe::APP_KEY, self);
+    }
 
     // Called each time the UI needs repainting, which may be many times per second.
     // This method will call all the display methods of IronCoderApp.
@@ -549,9 +549,8 @@ fn load_icons(icon_path: &Path) -> HashMap<&'static str, RetainedImage> {
     return icon_map;
 }
 
-/* Displays a cool looking header in the Ui element, utilizing our custom fonts
- * and returns the rect that was drawn to
- */
+// Displays a cool looking header in the Ui element, utilizing our custom fonts
+// and returns the rect that was drawn to.
 fn pretty_header(ui: &mut egui::Ui, text: &str) -> egui::Rect {
     use egui::{RichText, Label, Color32};
     // draw the background and get the rectangle we drew to

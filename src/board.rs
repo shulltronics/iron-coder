@@ -143,10 +143,6 @@ impl Widget for Board {
     // How to display a board as a widget
     fn ui(self, ui: &mut Ui) -> Response {
 
-        egui::Frame::none().show(ui, |ui| {
-
-        });
-
         let response: egui::Response;
         if let Some(color_image) = self.pic {
             // Use a frame to display multiple widgets within our widget,

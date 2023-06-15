@@ -1,5 +1,4 @@
 use std::string::String;
-use serde;
 use egui::Ui;
 // use egui::containers::scroll_area::ScrollArea;
 use egui::text::LayoutJob;

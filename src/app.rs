@@ -80,73 +80,8 @@ impl IronCoderApp {
         Default::default()
     }
 
-    // This method will show or hide the settings window and update
-    // the appropriate app state.
-    pub fn settings(&mut self, ctx: &egui::Context) {
-        let Self {
-            display_settings,
-            code_editor,
-            ..
-        } = self;
-        
-        egui::Window::new("App Settings")
-        .open(display_settings)
-        .collapsible(false)
-        .resizable(false)
-        .movable(false)
-        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-        .show(ctx, |ui| {
-            let mut visuals = ctx.style().visuals.clone();
-            ui.checkbox(&mut visuals.dark_mode, "Dark Mode");
-            if visuals.dark_mode {
-                colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_DARK);
-                code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
-            } else {
-                colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_LIGHT);
-                code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
-            }
-
-            // create a font selector:
-            for (text_style, font_id) in ctx.style().text_styles.iter() {
-                // println!("{:?}: {:?}", text_style, font_id);
-                match text_style {
-                    egui::TextStyle::Name(name) => {
-                        match &*name.clone() {
-                            "HeadingBg" => continue,  // these are special fonts
-                            "HeadingFg" => continue,  //    we should ignore
-                            _ => (),
-                        }
-                        let egui::FontId {size: _, family} = font_id;
-                        // I don't really understand this dereference syntax with the Arc...
-                        let font_text = egui::RichText::new((&**name).clone())
-                                        .family((family).clone()).size(12.0);
-                        ui.label(font_text);
-                    },
-                    egui::TextStyle::Monospace => {
-                        let egui::FontId {size: _, family} = font_id;
-                        // I don't really understand this dereference syntax with the Arc...
-                        let font_text = egui::RichText::new("Default Monospace")
-                                        .family((family).clone()).size(12.0);
-                        ui.label(font_text);
-                    }
-                    _ => (),
-                }
-            }
-            // ctx.set_visuals(visuals);
-        });
-    } // pub fn settings
-}
-
-impl eframe::App for IronCoderApp {
-
-    // Called by the frame work to save state before shutdown.
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, self);
-    }
-
-    // Called each time the UI needs repainting, which may be many times per second.
-    // Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    // Show the menu and app title
+    pub fn menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
             board,
             display_info,
@@ -156,8 +91,6 @@ impl eframe::App for IronCoderApp {
             boards,
             icons,
         } = self;
-
-        // The top panel containing menu items and logo will alway be present
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
@@ -239,16 +172,26 @@ impl eframe::App for IronCoderApp {
                 if *display_info {
                     about_iron_coder(ctx, ui, display_info);
                 }
-                if *display_settings {
-                    // self.settings(ctx);
-                }
+                // if *display_settings {
+                //     self.settings(ctx);
+                // }
 
             });
         });
+    }
 
-        // The GUI will look different depending on the Mode we're in
+    // Show the main view
+    pub fn main_view(&mut self, ctx: &egui::Context) {
+        let Self {
+            board,
+            display_info,
+            display_settings,
+            code_editor,
+            mode,
+            boards,
+            icons,
+        } = self;
         match mode {
-
             // BoardSelector mode is the mode when selecting a new project
             Mode::BoardSelector => {
 
@@ -297,7 +240,6 @@ impl eframe::App for IronCoderApp {
                 
                 });
             },
-
             // Editor mode is the main mode for editing and building code
             Mode::Editor => {
                 // Spec Viewer panel
@@ -339,6 +281,86 @@ impl eframe::App for IronCoderApp {
             },
         }
 
+    }
+
+    // This method will show or hide the settings window and update
+    // the appropriate app state.
+    pub fn settings(&mut self, ctx: &egui::Context) {
+        let Self {
+            display_settings,
+            code_editor,
+            ..
+        } = self;
+
+        if *display_settings {
+            egui::Window::new("App Settings")
+            .open(display_settings)
+            .collapsible(false)
+            .resizable(false)
+            .movable(false)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                let mut visuals = ctx.style().visuals.clone();
+                ui.checkbox(&mut visuals.dark_mode, "Dark Mode");
+                if visuals.dark_mode {
+                    colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_DARK);
+                    code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
+                } else {
+                    colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_LIGHT);
+                    code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
+                }
+
+                // create a font selector:
+                for (text_style, font_id) in ctx.style().text_styles.iter() {
+                    // println!("{:?}: {:?}", text_style, font_id);
+                    match text_style {
+                        egui::TextStyle::Name(name) => {
+                            match &*name.clone() {
+                                "HeadingBg" => continue,  // these are special fonts
+                                "HeadingFg" => continue,  //    we should ignore
+                                _ => (),
+                            }
+                            let egui::FontId {size: _, family} = font_id;
+                            // I don't really understand this dereference syntax with the Arc...
+                            let font_text = egui::RichText::new((&**name).clone())
+                                            .family((family).clone()).size(12.0);
+                            ui.label(font_text);
+                        },
+                        egui::TextStyle::Monospace => {
+                            let egui::FontId {size: _, family} = font_id;
+                            // I don't really understand this dereference syntax with the Arc...
+                            let font_text = egui::RichText::new("Default Monospace")
+                                            .family((family).clone()).size(12.0);
+                            ui.label(font_text);
+                        }
+                        _ => (),
+                    }
+                }
+                // ctx.set_visuals(visuals);
+            });
+        }
+        
+    } // pub fn settings
+}
+
+impl eframe::App for IronCoderApp {
+
+    // Called by the frame work to save state before shutdown.
+    // fn save(&mut self, storage: &mut dyn eframe::Storage) {
+    //     eframe::set_value(storage, eframe::APP_KEY, self);
+    // }
+
+    // Called each time the UI needs repainting, which may be many times per second.
+    // Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+
+        // The top panel containing menu items and logo will alway be present
+        self.menu(ctx, _frame);
+
+        // The GUI will look different depending on the Mode we're in
+        self.main_view(ctx);
+
+        self.settings(ctx);
     }
 }
 

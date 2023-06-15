@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::io;
 use std::fs;
 
@@ -10,7 +10,6 @@ use toml;
 use serde::{Serialize, Deserialize};
 
 use crate::board::Board;
-use crate::editor::CodeEditor;
 
 /// A Project represents the highest level of Iron Coder, which contains
 /// a set of development boards and the project/source code directory
@@ -66,7 +65,7 @@ impl Project {
                     p
                 },
                 Err(e) => {
-                    println!("error opening project.. perhaps the file is misformatted?");
+                    println!("error opening project.. perhaps the file is misformatted?\n{:?}", e);
                     return Ok(());
                 }
             };

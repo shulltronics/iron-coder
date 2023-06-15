@@ -10,7 +10,6 @@ use egui_extras::image::RetainedImage;
 
 // Separate modules
 use crate::board;
-use crate::board::Board;
 use crate::editor;
 use crate::colorscheme;
 use crate::project::Project;
@@ -27,16 +26,15 @@ enum Mode {
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct IronCoderApp {
     project: Project,
-    // board: board::Board,
     display_about: bool,
     display_settings: bool,
     mode: Mode,
     #[serde(skip)]                      // serde isn't crutial b.c. in the future
     code_editor: editor::CodeEditor,    // we will load to and from disk on power cycle
     #[serde(skip)]
-    boards: Vec<board::Board>,
-    #[serde(skip)]
     icons: HashMap<&'static str, RetainedImage>,
+    #[serde(skip)]
+    boards: Vec<board::Board>,
 }
 
 impl Default for IronCoderApp {
@@ -56,13 +54,12 @@ impl Default for IronCoderApp {
 
         Self {
             project: Project::default(),
-            // board: boards[0].clone(),
             display_about: false,
             display_settings: false,
             code_editor: editor,
             mode: Mode::Editor,
-            boards: boards,
             icons: icons,
+            boards: boards,
         }
     }
 }
@@ -87,14 +84,11 @@ impl IronCoderApp {
     // Show the menu and app title
     pub fn menu(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let Self {
-            project,
-            // board,
             display_about,
             display_settings,
-            code_editor,
             mode,
-            boards,
             icons,
+            ..
         } = self;
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
@@ -118,7 +112,9 @@ impl IronCoderApp {
                             "save"
                         ).shortcut_text("ctrl+s");
                         if ui.add(ib).clicked() {
-                            self.project.save();
+                            if let Err(e) = self.project.save() {
+                                println!("error saving project: {:?}", e);
+                            }
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
@@ -127,7 +123,9 @@ impl IronCoderApp {
                             "open"
                         ).shortcut_text("ctrl+o");
                         if ui.add(ib).clicked() {
-                            self.project.open();
+                            if let Err(e) = self.project.open() {
+                                println!("error opening project: {:?}", e);
+                            }
                         }
                         
                         let ib = egui::widgets::Button::image_and_text(
@@ -180,13 +178,9 @@ impl IronCoderApp {
     pub fn main_view(&mut self, ctx: &egui::Context) {
         let Self {
             project,
-            // board,
-            display_about,
-            display_settings,
             code_editor,
             mode,
             boards,
-            icons,
             ..
         } = self;
         match mode {
@@ -259,10 +253,6 @@ impl IronCoderApp {
                     });
                 });
 
-                // Editor panel
-                // egui::CentralPanel::default().frame(egui::Frame::default()).show(ctx, |ui| {
-                //     code_editor.display(ctx, ui);
-                // });
                 egui::Area::new("editor area").show(ctx, |ui| {
                     code_editor.display(ctx, ui);
                 });

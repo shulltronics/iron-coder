@@ -115,7 +115,7 @@ impl Board {
 
         // See if there are any examples
         if let Ok(examples_path) = path.parent().unwrap().join("examples").canonicalize() {
-            for (i, e) in examples_path.read_dir().unwrap().enumerate() {
+            for (_i, e) in examples_path.read_dir().unwrap().enumerate() {
                 let example_path = e.unwrap().path();
                 b.examples.push(example_path);
             }

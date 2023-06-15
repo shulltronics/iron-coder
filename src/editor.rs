@@ -1,11 +1,3 @@
-// This module contains functionality for the code editor.
-// The namesake struct CodeEditor contains the state of the editor,
-// which includes:
-// * multiple tabs of source files
-//
-// most of the code for syntaxt highlighting was adapted from the code_editor of
-// the egui demo app: https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/syntax_highlighting.rs
-
 use std::string::String;
 use serde;
 use egui::Ui;
@@ -27,6 +19,17 @@ use std::io::{Read, Write, Seek};
 
 // for invoking external programs
 use std::process::Command;
+
+use crate::colorscheme::ColorScheme;
+
+/// This module contains functionality for the code editor.
+/// The namesake struct CodeEditor contains the state of the editor,
+/// which includes:
+/// * multiple tabs of source files
+///
+/// most of the code for syntaxt highlighting was adapted from the code_editor of
+/// the egui demo app: https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/syntax_highlighting.rs
+
 
 // A CodeFile is some code in memory, it's path in the filesystem,
 // and its file descriptor.
@@ -117,6 +120,7 @@ pub struct CodeEditor {
     ps: SyntaxSet,
     // #[serde(skip)]
     ts: ThemeSet,
+    cs: ColorScheme,
 }
 
 impl Default for CodeEditor {
@@ -126,6 +130,7 @@ impl Default for CodeEditor {
             active_tab: None,
             ps: SyntaxSet::load_defaults_newlines(),
             ts: ThemeSet::load_defaults(),
+            cs: ColorScheme::default(),
         }
     }
 }
@@ -141,6 +146,10 @@ impl CodeEditor {
         Ok(())
     }
 
+    pub fn set_colorscheme(&mut self, cs: ColorScheme) {
+        self.cs = cs;
+    }
+
     // This method computes the syntax highlighting.
     // The module function `highlight` caches the result and should
     // only call this method if the code changes
@@ -154,7 +163,10 @@ impl CodeEditor {
 
         let syntax = ps.find_syntax_by_extension(language).unwrap();
 
-        let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+        // Choose the syntext colorscheme by parsing the current GUI colorscheme
+        // let theme = match 
+
+        let mut h = HighlightLines::new(syntax, &ts.themes["Solarized (dark)"]);
 
         use egui::text::{LayoutSection, TextFormat};
 

@@ -6,6 +6,12 @@ pub struct ColorScheme {
     colors: [Color32; 4],
 }
 
+impl Default for ColorScheme {
+    fn default() -> Self {
+        SOLARIZED_DARK
+    }
+}
+
 pub fn set_colorscheme(ctx: &egui::Context, cs: ColorScheme) {
     // get current style
     let mut style = (*ctx.style()).clone();

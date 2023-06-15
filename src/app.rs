@@ -79,6 +79,62 @@ impl IronCoderApp {
         // Now return a default IronCoderApp
         Default::default()
     }
+
+    // This method will show or hide the settings window and update
+    // the appropriate app state.
+    pub fn settings(&mut self, ctx: &egui::Context) {
+        let Self {
+            display_settings,
+            code_editor,
+            ..
+        } = self;
+        
+        egui::Window::new("App Settings")
+        .open(display_settings)
+        .collapsible(false)
+        .resizable(false)
+        .movable(false)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ctx, |ui| {
+            let mut visuals = ctx.style().visuals.clone();
+            ui.checkbox(&mut visuals.dark_mode, "Dark Mode");
+            if visuals.dark_mode {
+                colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_DARK);
+                code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
+            } else {
+                colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_LIGHT);
+                code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
+            }
+
+            // create a font selector:
+            for (text_style, font_id) in ctx.style().text_styles.iter() {
+                // println!("{:?}: {:?}", text_style, font_id);
+                match text_style {
+                    egui::TextStyle::Name(name) => {
+                        match &*name.clone() {
+                            "HeadingBg" => continue,  // these are special fonts
+                            "HeadingFg" => continue,  //    we should ignore
+                            _ => (),
+                        }
+                        let egui::FontId {size: _, family} = font_id;
+                        // I don't really understand this dereference syntax with the Arc...
+                        let font_text = egui::RichText::new((&**name).clone())
+                                        .family((family).clone()).size(12.0);
+                        ui.label(font_text);
+                    },
+                    egui::TextStyle::Monospace => {
+                        let egui::FontId {size: _, family} = font_id;
+                        // I don't really understand this dereference syntax with the Arc...
+                        let font_text = egui::RichText::new("Default Monospace")
+                                        .family((family).clone()).size(12.0);
+                        ui.label(font_text);
+                    }
+                    _ => (),
+                }
+            }
+            // ctx.set_visuals(visuals);
+        });
+    } // pub fn settings
 }
 
 impl eframe::App for IronCoderApp {
@@ -184,7 +240,7 @@ impl eframe::App for IronCoderApp {
                     about_iron_coder(ctx, ui, display_info);
                 }
                 if *display_settings {
-                    settings(ctx, ui, display_settings);
+                    // self.settings(ctx);
                 }
 
             });
@@ -503,53 +559,5 @@ fn about_iron_coder(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool
             );
             ui.label("Developed by Shulltronics");
             ui.hyperlink_to("Iron Coder on Github", "https://github.com/shulltronics/iron-coder");
-    });
-}
-
-// This function opens a window to change settings of the app
-fn settings(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool) {
-    egui::Window::new("App Settings")
-        .open(is_shown)
-        .collapsible(false)
-        .resizable(false)
-        .movable(false)
-        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-        .show(ctx, |ui| {
-            let mut visuals = ctx.style().visuals.clone();
-                ui.checkbox(&mut visuals.dark_mode, "Dark Mode");
-                if visuals.dark_mode {
-                    colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_DARK);
-                } else {
-                    colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_LIGHT);
-                }
-
-                // create a font selector:
-                for (text_style, font_id) in ctx.style().text_styles.iter() {
-                    // println!("{:?}: {:?}", text_style, font_id);
-                    match text_style {
-                        egui::TextStyle::Name(name) => {
-                            match (&**name).clone() {
-                                "HeadingBg" => continue,  // these are special fonts
-                                "HeadingFg" => continue,  //    we should ignore
-                                _ => (),
-                            }
-                            let egui::FontId {size: _, family} = font_id;
-                            // I don't really understand this dereference syntax with the Arc...
-                            let font_text = egui::RichText::new((&**name).clone())
-                                            .family((*family).clone()).size(12.0);
-                            ui.label(font_text);
-                        },
-                        egui::TextStyle::Monospace => {
-                            let egui::FontId {size: _, family} = font_id;
-                            // I don't really understand this dereference syntax with the Arc...
-                            let font_text = egui::RichText::new("Default Monospace")
-                                            .family((*family).clone()).size(12.0);
-                            ui.label(font_text);
-                        }
-                        _ => (),
-                    }
-                }
-
-            // ctx.set_visuals(visuals);
     });
 }

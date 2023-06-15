@@ -118,7 +118,7 @@ pub struct CodeEditor {
     ps: SyntaxSet,
     ts: ThemeSet,
     cs: ColorScheme,
-    icons: icons::IconSet,
+    pub icons: icons::IconSet,
 }
 
 impl Default for CodeEditor {
@@ -137,6 +137,8 @@ impl Default for CodeEditor {
 impl CodeEditor {
 
     // Loads a CodeFile and pushes it onto the Vec of tabs
+    // TODO: don't recreate a tab if it already exists, just switch the
+    //   active tab to that one.
     pub fn load_from_file(&mut self, file_path: &Path) -> std::io::Result<()> {
         let mut code_file = CodeFile::default();
         code_file.load_from_file(file_path)?;
@@ -213,16 +215,29 @@ impl CodeEditor {
         egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 // Buttons for various code actions, like compilation
-                if ui.button("BUILD").clicked() {
+                let button = egui::widgets::Button::image_and_text(
+                    self.icons.get("build_icon").unwrap().texture_id(ctx),
+                    egui::Vec2::new(9.0, 9.0),
+                    " build project",
+                ).frame(false);
+                if ui.add(button).clicked() {
                     if let Some(i) = self.active_tab {
                         self.tabs[i].build_code();
                     } else {
                         println!("no active editor tab!");
                     }
-                };
-                if ui.button("LOAD").clicked() {
+                }
+
+                ui.separator();
+
+                let button = egui::widgets::Button::image_and_text(
+                    self.icons.get("load_icon").unwrap().texture_id(ctx),
+                    egui::Vec2::new(9.0, 9.0),
+                    " load onto board",
+                ).frame(false);
+                if ui.add(button).clicked() {
                     println!("Todo -- load onto board based on bootloader/degubber type (uf2, etc)");
-                };
+                }
             });
         });
 
@@ -257,6 +272,8 @@ impl CodeEditor {
                     ui.separator();
                 }
                 // Remove a tab if necessary
+                // TODO -- make it so that the active tab is changed only if
+                //   the closed tab was the active tab.
                 if let Some(i) = idx_to_remove {
                     let _ = self.tabs.remove(i);
                     let mut at = i;
@@ -290,8 +307,9 @@ impl CodeEditor {
         let frame = egui::Frame::canvas(&ctx.style());
         egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
             // ui.set_style(ui.ctx().style());
-            egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
-                // ui.style().code_bg_color = egui::Color32::RED;
+            egui::containers::scroll_area::ScrollArea::both()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
                 ui.add(
                     egui::TextEdit::multiline(&mut tabs[i].code)
                         .font(egui::TextStyle::Name("EditorFont".into()))

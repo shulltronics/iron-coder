@@ -1,4 +1,5 @@
 name = "test project"
+location = 'C:\Users\carst\Projects\iron-coder\boards\Adafruit\Feather_RP2040\examples\blinky'
 
 [[boards]]
 name = "Feather RP2040"

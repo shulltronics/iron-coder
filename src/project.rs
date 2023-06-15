@@ -24,7 +24,7 @@ const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 #[derive(Serialize, Deserialize)]
 pub struct Project {
     name: String,
-    #[serde(skip)]
+    // #[serde(skip)]
     location: Option<PathBuf>,
     boards: Vec<Board>,
     #[serde(skip)]
@@ -110,9 +110,10 @@ impl Project {
 
     // Show the project tree in a Ui
     pub fn display(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        ui.style_mut().spacing.indent = 10.0;
         let project_folder = match &self.location {
             None => {
-                ui.label("To show the project tree, save this project somewhere");
+                ui.label("There is currently no folder associated with this project. Please save it somewhere.");
                 return;
             },
             Some(l) => l,
@@ -122,15 +123,28 @@ impl Project {
             let child = _child.unwrap();
             let file_name = child.file_name().into_string().unwrap();
             let text = RichText::new(file_name);
-            let label = Label::new(text).sense(Sense::click());
             if child.file_type().unwrap().is_file() {
-                if ui.add(label).clicked() {
-                    self.code_editor.load_from_file(child.path().as_path());
+                let button = egui::widgets::Button::image_and_text(
+                    self.code_editor.icons.get("file_icon").unwrap().texture_id(ctx),
+                    egui::Vec2::new(7.0, 7.0),
+                    text,
+                ).frame(false);
+                if ui.add(button).clicked() {
+                    match self.code_editor.load_from_file(child.path().as_path()) {
+                        Ok(_) => (),
+                        Err(_) => println!("error opening file"),
+                    }
                 }
             } else {
-                ui.add(label);
+                let button = egui::widgets::Button::image_and_text(
+                    self.code_editor.icons.get("folder_icon").unwrap().texture_id(ctx),
+                    egui::Vec2::new(7.0, 7.0),
+                    text,
+                ).frame(false);
+                if ui.add(button).clicked() {
+                    println!("TODO - open sub folder in project tree");
+                }
             }
-            // ui.label(child.unwrap().file_name().into_string().unwrap());
         }
     }
 

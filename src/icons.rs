@@ -19,15 +19,18 @@ pub fn load_icons(icon_path: &Path) -> HashMap<&'static str, RetainedImage> {
 
     let mut icon_map = HashMap::new();
 
-    let icon_names_and_files: [(&str, &str); 8] = [
+    let icon_names_and_files: [(&str, &str); 11] = [
         ("settings_icon", "gear.png"),
         ("boards_icon", "chip.png"),
         ("about_icon", "005b_13.gif"),
         ("folder_icon", "005b_43.gif"),
         ("save_icon", "005b_23.gif"),
         ("build_icon", "005b_35.gif"),
+        ("load_icon", "005b_56.gif"),
         ("menu_icon", "005b_44.gif"),
         ("quit_icon", "005b_75.gif"),
+        ("folder_icon", "005b_49.gif"),
+        ("file_icon", "005b_65.gif"),
     ];
 
     for (icon_name, icon_file) in icon_names_and_files.into_iter() {

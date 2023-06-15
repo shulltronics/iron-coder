@@ -44,6 +44,19 @@ impl Project {
         return self.name.clone();
     }
 
+    pub fn add_board(&mut self, board: Board) {
+        // don't duplicate a board
+        if self.boards.contains(&board) {
+            println!("project <{}> already contains board {:?}", self.name, board);
+            return;
+        }
+        self.boards.push(board);
+    }
+
+    pub fn get_boards(&self) -> Vec<Board> {
+        return self.boards.clone();
+    }
+
     pub fn open(&mut self) -> io::Result<()> {
         if let Some(project_folder) = FileDialog::new().pick_folder() {
             let project_file = project_folder.join(PROJECT_FILE_NAME);

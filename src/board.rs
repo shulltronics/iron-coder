@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::vec::Vec;
 use std::fmt;
+use std::cmp;
 
 use serde::{Serialize, Deserialize};
 
@@ -70,18 +71,25 @@ pub struct Board {
     name: String,
     manufacturer: String,
     standard: Option<BoardStandards>,
-    #[serde(skip)]
-    examples: Vec<PathBuf>,
-    #[serde(skip)]
-    pic: Option<egui::ColorImage>,
     cpu: Option<String>,
-    ram: Option<isize>,   // in kb
+    ram: Option<isize>,
     flash: Option<isize>,
+    #[serde(skip)]                  //
+    examples: Vec<PathBuf>,         //\__ all of these fields are populated
+    #[serde(skip)]                  ///   via file hierarchy, hence no serde
+    pic: Option<egui::ColorImage>,  //
 }
 
 impl fmt::Debug for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
+    }
+}
+
+impl cmp::PartialEq for Board {
+    // Boards are equal if their names are equal
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
     }
 }
 
@@ -103,7 +111,7 @@ impl Board {
                 pixels.as_slice(),
             );
             b.pic = Some(color_image);
-        }  
+        }
 
         // See if there are any examples
         if let Ok(examples_path) = path.parent().unwrap().join("examples").canonicalize() {

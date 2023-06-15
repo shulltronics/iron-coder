@@ -10,6 +10,7 @@ use egui_extras::image::RetainedImage;
 
 // Separate modules
 use crate::board;
+use crate::board::Board;
 use crate::editor;
 use crate::colorscheme;
 use crate::project::Project;
@@ -26,7 +27,7 @@ enum Mode {
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct IronCoderApp {
     project: Project,
-    board: board::Board,
+    // board: board::Board,
     display_about: bool,
     display_settings: bool,
     mode: Mode,
@@ -55,7 +56,7 @@ impl Default for IronCoderApp {
 
         Self {
             project: Project::default(),
-            board: boards[0].clone(),
+            // board: boards[0].clone(),
             display_about: false,
             display_settings: false,
             code_editor: editor,
@@ -87,7 +88,7 @@ impl IronCoderApp {
     pub fn menu(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let Self {
             project,
-            board,
+            // board,
             display_about,
             display_settings,
             code_editor,
@@ -179,7 +180,7 @@ impl IronCoderApp {
     pub fn main_view(&mut self, ctx: &egui::Context) {
         let Self {
             project,
-            board,
+            // board,
             display_about,
             display_settings,
             code_editor,
@@ -215,7 +216,7 @@ impl IronCoderApp {
                                 if columns[col].add(b).on_hover_text(boards[i].get_name()).clicked() {
                                     // TODO create a new project here
                                     *mode = Mode::Editor;
-                                    *board = boards[i].clone();
+                                    project.add_board(boards[i].clone());
                                 }
                             }
                         });
@@ -233,7 +234,12 @@ impl IronCoderApp {
                         ui.separator();
                     });
 
-                    ui.add(board.clone());
+                    let project_boards = project.get_boards();
+                    for b in project_boards.iter() {
+                        if let Some(i) = boards.clone().iter().position(|board| board == b) {
+                            ui.add(boards[i].clone());
+                        }
+                    }
 
                     ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
                         ui.horizontal(|ui| {
@@ -353,7 +359,7 @@ impl IronCoderApp {
 
 impl eframe::App for IronCoderApp {
 
-    // Called by the frame work to save state before shutdown.
+    // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
     }

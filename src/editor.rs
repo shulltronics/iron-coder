@@ -1,16 +1,10 @@
-// This module contains functionality for the code editor.
-// The namesake struct CodeEditor contains the state of the editor,
-// which includes:
-// * multiple tabs of source files
-//
-// most of the code for syntaxt highlighting was adapted from the code_editor of
-// the egui demo app: https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/syntax_highlighting.rs
-
 use std::string::String;
-use serde;
 use egui::Ui;
 // use egui::containers::scroll_area::ScrollArea;
 use egui::text::LayoutJob;
+use egui::Label;
+use egui::Sense;
+use egui::widget_text::RichText;
 
 use syntect::easy::HighlightLines;
 use syntect::parsing::SyntaxSet;
@@ -25,35 +19,40 @@ use std::io::{Read, Write, Seek};
 // for invoking external programs
 use std::process::Command;
 
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct CodeEditor {
+use crate::colorscheme::ColorScheme;
+
+/// This module contains functionality for the code editor.
+/// The namesake struct CodeEditor contains the state of the editor,
+/// which includes:
+/// * multiple tabs of source files
+///
+/// most of the code for syntaxt highlighting was adapted from the code_editor of
+/// the egui demo app: https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/syntax_highlighting.rs
+
+
+// A CodeFile is some code in memory, it's path in the filesystem,
+// and its file descriptor.
+struct CodeFile {
     code: String,
     path: Option<PathBuf>,
     #[serde(skip)]
     file: Option<fs::File>,
-    #[serde(skip)]
-    ps: SyntaxSet,
-    #[serde(skip)]
-    ts: ThemeSet,
 }
 
-impl Default for CodeEditor {
+impl Default for CodeFile {
     fn default() -> Self {
         Self {
-            code: "// welcome to Iron Coder!\n".to_string(),
+            code: String::new(),
             path: None,
             file: None,
-            ps: SyntaxSet::load_defaults_newlines(),
-            ts: ThemeSet::load_defaults(),
         }
     }
 }
 
-impl CodeEditor {
-
+impl CodeFile {
     // Load some code from a path
-    pub fn load_from_file(&mut self, file_path: &Path) -> std::io::Result<()> {
-        let CodeEditor { code, .. } = self;
+    fn load_from_file(&mut self, file_path: &Path) -> std::io::Result<()> {
+        let CodeFile { code, .. } = self;
         code.clear();
         self.path = Some(file_path.canonicalize()?);
         self.file = Some(
@@ -111,6 +110,45 @@ impl CodeEditor {
             println!("error executing cargo build!");
         }
     }
+}
+
+// #[derive(serde::Deserialize, serde::Serialize)]
+pub struct CodeEditor {
+    tabs: Vec<CodeFile>,
+    active_tab: Option<usize>,
+    // #[serde(skip)]
+    ps: SyntaxSet,
+    // #[serde(skip)]
+    ts: ThemeSet,
+    cs: ColorScheme,
+}
+
+impl Default for CodeEditor {
+    fn default() -> Self {
+        Self {
+            tabs: Vec::new(),
+            active_tab: None,
+            ps: SyntaxSet::load_defaults_newlines(),
+            ts: ThemeSet::load_defaults(),
+            cs: ColorScheme::default(),
+        }
+    }
+}
+
+impl CodeEditor {
+
+    // Loads a CodeFile and pushes it onto the Vec of tabs
+    pub fn load_from_file(&mut self, file_path: &Path) -> std::io::Result<()> {
+        let mut code_file = CodeFile::default();
+        code_file.load_from_file(file_path)?;
+        self.tabs.push(code_file);
+        self.active_tab = Some(self.tabs.len() - 1);
+        Ok(())
+    }
+
+    pub fn set_colorscheme(&mut self, cs: ColorScheme) {
+        self.cs = cs;
+    }
 
     // This method computes the syntax highlighting.
     // The module function `highlight` caches the result and should
@@ -125,7 +163,10 @@ impl CodeEditor {
 
         let syntax = ps.find_syntax_by_extension(language).unwrap();
 
-        let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+        // Choose the syntext colorscheme by parsing the current GUI colorscheme
+        // let theme = match 
+
+        let mut h = HighlightLines::new(syntax, &ts.themes["Solarized (dark)"]);
 
         use egui::text::{LayoutSection, TextFormat};
 
@@ -174,7 +215,11 @@ impl CodeEditor {
             ui.horizontal(|ui| {
                 // Buttons for various code actions, like compilation
                 if ui.button("BUILD").clicked() {
-                    self.build_code();
+                    if let Some(i) = self.active_tab {
+                        self.tabs[i].build_code();
+                    } else {
+                        println!("no active editor tab!");
+                    }
                 };
                 if ui.button("LOAD").clicked() {
                     println!("Todo -- load onto board based on bootloader/degubber type (uf2, etc)");
@@ -183,10 +228,34 @@ impl CodeEditor {
         });
 
         egui::TopBottomPanel::top("editor_tabs_pane").show(ctx, |ui| {
-            ui.label("tabs will go here...");
+            // ui.label("tabs will go here...");
+            ui.horizontal(|ui| {
+                for (i, code_file) in self.tabs.iter().enumerate() {
+                    let p = code_file.path.clone().unwrap();
+                    let fname = p.as_path().file_name().unwrap();
+                    let fname = fname.to_str().unwrap();
+                    let mut text = RichText::new(fname);
+                    if let Some(at) = self.active_tab {
+                        if at == i {
+                            text = text.strong();
+                        }
+                    }
+                    let label = Label::new(text).sense(Sense::click());
+                    if ui.add(label).clicked() {
+                        self.active_tab = Some(i);
+                    }
+                    ui.separator();
+                }
+            });
         });
 
-        let CodeEditor { code, .. } = self;
+        let CodeEditor { tabs, active_tab, .. } = self;
+        let i: usize;
+        if *active_tab == None {
+            return;
+        } else {
+            i = active_tab.unwrap();
+        }
 
         let mut layouter = |ui: &egui::Ui, string: &str, _wrap_width: f32| {
             // Call the highlight function (below), which is a memoized version
@@ -201,7 +270,7 @@ impl CodeEditor {
             egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
                 // ui.style().code_bg_color = egui::Color32::RED;
                 ui.add(
-                    egui::TextEdit::multiline(code)
+                    egui::TextEdit::multiline(&mut tabs[i].code)
                         .font(egui::TextStyle::Name("EditorFont".into()))
                         .code_editor()
                         .lock_focus(true)
@@ -224,7 +293,6 @@ fn as_byte_range(whole: &str, range: &str) -> std::ops::Range<usize> {
     let offset = range_start - whole_start;
     offset..(offset + range.len())
 }
-
 
 pub fn highlight(ctx: &egui::Context, code: &str, language: &str) -> LayoutJob {
     // Implement this trait for the CodeEditor struct

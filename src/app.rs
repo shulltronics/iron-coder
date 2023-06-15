@@ -3,9 +3,6 @@
 use std::path::Path;
 use std::collections::HashMap;
 
-// Imports for loading and saving images
-use image;
-use egui::ColorImage;
 use egui_extras::image::RetainedImage;
 
 // Separate modules
@@ -13,6 +10,7 @@ use crate::board;
 use crate::editor;
 use crate::colorscheme;
 use crate::project::Project;
+use crate::icons;
 
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -49,16 +47,13 @@ impl Default for IronCoderApp {
         let code_path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/test.rs");
         editor.load_from_file(code_path).unwrap();
 
-        let icons_dir = Path::new("assets/icons/pack/white/");
-        let icons = load_icons(icons_dir);
-
         Self {
             project: Project::default(),
             display_about: false,
             display_settings: false,
             code_editor: editor,
             mode: Mode::Editor,
-            icons: icons,
+            icons: icons::load_icons(Path::new(icons::ICON_DIR)),
             boards: boards,
         }
     }
@@ -489,60 +484,6 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     ctx.set_style(style);
 
     colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_DARK);
-}
-
-// This function returns a mapping of icon names to RetainedImages 
-fn load_icons(icon_path: &Path) -> HashMap<&'static str, RetainedImage> {
-
-    let mut icon_map = std::collections::HashMap::new();
-
-    let icon_names_and_files: [(&str, &str); 8] = [
-        ("settings_icon", "gear.png"),
-        ("boards_icon", "chip.png"),
-        ("about_icon", "005b_13.gif"),
-        ("folder_icon", "005b_43.gif"),
-        ("save_icon", "005b_23.gif"),
-        ("build_icon", "005b_35.gif"),
-        ("menu_icon", "005b_44.gif"),
-        ("quit_icon", "005b_75.gif"),
-    ];
-
-    for (icon_name, icon_file) in icon_names_and_files.into_iter() {
-        let p = icon_path.join(icon_file);
-        // attempt to open the icon image file
-        let im_file = match image::io::Reader::open(p) {
-            Err(e) => {
-                println!("error reading icon file {:?}: {:?}", icon_file, e);
-                break;
-            },
-            Ok(im_file) => {
-                im_file
-            }
-        };
-        // attempt to decode it
-        let image = match im_file.decode() {
-            Err(e) => {
-                println!("error decoding icon file {:?}: {:?}", icon_file, e);
-                break;
-            },
-            Ok(image) => {
-                image
-            }
-        };
-        let size = [image.width() as _, image.height() as _];
-        let image_buffer = image.to_rgba8();
-        let image_samples = image_buffer.as_flat_samples();
-        let color_image = ColorImage::from_rgba_unmultiplied(
-            size,
-            image_samples.as_slice(),
-        );
-        let retained_image = RetainedImage::from_color_image(
-            icon_name,
-            color_image,
-        );
-        icon_map.insert(icon_name, retained_image);
-    }
-    return icon_map;
 }
 
 // Displays a cool looking header in the Ui element, utilizing our custom fonts

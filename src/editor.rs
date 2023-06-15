@@ -19,6 +19,7 @@ use std::io::{Read, Write, Seek};
 // for invoking external programs
 use std::process::Command;
 
+use crate::icons;
 use crate::colorscheme::ColorScheme;
 
 /// This module contains functionality for the code editor.
@@ -30,7 +31,7 @@ use crate::colorscheme::ColorScheme;
 /// the egui demo app: https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/syntax_highlighting.rs
 
 
-// A CodeFile is some code in memory, it's path in the filesystem,
+// A CodeFile is some code in memory, its path in the filesystem,
 // and its file descriptor.
 struct CodeFile {
     code: String,
@@ -111,15 +112,13 @@ impl CodeFile {
     }
 }
 
-// #[derive(serde::Deserialize, serde::Serialize)]
 pub struct CodeEditor {
     tabs: Vec<CodeFile>,
     active_tab: Option<usize>,
-    // #[serde(skip)]
     ps: SyntaxSet,
-    // #[serde(skip)]
     ts: ThemeSet,
     cs: ColorScheme,
+    icons: icons::IconSet,
 }
 
 impl Default for CodeEditor {
@@ -130,6 +129,7 @@ impl Default for CodeEditor {
             ps: SyntaxSet::load_defaults_newlines(),
             ts: ThemeSet::load_defaults(),
             cs: ColorScheme::default(),
+            icons: icons::load_icons(Path::new(icons::ICON_DIR)),
         }
     }
 }
@@ -227,9 +227,20 @@ impl CodeEditor {
         });
 
         egui::TopBottomPanel::top("editor_tabs_pane").show(ctx, |ui| {
-            // ui.label("tabs will go here...");
             ui.horizontal(|ui| {
+                let mut idx_to_remove: Option<usize> = None;
                 for (i, code_file) in self.tabs.iter().enumerate() {
+                    // display the close icon
+                    let x_icon = egui::widgets::ImageButton::new(
+                        self.icons.get("quit_icon").unwrap().texture_id(ctx),
+                        egui::Vec2::new(6.0, 6.0),
+                    ).frame(true);
+                    if ui.add(x_icon).clicked() {
+                        // we'll remove the tab right after this loop
+                        idx_to_remove = Some(i);
+                    }
+                    // extract the file name for the tab and display it
+                    // as a clickable label
                     let p = code_file.path.clone().unwrap();
                     let fname = p.as_path().file_name().unwrap();
                     let fname = fname.to_str().unwrap();
@@ -239,11 +250,25 @@ impl CodeEditor {
                             text = text.strong();
                         }
                     }
+
                     let label = Label::new(text).sense(Sense::click());
                     if ui.add(label).clicked() {
                         self.active_tab = Some(i);
                     }
                     ui.separator();
+                }
+                // Remove a tab if necessary
+                if let Some(i) = idx_to_remove {
+                    let _ = self.tabs.remove(i);
+                    let mut at = i;
+                    if self.tabs.len() == 0 {
+                        self.active_tab = None;
+                    } else {
+                        if at >= self.tabs.len() {
+                            at -= 1;
+                        }
+                        self.active_tab = Some(at);
+                    }
                 }
             });
         });

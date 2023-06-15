@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::io;
 use std::fs;
 
@@ -9,27 +9,40 @@ use toml;
 
 use serde::{Serialize, Deserialize};
 
+use egui::widget_text::RichText;
+use egui::Sense;
+use egui::widgets::Label;
+
 use crate::board::Board;
+use crate::editor::CodeEditor;
 
 /// A Project represents the highest level of Iron Coder, which contains
 /// a set of development boards and the project/source code directory
 
 const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct Project {
     name: String,
     #[serde(skip)]
     location: Option<PathBuf>,
     boards: Vec<Board>,
+    #[serde(skip)]
+    pub code_editor: CodeEditor,
 }
 
 impl Default for Project {
     fn default() -> Self {
+        let mut editor = CodeEditor::default();
+        let code_path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/main.rs");
+        editor.load_from_file(code_path).unwrap();
+        let code_path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/test.rs");
+        editor.load_from_file(code_path).unwrap();
         Self {
             name: "".to_string(),
             location: None,
             boards: Vec::new(),
+            code_editor: editor,
         }
     }
 }
@@ -71,7 +84,6 @@ impl Project {
             };
             *self = p;
             self.location = Some(project_folder);
-            println!("{:#?}", self);
         } else {
             println!("project open aborted");
         }
@@ -97,7 +109,7 @@ impl Project {
     }
 
     // Show the project tree in a Ui
-    pub fn display(&self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    pub fn display(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         let project_folder = match &self.location {
             None => {
                 ui.label("To show the project tree, save this project somewhere");
@@ -106,10 +118,20 @@ impl Project {
             Some(l) => l,
         };
         let children = project_folder.as_path().read_dir().unwrap();
-        for child in children {
-            ui.label(child.unwrap().file_name().into_string().unwrap());
+        for _child in children {
+            let child = _child.unwrap();
+            let file_name = child.file_name().into_string().unwrap();
+            let text = RichText::new(file_name);
+            let label = Label::new(text).sense(Sense::click());
+            if child.file_type().unwrap().is_file() {
+                if ui.add(label).clicked() {
+                    self.code_editor.load_from_file(child.path().as_path());
+                }
+            } else {
+                ui.add(label);
+            }
+            // ui.label(child.unwrap().file_name().into_string().unwrap());
         }
-
     }
 
     // pub fn save_as()

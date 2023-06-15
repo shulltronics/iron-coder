@@ -7,7 +7,6 @@ use egui_extras::image::RetainedImage;
 
 // Separate modules
 use crate::board;
-use crate::editor;
 use crate::colorscheme;
 use crate::project::Project;
 use crate::icons;
@@ -27,8 +26,6 @@ pub struct IronCoderApp {
     display_about: bool,
     display_settings: bool,
     mode: Mode,
-    #[serde(skip)]                      // serde isn't crutial b.c. in the future
-    code_editor: editor::CodeEditor,    // we will load to and from disk on power cycle
     #[serde(skip)]
     icons: HashMap<&'static str, RetainedImage>,
     #[serde(skip)]
@@ -41,17 +38,10 @@ impl Default for IronCoderApp {
         let boards_dir = Path::new("./boards");
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
 
-        let mut editor = editor::CodeEditor::default();
-        let code_path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/main.rs");
-        editor.load_from_file(code_path).unwrap();
-        let code_path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/test.rs");
-        editor.load_from_file(code_path).unwrap();
-
         Self {
             project: Project::default(),
             display_about: false,
             display_settings: false,
-            code_editor: editor,
             mode: Mode::Editor,
             icons: icons::load_icons(Path::new(icons::ICON_DIR)),
             boards: boards,
@@ -173,7 +163,6 @@ impl IronCoderApp {
     pub fn main_view(&mut self, ctx: &egui::Context) {
         let Self {
             project,
-            code_editor,
             mode,
             boards,
             ..
@@ -254,7 +243,7 @@ impl IronCoderApp {
                 });
 
                 egui::Area::new("editor area").show(ctx, |ui| {
-                    code_editor.display(ctx, ui);
+                    project.code_editor.display(ctx, ui);
                 });
 
 
@@ -266,8 +255,8 @@ impl IronCoderApp {
     // show/hide the settings window and update the appropriate app state.
     pub fn settings(&mut self, ctx: &egui::Context) {
         let Self {
+            project,
             display_settings,
-            code_editor,
             ..
         } = self;
 
@@ -283,10 +272,10 @@ impl IronCoderApp {
                 ui.checkbox(&mut visuals.dark_mode, "Dark Mode");
                 if visuals.dark_mode {
                     colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_DARK);
-                    code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
+                    project.code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
                 } else {
                     colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_LIGHT);
-                    code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
+                    project.code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
                 }
 
                 // create a font selector:

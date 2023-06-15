@@ -223,12 +223,17 @@ impl IronCoderApp {
                         ui.separator();
                     });
 
-                    let project_boards = project.get_boards();
-                    for b in project_boards.iter() {
-                        if let Some(i) = boards.clone().iter().position(|board| board == b) {
-                            ui.add(boards[i].clone());
+                    egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
+                        // show the project tree
+                        project.display(ctx, ui);
+                        // show the board widgets
+                        let project_boards = project.get_boards();
+                        for b in project_boards.iter() {
+                            if let Some(i) = boards.clone().iter().position(|board| board == b) {
+                                ui.add(boards[i].clone());
+                            }
                         }
-                    }
+                    });
 
                     ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
                         ui.horizontal(|ui| {

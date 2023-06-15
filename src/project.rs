@@ -96,5 +96,21 @@ impl Project {
         Ok(())
     }
 
+    // Show the project tree in a Ui
+    pub fn display(&self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        let project_folder = match &self.location {
+            None => {
+                ui.label("To show the project tree, save this project somewhere");
+                return;
+            },
+            Some(l) => l,
+        };
+        let children = project_folder.as_path().read_dir().unwrap();
+        for child in children {
+            ui.label(child.unwrap().file_name().into_string().unwrap());
+        }
+
+    }
+
     // pub fn save_as()
 }

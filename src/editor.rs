@@ -250,7 +250,6 @@ impl CodeEditor {
                             text = text.strong();
                         }
                     }
-
                     let label = Label::new(text).sense(Sense::click());
                     if ui.add(label).clicked() {
                         self.active_tab = Some(i);

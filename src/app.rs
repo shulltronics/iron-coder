@@ -25,11 +25,11 @@ enum Mode {
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct IronCoderApp {
     board: board::Board,
-    display_info: bool,
+    display_about: bool,
     display_settings: bool,
+    mode: Mode,
     #[serde(skip)]                      // serde isn't crutial b.e. in the future
     code_editor: editor::CodeEditor,    // we will load to and from disk on power cycle
-    mode: Mode,
     #[serde(skip)]
     boards: Vec<board::Board>,
     #[serde(skip)]
@@ -53,7 +53,7 @@ impl Default for IronCoderApp {
 
         Self {
             board: boards[0].clone(),
-            display_info: false,
+            display_about: false,
             display_settings: false,
             code_editor: editor,
             mode: Mode::Editor,
@@ -81,10 +81,10 @@ impl IronCoderApp {
     }
 
     // Show the menu and app title
-    pub fn menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    pub fn menu(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let Self {
             board,
-            display_info,
+            display_about,
             display_settings,
             code_editor,
             mode,
@@ -92,7 +92,6 @@ impl IronCoderApp {
             icons,
         } = self;
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
                 // Create a NOTHING Rect so we can track where the header is drawn
                 let mut r = egui::Rect::NOTHING;
@@ -107,6 +106,7 @@ impl IronCoderApp {
                 ui.allocate_ui_at_rect(r, |ui| {
                     let tid = icons.get("menu_icon").unwrap().texture_id(ctx);
                     ui.menu_image_button(tid, egui::Vec2::new(12.0, 12.0), |ui| {
+                        
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("save_icon").unwrap().texture_id(ctx),
                             egui::Vec2::new(8.0, 8.0),
@@ -152,7 +152,7 @@ impl IronCoderApp {
                             "about"
                         );
                         if ui.add(ib).clicked() {
-                            *display_info = !*display_info;
+                            *display_about = !*display_about;
                         }
                    
                         let ib = egui::widgets::Button::image_and_text(
@@ -163,19 +163,10 @@ impl IronCoderApp {
                         //.tint(egui::Color32::WHITE);
                         // TODO: set tint to the appropriate value for the current colorscheme
                         if ui.add(ib).clicked() {
-                            _frame.close();
+                            frame.close();
                         };
                     });
                 });
-
-                // Determine if we need to display any overlay windows
-                if *display_info {
-                    about_iron_coder(ctx, ui, display_info);
-                }
-                // if *display_settings {
-                //     self.settings(ctx);
-                // }
-
             });
         });
     }
@@ -184,7 +175,7 @@ impl IronCoderApp {
     pub fn main_view(&mut self, ctx: &egui::Context) {
         let Self {
             board,
-            display_info,
+            display_about,
             display_settings,
             code_editor,
             mode,
@@ -223,19 +214,6 @@ impl IronCoderApp {
                                 }
                             }
                         });
-                        
-                        // ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                        //     ui.label("\nBoard Selector\nCreate a new project with the given board\n");
-                        // });
-                        // // show all the boards
-                        // for (i, b) in boards.clone().into_iter().enumerate() {
-                        //     if ui.add(b).on_hover_text(boards[i].get_name()).clicked() {
-                        //         println!("board {} was clicked!", i);
-                        //         // TODO create a new project here
-                        //         *mode = Mode::Editor;
-                        //         *board = boards[i].clone();
-                        //     }
-                        // }
                     });
                 
                 });
@@ -341,6 +319,31 @@ impl IronCoderApp {
         }
         
     } // pub fn settings
+
+    // This method will show or hide the "about" window
+    pub fn about(&mut self, ctx: &egui::Context) {
+        let Self {
+            display_about,
+            ..
+        } = self;
+
+        if !*display_about { return; }
+        egui::Window::new("Iron Coder")
+        .open(display_about)
+        .collapsible(false)
+        .resizable(false)
+        .movable(false)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ctx, |ui| {
+            ui.label(
+                "Iron Coder is an app for practicing embedded Rust development.\n\
+                With inspirations from Arduino and CircuitPython, Iron Coder aims\n\
+                to provide a fun environment for embedded development."
+            );
+            ui.label("Developed by Shulltronics");
+            ui.hyperlink_to("Iron Coder on Github", "https://github.com/shulltronics/iron-coder");
+        });
+    }
 }
 
 impl eframe::App for IronCoderApp {
@@ -351,16 +354,15 @@ impl eframe::App for IronCoderApp {
     // }
 
     // Called each time the UI needs repainting, which may be many times per second.
-    // Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-
-        // The top panel containing menu items and logo will alway be present
-        self.menu(ctx, _frame);
-
-        // The GUI will look different depending on the Mode we're in
+    // This method will call all the display methods of IronCoderApp.
+    // TODO -- is this the best architecture? Is there an overhead of destructuring 
+    //   self in each of these method calls separately, vs once in the beginning of this
+    //   method? But I can't do it the latter way while still having these as method calls.
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        self.menu(ctx, frame);
         self.main_view(ctx);
-
         self.settings(ctx);
+        self.about(ctx);
     }
 }
 
@@ -564,22 +566,4 @@ fn pretty_header(ui: &mut egui::Ui, text: &str) -> egui::Rect {
     // let location = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::Vec2::ZERO);
     ui.put(rect, heading_fg);
     return rect;
-}
-
-fn about_iron_coder(ctx: &egui::Context, _ui: &mut egui::Ui, is_shown: &mut bool) {
-    egui::Window::new("Iron Coder")
-        .open(is_shown)
-        .collapsible(false)
-        .resizable(false)
-        .movable(false)
-        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-        .show(ctx, |ui| {
-            ui.label(
-                "Iron Coder is an app for practicing embedded Rust development.\n\
-                With inspirations from Arduino and CircuitPython, Iron Coder aims\n\
-                to provide a fun environment for embedded development."
-            );
-            ui.label("Developed by Shulltronics");
-            ui.hyperlink_to("Iron Coder on Github", "https://github.com/shulltronics/iron-coder");
-    });
 }

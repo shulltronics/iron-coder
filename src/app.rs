@@ -12,7 +12,7 @@ use egui_extras::image::RetainedImage;
 use crate::board;
 use crate::editor;
 use crate::colorscheme;
-use crate::project;
+use crate::project::Project;
 
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -25,6 +25,8 @@ enum Mode {
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct IronCoderApp {
+    #[serde(skip)]
+    project: Project,
     board: board::Board,
     display_about: bool,
     display_settings: bool,
@@ -53,6 +55,7 @@ impl Default for IronCoderApp {
         let icons = load_icons(icons_dir);
 
         Self {
+            project: Project::default(),
             board: boards[0].clone(),
             display_about: false,
             display_settings: false,
@@ -84,6 +87,7 @@ impl IronCoderApp {
     // Show the menu and app title
     pub fn menu(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let Self {
+            project,
             board,
             display_about,
             display_settings,
@@ -115,6 +119,7 @@ impl IronCoderApp {
                         ).shortcut_text("ctrl+s");
                         if ui.add(ib).clicked() {
                             println!("todo!");
+                            self.project.save();
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
@@ -123,7 +128,7 @@ impl IronCoderApp {
                             "open"
                         ).shortcut_text("ctrl+o");
                         if ui.add(ib).clicked() {
-                            println!("todo!");
+                            self.project.open();
                         }
                         
                         let ib = egui::widgets::Button::image_and_text(
@@ -182,6 +187,7 @@ impl IronCoderApp {
             mode,
             boards,
             icons,
+            ..
         } = self;
         match mode {
             // BoardSelector mode is the mode when selecting a new project

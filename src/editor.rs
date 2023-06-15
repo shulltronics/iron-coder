@@ -35,7 +35,6 @@ use crate::colorscheme::ColorScheme;
 struct CodeFile {
     code: String,
     path: Option<PathBuf>,
-    #[serde(skip)]
     file: Option<fs::File>,
 }
 

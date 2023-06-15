@@ -20,3 +20,4 @@ egui_extras = { version = "0.21.0", features = ["image"] }
 image = { version = "0.24.6", features = ["jpeg", "png", "gif"] }
 toml = "0.7.4"
 syntect = "5.0.0"
+rfd = "0.11.4"

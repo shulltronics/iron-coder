@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::vec::Vec;
+use std::fmt;
 
 use serde::{Serialize, Deserialize};
 
@@ -30,7 +31,6 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
                 if entry.path().ends_with("examples") {
                     continue;
                 }
-                // println!("recursing.. {:?}", entry.path());
                 r.append(&mut get_boards(&entry.path()));
             // otherwise, if the entry is a file ending in "toml" try to parse it
             // as a board file
@@ -52,7 +52,6 @@ pub enum BoardStandards {
     MicroMod,
 }
 
-use std::fmt;
 impl fmt::Display for BoardStandards {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -80,6 +79,12 @@ pub struct Board {
     flash: Option<isize>,
 }
 
+impl fmt::Debug for Board {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
 impl Board {
 
     fn load_from_toml(path: &Path) -> Self {
@@ -89,7 +94,6 @@ impl Board {
 
         // See if there is an image
         if let Ok(pic_path) = path.with_extension("png").canonicalize() {
-            // println!("picture at {:?}", pic_path);
             let image = image::io::Reader::open(pic_path).unwrap().decode().unwrap();
             let size = [image.width() as _, image.height() as _];
             let image_buffer = image.to_rgba8();
@@ -103,11 +107,8 @@ impl Board {
 
         // See if there are any examples
         if let Ok(examples_path) = path.parent().unwrap().join("examples").canonicalize() {
-            // b.examples = ...;
-            println!("found examples dir for board: {}", b.name);
             for (i, e) in examples_path.read_dir().unwrap().enumerate() {
                 let example_path = e.unwrap().path();
-                println!("  {}: {:?}", i, example_path.clone().file_name());
                 b.examples.push(example_path);
             }
         }

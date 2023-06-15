@@ -118,7 +118,6 @@ impl IronCoderApp {
                             "save"
                         ).shortcut_text("ctrl+s");
                         if ui.add(ib).clicked() {
-                            println!("todo!");
                             self.project.save();
                         }
 
@@ -214,7 +213,6 @@ impl IronCoderApp {
                             for (i, b) in boards.clone().into_iter().enumerate() {
                                 let col = i % num_cols;
                                 if columns[col].add(b).on_hover_text(boards[i].get_name()).clicked() {
-                                    println!("board {} was clicked!", i);
                                     // TODO create a new project here
                                     *mode = Mode::Editor;
                                     *board = boards[i].clone();

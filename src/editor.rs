@@ -60,7 +60,7 @@ impl CodeFile {
                             .write(true)
                             .open(file_path)?
                         );
-        println!("{:?}", self.file);
+        // println!("{:?}", self.file);
         if let Some(file) = &mut self.file {
             file.read_to_string(code)?;
         }

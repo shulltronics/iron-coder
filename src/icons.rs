@@ -12,6 +12,7 @@ use egui_extras::RetainedImage;
 ///   and exposes them to the app via a const
 
 pub type IconSet = HashMap<&'static str, RetainedImage>;
+pub type Icon = RetainedImage;
 pub const ICON_DIR: &'static str = "assets/icons/pack/white/";
 
 // This function returns a mapping of icon names to RetainedImages 
@@ -19,7 +20,7 @@ pub fn load_icons(icon_path: &Path) -> HashMap<&'static str, RetainedImage> {
 
     let mut icon_map = HashMap::new();
 
-    let icon_names_and_files: [(&str, &str); 11] = [
+    let icon_names_and_files: [(&str, &str); 12] = [
         ("settings_icon", "gear.png"),
         ("boards_icon", "chip.png"),
         ("about_icon", "005b_13.gif"),
@@ -29,7 +30,8 @@ pub fn load_icons(icon_path: &Path) -> HashMap<&'static str, RetainedImage> {
         ("load_icon", "005b_56.gif"),
         ("menu_icon", "005b_44.gif"),
         ("quit_icon", "005b_75.gif"),
-        ("folder_icon", "005b_49.gif"),
+        ("folder_closed_icon", "005b_49.gif"),
+        ("folder_open_icon", "005b_50.gif"),
         ("file_icon", "005b_65.gif"),
     ];
 

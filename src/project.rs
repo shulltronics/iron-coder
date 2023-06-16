@@ -1,8 +1,14 @@
-use std::path::{Path, PathBuf};
 use std::io;
-use std::fs;
+use std::io::{Read, Write, Seek};
 
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use std::collections::HashMap;
 use std::vec::Vec;
+
+// for invoking external programs
+use std::process::Command;
 
 use rfd::FileDialog;
 use toml;
@@ -13,7 +19,6 @@ use egui::widget_text::RichText;
 use egui::Sense;
 use egui::widgets::Label;
 
-use std::collections::HashMap;
 
 use crate::board::Board;
 use crate::editor::CodeEditor;
@@ -28,7 +33,6 @@ const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 #[serde(default)]
 pub struct Project {
     name: String,
-    // #[serde(skip)]
     location: Option<PathBuf>,
     #[serde(skip)]
     file_tree: HashMap<PathBuf, bool>,
@@ -116,6 +120,65 @@ impl Project {
         Ok(())
     }
 
+    // builds the code
+    fn build(&mut self) {
+        // println!("Saving code...");
+        // Save file first
+        // match self.save() {
+        //     Ok(()) => (),
+        //     Err(e) => println!("error saving file: {:?}", e),
+        // }
+        // Make sure we have a valid path
+        println!("Project directory: {:?}", &self.location);
+        if let Some(path) = &self.location {
+            self.code_editor.save_all();
+            let args = [
+                "-Z",
+                "unstable-options",
+                "-C",
+                path.as_path().to_str().unwrap(),
+                "build"
+            ];
+            // let args = ["version"];
+            let mut build_command = Command::new("cargo");
+            build_command.args(args);
+            if let Ok(output) = build_command.output() {
+                // println!("cargo version is: {:?}", cargo_v.stdout);
+                std::io::stdout().write_all(&output.stdout).unwrap();
+                std::io::stderr().write_all(&output.stderr).unwrap();
+            } else {
+                println!("error executing cargo build!");
+            }
+        } else {
+            println!("Project doesn't have a valid working directory.");
+        }
+    }
+
+    // loads the code (for now using 'cargo run')
+    fn load_to_board(&self) {
+        if let Some(path) = &self.location {
+            let args = [
+                "-Z",
+                "unstable-options",
+                "-C",
+                path.as_path().to_str().unwrap(),
+                "run"
+            ];
+            // let args = ["version"];
+            let mut build_command = Command::new("cargo");
+            build_command.args(args);
+            if let Ok(output) = build_command.output() {
+                // println!("cargo version is: {:?}", cargo_v.stdout);
+                std::io::stdout().write_all(&output.stdout).unwrap();
+                std::io::stderr().write_all(&output.stderr).unwrap();
+            } else {
+                println!("error executing cargo run!");
+            }
+        } else {
+            println!("Project doesn't have a valid working directory.");
+        }
+    }
+
     // A recursive directory display.
     // <dir> is the starting location, <level> is the recursion depth
     fn display_directory(&mut self, dir: &Path, level: usize, ctx: &egui::Context, ui: &mut egui::Ui) {
@@ -190,6 +253,32 @@ impl Project {
         };
         let dir = project_folder.as_path();
         self.display_directory(dir, 0, ctx, ui);
+
+        // control pane for editor actions
+        egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                // Buttons for various code actions, like compilation
+                let button = egui::widgets::Button::image_and_text(
+                    self.code_editor.icons.get("build_icon").unwrap().texture_id(ctx),
+                    egui::Vec2::new(9.0, 9.0),
+                    " build project",
+                ).frame(false);
+                if ui.add(button).clicked() {
+                    self.build();
+                }
+
+                ui.separator();
+
+                let button = egui::widgets::Button::image_and_text(
+                    self.code_editor.icons.get("load_icon").unwrap().texture_id(ctx),
+                    egui::Vec2::new(9.0, 9.0),
+                    " load onto board",
+                ).frame(false);
+                if ui.add(button).clicked() {
+                    self.load_to_board();
+                }
+            });
+        });
     }
 
     // pub fn save_as()

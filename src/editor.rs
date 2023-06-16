@@ -77,39 +77,6 @@ impl CodeFile {
         }
         Ok(())
     }
-
-    pub fn build_code(&mut self) {
-        println!("Saving code...");
-        // Save file first
-        match self.save() {
-            Ok(()) => (),
-            Err(e) => println!("error saving file: {:?}", e),
-        }
-        // Make sure we have a valid path
-        println!("{:?}", &self.path);
-        let path = match &self.path {
-            Some(p) => {
-                let p = p.parent().unwrap().parent().unwrap().to_str().unwrap();
-                println!("{:?}", p);
-                p
-            }
-            None    => {
-                println!("no valid path for cargo build!");
-                return;
-            }
-        };
-        let args = ["-Z", "unstable-options", "-C", path, "build"];
-        // let args = ["version"];
-        let mut build_command = Command::new("cargo");
-        build_command.args(args);
-        if let Ok(output) = build_command.output() {
-            // println!("cargo version is: {:?}", cargo_v.stdout);
-            std::io::stdout().write_all(&output.stdout).unwrap();
-            std::io::stderr().write_all(&output.stderr).unwrap();
-        } else {
-            println!("error executing cargo build!");
-        }
-    }
 }
 
 pub struct CodeEditor {
@@ -145,6 +112,12 @@ impl CodeEditor {
         self.tabs.push(code_file);
         self.active_tab = Some(self.tabs.len() - 1);
         Ok(())
+    }
+
+    pub fn save_all(&mut self) {
+        for tab in self.tabs.iter_mut() {
+            tab.save();
+        }
     }
 
     pub fn set_colorscheme(&mut self, cs: ColorScheme) {
@@ -211,35 +184,6 @@ impl CodeEditor {
     // regarding the syntax highlighting, as well as error checking and 
     // bug fixes
     pub fn display(&mut self, ctx: &egui::Context, _ui: &mut Ui) {
-        // control pane for editor actions
-        egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                // Buttons for various code actions, like compilation
-                let button = egui::widgets::Button::image_and_text(
-                    self.icons.get("build_icon").unwrap().texture_id(ctx),
-                    egui::Vec2::new(9.0, 9.0),
-                    " build project",
-                ).frame(false);
-                if ui.add(button).clicked() {
-                    if let Some(i) = self.active_tab {
-                        self.tabs[i].build_code();
-                    } else {
-                        println!("no active editor tab!");
-                    }
-                }
-
-                ui.separator();
-
-                let button = egui::widgets::Button::image_and_text(
-                    self.icons.get("load_icon").unwrap().texture_id(ctx),
-                    egui::Vec2::new(9.0, 9.0),
-                    " load onto board",
-                ).frame(false);
-                if ui.add(button).clicked() {
-                    println!("Todo -- load onto board based on bootloader/degubber type (uf2, etc)");
-                }
-            });
-        });
 
         egui::TopBottomPanel::top("editor_tabs_pane").show(ctx, |ui| {
             ui.horizontal(|ui| {

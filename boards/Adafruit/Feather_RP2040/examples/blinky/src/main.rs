@@ -54,10 +54,10 @@ fn main() -> ! {
     /*
     Loop Section
     */
-    let mut delay: u32 = 500;   // loop delay in ms
+    let mut delay: u32 = 70;   // loop delay in ms
     loop {
         led_pin.set_low();
-        timer.delay_ms(delay as u32);
+        timer.delay_ms((delay + 500) as u32);
         led_pin.set_high();
         timer.delay_ms(delay as u32);
     }

@@ -178,61 +178,10 @@ impl CodeEditor {
         return job;
     }
 
-    // I would prefer to implement the CodeEditor display
-    // via the Widget trait I think (see below -- commented out).
-    // But I was fighting the borrow checker too much. This seems to work.
     // TODO -- optimizations (and opportunities for benchmarking) 
     // regarding the syntax highlighting, as well as error checking and 
     // bug fixes
-    pub fn display(&mut self, ctx: &egui::Context, _ui: &mut Ui) {
-
-        egui::TopBottomPanel::top("editor_tabs_pane").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                let mut idx_to_remove: Option<usize> = None;
-                for (i, code_file) in self.tabs.iter().enumerate() {
-                    // display the close icon
-                    let x_icon = egui::widgets::ImageButton::new(
-                        self.icons.get("quit_icon").unwrap().texture_id(ctx),
-                        egui::Vec2::new(6.0, 6.0),
-                    ).frame(true);
-                    if ui.add(x_icon).clicked() {
-                        // we'll remove the tab right after this loop
-                        idx_to_remove = Some(i);
-                    }
-                    // extract the file name for the tab and display it
-                    // as a clickable label
-                    let p = code_file.path.clone().unwrap();
-                    let fname = p.as_path().file_name().unwrap();
-                    let fname = fname.to_str().unwrap();
-                    let mut text = RichText::new(fname);
-                    if let Some(at) = self.active_tab {
-                        if at == i {
-                            text = text.strong();
-                        }
-                    }
-                    let label = Label::new(text).sense(Sense::click());
-                    if ui.add(label).clicked() {
-                        self.active_tab = Some(i);
-                    }
-                    ui.separator();
-                }
-                // Remove a tab if necessary
-                // TODO -- make it so that the active tab is changed only if
-                //   the closed tab was the active tab.
-                if let Some(i) = idx_to_remove {
-                    let _ = self.tabs.remove(i);
-                    let mut at = i;
-                    if self.tabs.len() == 0 {
-                        self.active_tab = None;
-                    } else {
-                        if at >= self.tabs.len() {
-                            at -= 1;
-                        }
-                        self.active_tab = Some(at);
-                    }
-                }
-            });
-        });
+    pub fn display_code(&mut self, ctx: &egui::Context, ui: &mut Ui) {
 
         let CodeEditor { tabs, active_tab, .. } = self;
         let i: usize;
@@ -249,24 +198,67 @@ impl CodeEditor {
             ui.fonts(|f| f.layout_job(layout_job))
         };
 
-        let frame = egui::Frame::canvas(&ctx.style());
-        egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
-            // ui.set_style(ui.ctx().style());
-            egui::containers::scroll_area::ScrollArea::both()
-            .auto_shrink([false; 2])
-            .show(ui, |ui| {
-                ui.add(
-                    egui::TextEdit::multiline(&mut tabs[i].code)
-                        .font(egui::TextStyle::Name("EditorFont".into()))
-                        .code_editor()
-                        .lock_focus(true)
-                        .desired_width(f32::INFINITY)
-                        .frame(false)
-                        .layouter(&mut layouter),
-                );
-            });
+        egui::containers::scroll_area::ScrollArea::both()
+        .auto_shrink([false; 2])
+        .show(ui, |ui| {
+            ui.add(
+                egui::TextEdit::multiline(&mut tabs[i].code)
+                    .font(egui::TextStyle::Name("EditorFont".into()))
+                    .code_editor()
+                    .lock_focus(true)
+                    .desired_width(f32::INFINITY)
+                    .frame(false)
+                    .layouter(&mut layouter),
+            );
         });
+    }
 
+    pub fn display_editor_tabs(&mut self, ctx: &egui::Context, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            let mut idx_to_remove: Option<usize> = None;
+            for (i, code_file) in self.tabs.iter().enumerate() {
+                // display the close icon
+                let x_icon = egui::widgets::ImageButton::new(
+                    self.icons.get("quit_icon").unwrap().texture_id(ctx),
+                    egui::Vec2::new(6.0, 6.0),
+                ).frame(true);
+                if ui.add(x_icon).clicked() {
+                    // we'll remove the tab right after this loop
+                    idx_to_remove = Some(i);
+                }
+                // extract the file name for the tab and display it
+                // as a clickable label
+                let p = code_file.path.clone().unwrap();
+                let fname = p.as_path().file_name().unwrap();
+                let fname = fname.to_str().unwrap();
+                let mut text = RichText::new(fname);
+                if let Some(at) = self.active_tab {
+                    if at == i {
+                        text = text.strong();
+                    }
+                }
+                let label = Label::new(text).sense(Sense::click());
+                if ui.add(label).clicked() {
+                    self.active_tab = Some(i);
+                }
+                ui.separator();
+            }
+            // Remove a tab if necessary
+            // TODO -- make it so that the active tab is changed only if
+            //   the closed tab was the active tab.
+            if let Some(i) = idx_to_remove {
+                let _ = self.tabs.remove(i);
+                let mut at = i;
+                if self.tabs.len() == 0 {
+                    self.active_tab = None;
+                } else {
+                    if at >= self.tabs.len() {
+                        at -= 1;
+                    }
+                    self.active_tab = Some(at);
+                }
+            }
+        });
     }
 
 }

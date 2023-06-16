@@ -214,7 +214,7 @@ impl IronCoderApp {
 
                     egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
                         // show the project tree
-                        project.display(ctx, ui);
+                        project.display_project_tree(ctx, ui);
                         // show the board widgets
                         let project_boards = project.get_boards();
                         for b in project_boards.iter() {
@@ -243,7 +243,19 @@ impl IronCoderApp {
                 });
 
                 egui::Area::new("editor area").show(ctx, |ui| {
-                    project.code_editor.display(ctx, ui);
+                    egui::TopBottomPanel::bottom("terminal_panel").resizable(true).show(ctx, |ui| {
+                        project.display_terminal(ctx, ui);
+                    });
+                    egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
+                        project.display_project_toolbar(ctx, ui);
+                    });
+                    egui::TopBottomPanel::top("editor_tabs").show(ctx, |ui| {
+                        project.code_editor.display_editor_tabs(ctx, ui);
+                    });
+                    let frame = egui::Frame::canvas(&ctx.style());
+                    egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
+                        project.code_editor.display_code(ctx, ui);
+                    });
                 });
 
 

@@ -105,6 +105,8 @@ impl Project {
         Ok(())
     }
 
+    // pub fn save_as()
+
     pub fn save(&mut self) -> io::Result<()> {
         if self.location == None {
             // TODO -- move this to "save_as" and call that method here
@@ -140,8 +142,8 @@ impl Project {
             let mut build_command = Command::new("cargo");
             build_command.args(args);
             if let Ok(output) = build_command.output() {
+                // TODO -- should I send stdout too?
                 let utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
-                // println!("{:?}", utf8);
                 self.terminal_buffer += utf8;
                 // std::io::stdout().write_all(&output.stdout).unwrap();
                 // std::io::stderr().write_all(&output.stderr).unwrap();
@@ -154,7 +156,7 @@ impl Project {
     }
 
     // loads the code (for now using 'cargo run')
-    fn load_to_board(&self) {
+    fn load_to_board(&mut self) {
         if let Some(path) = &self.location {
             let args = [
                 "-Z",
@@ -167,9 +169,10 @@ impl Project {
             let mut build_command = Command::new("cargo");
             build_command.args(args);
             if let Ok(output) = build_command.output() {
-                // println!("cargo version is: {:?}", cargo_v.stdout);
-                std::io::stdout().write_all(&output.stdout).unwrap();
-                std::io::stderr().write_all(&output.stderr).unwrap();
+                let utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
+                self.terminal_buffer += utf8;
+                // std::io::stdout().write_all(&output.stdout).unwrap();
+                // std::io::stderr().write_all(&output.stderr).unwrap();
             } else {
                 println!("error executing cargo run!");
             }
@@ -240,8 +243,26 @@ impl Project {
         }
     }
 
-    // Show the project tree in a Ui
-    pub fn display(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    // show the terminal pane
+    pub fn display_terminal(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        egui::CollapsingHeader::new("Terminal").show(ui, |ui| {
+            egui::ScrollArea::both()
+            .auto_shrink([false; 2])
+            .stick_to_bottom(true)
+            .show(ui, |ui| {
+                ui.add(
+                    egui::TextEdit::multiline(&mut self.terminal_buffer)
+                    .code_editor()
+                    .interactive(false)
+                    .desired_width(f32::INFINITY)
+                    .frame(false)
+                );
+            });
+        });
+    }
+
+    // show the project tree in a Ui
+    pub fn display_project_tree(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         // ui.style_mut().spacing.indent = 10.0;
         let project_folder = match &self.location {
             None => {
@@ -252,46 +273,32 @@ impl Project {
         };
         let dir = project_folder.as_path();
         self.display_directory(dir, 0, ctx, ui);
+    }
 
-        // terminal panel
-        egui::TopBottomPanel::bottom("terminal_panel").show(ctx, |ui| {
-            egui::CollapsingHeader::new("Terminal").show(ui, |ui| {
-                egui::ScrollArea::both().auto_shrink([false; 2]).show(ui, |ui| {
-                    ui.add(
-                        egui::TextEdit::multiline(&mut self.terminal_buffer)
-                        .interactive(false)
-                        .desired_width(f32::INFINITY)
-                    );
-                });
-            });
-        });
+    // show the project toolbar
+    pub fn display_project_toolbar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            // Buttons for various code actions, like compilation
+            let button = egui::widgets::Button::image_and_text(
+                self.code_editor.icons.get("build_icon").unwrap().texture_id(ctx),
+                egui::Vec2::new(9.0, 9.0),
+                " build project",
+            ).frame(false);
+            if ui.add(button).clicked() {
+                self.build();
+            }
 
-        // control pane for editor actions
-        egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                // Buttons for various code actions, like compilation
-                let button = egui::widgets::Button::image_and_text(
-                    self.code_editor.icons.get("build_icon").unwrap().texture_id(ctx),
-                    egui::Vec2::new(9.0, 9.0),
-                    " build project",
-                ).frame(false);
-                if ui.add(button).clicked() {
-                    self.build();
-                }
+            ui.separator();
 
-                ui.separator();
-
-                let button = egui::widgets::Button::image_and_text(
-                    self.code_editor.icons.get("load_icon").unwrap().texture_id(ctx),
-                    egui::Vec2::new(9.0, 9.0),
-                    " load onto board",
-                ).frame(false);
-                if ui.add(button).clicked() {
-                    self.load_to_board();
-                }
-            });
+            let button = egui::widgets::Button::image_and_text(
+                self.code_editor.icons.get("load_icon").unwrap().texture_id(ctx),
+                egui::Vec2::new(9.0, 9.0),
+                " load onto board",
+            ).frame(false);
+            if ui.add(button).clicked() {
+                self.load_to_board();
+            }
         });
     }
 
-    // pub fn save_as()
 }

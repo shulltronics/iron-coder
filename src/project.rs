@@ -40,6 +40,8 @@ pub struct Project {
     boards: Vec<Board>,
     #[serde(skip)]
     pub code_editor: CodeEditor,
+    #[serde(skip)]
+    terminal_buffer: String,
 }
 
 impl Default for Project {
@@ -55,6 +57,7 @@ impl Default for Project {
             file_tree: HashMap::new(),
             boards: Vec::new(),
             code_editor: editor,
+            terminal_buffer: String::new(),
         }
     }
 }
@@ -122,12 +125,6 @@ impl Project {
 
     // builds the code
     fn build(&mut self) {
-        // println!("Saving code...");
-        // Save file first
-        // match self.save() {
-        //     Ok(()) => (),
-        //     Err(e) => println!("error saving file: {:?}", e),
-        // }
         // Make sure we have a valid path
         println!("Project directory: {:?}", &self.location);
         if let Some(path) = &self.location {
@@ -143,9 +140,11 @@ impl Project {
             let mut build_command = Command::new("cargo");
             build_command.args(args);
             if let Ok(output) = build_command.output() {
-                // println!("cargo version is: {:?}", cargo_v.stdout);
-                std::io::stdout().write_all(&output.stdout).unwrap();
-                std::io::stderr().write_all(&output.stderr).unwrap();
+                let utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
+                // println!("{:?}", utf8);
+                self.terminal_buffer += utf8;
+                // std::io::stdout().write_all(&output.stdout).unwrap();
+                // std::io::stderr().write_all(&output.stderr).unwrap();
             } else {
                 println!("error executing cargo build!");
             }
@@ -253,6 +252,19 @@ impl Project {
         };
         let dir = project_folder.as_path();
         self.display_directory(dir, 0, ctx, ui);
+
+        // terminal panel
+        egui::TopBottomPanel::bottom("terminal_panel").show(ctx, |ui| {
+            egui::CollapsingHeader::new("Terminal").show(ui, |ui| {
+                egui::ScrollArea::both().auto_shrink([false; 2]).show(ui, |ui| {
+                    ui.add(
+                        egui::TextEdit::multiline(&mut self.terminal_buffer)
+                        .interactive(false)
+                        .desired_width(f32::INFINITY)
+                    );
+                });
+            });
+        });
 
         // control pane for editor actions
         egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {

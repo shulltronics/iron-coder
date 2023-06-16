@@ -114,6 +114,7 @@ impl CodeEditor {
         Ok(())
     }
 
+    // iterates through and saves all open tabs
     pub fn save_all(&mut self) {
         for tab in self.tabs.iter_mut() {
             tab.save();
@@ -296,19 +297,3 @@ pub fn highlight(ctx: &egui::Context, code: &str, language: &str) -> LayoutJob {
             .get((code, language))
     })
 }
-
-// impl Widget for CodeEditor {
-//     fn ui(&mut self, ui: &mut Ui) -> Response {
-//         let CodeEditor { code } = self;
-//         ui.add(
-//             egui::TextEdit::multiline(code)
-//                 .font(egui::TextStyle::Monospace) // for cursor height
-//                 .code_editor()
-//                 .desired_rows(10)
-//                 .lock_focus(true)
-//                 .desired_width(f32::INFINITY)
-//                 .frame(false),
-//                 // .layouter(&mut layouter),
-//         )
-//     }
-// }

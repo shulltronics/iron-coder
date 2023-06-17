@@ -94,12 +94,21 @@ impl IronCoderApp {
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("save_icon").unwrap().texture_id(ctx),
                             egui::Vec2::new(8.0, 8.0),
-                            "save"
+                            "save project"
                         ).shortcut_text("ctrl+s");
                         if ui.add(ib).clicked() {
                             if let Err(e) = self.project.save() {
                                 println!("error saving project: {:?}", e);
                             }
+                        }
+
+                        let ib = egui::widgets::Button::image_and_text(
+                            icons.get("save_icon").unwrap().texture_id(ctx),
+                            egui::Vec2::new(8.0, 8.0),
+                            "save project as..."
+                        );
+                        if ui.add(ib).clicked() {
+                            println!("TODO -- save as");
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
@@ -116,7 +125,7 @@ impl IronCoderApp {
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("boards_icon").unwrap().texture_id(ctx),
                             egui::Vec2::new(8.0, 8.0),
-                            "boards"
+                            "new project"
                         ).shortcut_text("ctrl+n");
                         if ui.add(ib).clicked() {
                             match mode {
@@ -128,7 +137,7 @@ impl IronCoderApp {
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("settings_icon").unwrap().texture_id(ctx),
                             egui::Vec2::new(8.0, 8.0),
-                            "setting"
+                            "settings"
                         );
                         if ui.add(ib).clicked() {
                             *display_settings = !*display_settings;
@@ -137,7 +146,7 @@ impl IronCoderApp {
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("about_icon").unwrap().texture_id(ctx),
                             egui::Vec2::new(8.0, 8.0),
-                            "about"
+                            "about Iron Coder"
                         );
                         if ui.add(ib).clicked() {
                             *display_about = !*display_about;
@@ -170,23 +179,29 @@ impl IronCoderApp {
         match mode {
             // BoardSelector mode is the mode when selecting a new project
             Mode::BoardSelector => {
-
-                // TODO - add a top panel for a search bar, etc
-                egui::TopBottomPanel::top("board_selector_top_panel").show(ctx, |ui| {
-                    ui.label("Select the boards for this project");
-                    ui.label("Search bar will go here...");
+                // using a Frame allows us to add extra margins
+                let frame = egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::same(25.0));
+                egui::TopBottomPanel::top("board_selector_top_panel")
+                .frame(frame)
+                .show(ctx, |ui| {
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                        ui.horizontal(|ui| {
+                            ui.label("Project Name: ");
+                            // with this we can edit an existing project
+                            ui.text_edit_singleline(project.borrow_name());
+                        });
+                        ui.label("Search bar will go here...");
+                        ui.label("Select boards for this project:");
+                    });
                 });
 
-                let central_frame = egui::Frame::default();
-                egui::CentralPanel::default().frame(central_frame).show(ctx, |ui| {
-                    
+                egui::CentralPanel::default().show(ctx, |ui| {
                     // Create a grid-based layout to show all the board widgets
                     let available_width = ui.available_width();
                     let mut num_cols = (available_width / 260.0) as usize;
                     if num_cols == 0 {
                         num_cols = 1;
                     }
-                    // println!("num cols: {:?}", num_cols);
                     egui::containers::scroll_area::ScrollArea::vertical().show(ui, |ui| {
                         ui.columns(num_cols, |columns| {
                             for (i, b) in boards.clone().into_iter().enumerate() {

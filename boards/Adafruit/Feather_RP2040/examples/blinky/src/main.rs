@@ -3,7 +3,7 @@
 
 /**** low-level imports *****/
 use panic_halt as _;
-use cortex_m::prelude::*;
+//use cortex_m::prelude::*;
 use cortex_m_rt::entry;
 use embedded_hal::{
         digital::v2::{OutputPin},
@@ -51,14 +51,12 @@ fn main() -> ! {
     let mut timer = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().integer());
     let mut led_pin = pins.d13.into_push_pull_output();
 
-    /*
-    Loop Section
-    */
-    let mut delay: u32 = 70;   // loop delay in ms
+    /* Loop Section */
+    let delay: u32 = 70;   // loop delay in ms
     loop {
-        led_pin.set_low();
+        led_pin.set_low().unwrap();
         timer.delay_ms((delay + 1200) as u32);
-        led_pin.set_high();
+        led_pin.set_high().unwrap();
         timer.delay_ms(delay as u32);
     }
 

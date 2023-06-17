@@ -1,4 +1,4 @@
-name = "test project"
+name = "test proj"
 location = 'C:\Users\carst\Projects\iron-coder\boards\Adafruit\Feather_RP2040\examples\blinky'
 
 [[boards]]

@@ -19,7 +19,6 @@ use egui::widget_text::RichText;
 use egui::Sense;
 use egui::widgets::Label;
 
-
 use crate::board::Board;
 use crate::editor::CodeEditor;
 use crate::icons::Icon;
@@ -46,17 +45,12 @@ pub struct Project {
 
 impl Default for Project {
     fn default() -> Self {
-        let mut editor = CodeEditor::default();
-        let code_path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/main.rs");
-        editor.load_from_file(code_path).unwrap();
-        let code_path = Path::new("./boards/Adafruit/Feather_RP2040/examples/blinky/src/test.rs");
-        editor.load_from_file(code_path).unwrap();
         Self {
             name: "".to_string(),
             location: None,
             file_tree: HashMap::new(),
             boards: Vec::new(),
-            code_editor: editor,
+            code_editor: CodeEditor::default(),
             terminal_buffer: String::new(),
         }
     }
@@ -66,6 +60,10 @@ impl Project {
     // pub fn new() -> Self {
     //     Ok(())
     // }
+
+    pub fn borrow_name(&mut self) -> &mut String {
+        &mut self.name
+    }
 
     pub fn get_name(&self) -> String {
         return self.name.clone();

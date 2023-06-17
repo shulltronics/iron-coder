@@ -129,8 +129,11 @@ impl IronCoderApp {
                         ).shortcut_text("ctrl+n");
                         if ui.add(ib).clicked() {
                             match mode {
-                                Mode::BoardSelector => *mode = Mode::Editor,
-                                Mode::Editor        => *mode = Mode::BoardSelector,
+                                Mode::BoardSelector => (),
+                                Mode::Editor        => {
+                                    *mode = Mode::BoardSelector;
+                                    self.project = Project::default();
+                                },
                             }
                         }
 
@@ -192,6 +195,9 @@ impl IronCoderApp {
                         });
                         ui.label("Search bar will go here...");
                         ui.label("Select boards for this project:");
+                        if ui.button("Create project").clicked() {
+                            *mode = Mode::Editor;
+                        }
                     });
                 });
 

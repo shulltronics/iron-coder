@@ -18,8 +18,9 @@
   * Read from/write to disk for save/open of projects
     * TODO -- check that we don't overwrite an existing project!
   * Allow for creation of new projects and editing of existing ones
+    * Fix issue where CodeEditor state is lost after project edit
   * Force a project to make sense, i.e. should there be exactly one "Programmable Board"? Should I ensure that peripheral boards are compatible, or at least provide a warning if they might not be (i.e. using an I2S mic with a processor that doesn't have I2S)? A long-term goal is to be able to define the connections between boards (like I2C, SPI, etc), and like it to their pinouts.
-  * Another long-term goal is to have "code blocks" that help link 
+  * Another long-term goal is to have "code blocks" that help link Programmable Boards to Peripheral Boards
   * Provide build stats like executable size, etc
   * Consider ways to measure and monitor performance. I'd like to write some benchmarking code similar to CoreMark, but in Rust. It would also be cool to benchmark other interesting HW-specific things, such as IO, floating-point stuff, bandwidth tests of WiFi/BLE/LoRa type boards.
 * __Board__

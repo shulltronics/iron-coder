@@ -1,5 +1,7 @@
 //! Iron Coder is an app for developing embedded firmware in Rust
 
+use log::{info, warn};
+
 use std::path::Path;
 use std::collections::HashMap;
 
@@ -40,7 +42,6 @@ impl Default for IronCoderApp {
         // Populate the boards
         let boards_dir = Path::new("./boards");
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
-
         Self {
             project: Project::default(),
             display_about: false,
@@ -56,16 +57,15 @@ impl Default for IronCoderApp {
 impl IronCoderApp {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-
+        info!("welcome to Iron Coder! setting up initial app state...");
         // we mutate cc.egui_ctx (the context) to set the overall app style
         setup_fonts_and_style(&cc.egui_ctx);
-
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
         if let Some(storage) = cc.storage {
+            info!("loading former app state from storage...");
             return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
         }
-        
         // Now return a default IronCoderApp
         Default::default()
     }
@@ -113,7 +113,7 @@ impl IronCoderApp {
                             "save project as..."
                         );
                         if ui.add(ib).clicked() {
-                            self.project.save_as();
+                            self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
@@ -179,7 +179,7 @@ impl IronCoderApp {
     }
 
     // Display the list of available boards in the Ui, and return one if it was clicked
-    pub fn display_available_boards(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) -> Option<board::Board> {
+    pub fn display_available_boards(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) -> Option<board::Board> {
         let mut board: Option<board::Board> = None;
         // Create a grid-based layout to show all the board widgets
         let available_width = ui.available_width();
@@ -266,7 +266,7 @@ impl IronCoderApp {
                 // option to add a new top-level directory
                 let dir_button = egui::widgets::Button::new("+ dir/file").frame(false);
                 if ui.add(dir_button).clicked() {
-                    project.new_file();
+                    project.new_file().unwrap_or_else(|_| warn!("couldn't create new file"));
                 }
                 // show the project tree
                 project.display_project_tree(ctx, ui);
@@ -297,7 +297,7 @@ impl IronCoderApp {
             });
         });
 
-        egui::Area::new("editor area").show(ctx, |ui| {
+        egui::Area::new("editor area").show(ctx, |_ui| {
             egui::TopBottomPanel::bottom("terminal_panel").resizable(true).show(ctx, |ui| {
                 project.display_terminal(ctx, ui);
             });
@@ -402,6 +402,7 @@ impl eframe::App for IronCoderApp {
 
     // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        info!("saving program state before shutdown.");
         eframe::set_value(storage, eframe::APP_KEY, self);
     }
 

@@ -1,6 +1,6 @@
-use std::io;
-use std::io::{Read, Write, Seek};
+use log::{info, warn};
 
+use std::io;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -16,13 +16,9 @@ use toml;
 use serde::{Serialize, Deserialize};
 
 use egui::widget_text::RichText;
-use egui::Sense;
-use egui::widgets::Label;
 
 use crate::board::Board;
 use crate::editor::CodeEditor;
-use crate::icons::Icon;
-use crate::app::Mode;
 
 /// A Project represents the highest level of Iron Coder, which contains
 /// a set of development boards and the project/source code directory
@@ -176,7 +172,7 @@ impl Project {
         // Make sure we have a valid path
         println!("Project directory: {:?}", &self.location);
         if let Some(path) = &self.location {
-            self.code_editor.save_all();
+            self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
             let args = [
                 "-Z",
                 "unstable-options",
@@ -234,9 +230,9 @@ impl Project {
         }
         if let Some(pathbuf) = FileDialog::new().set_directory(self.location.clone().unwrap()).save_file() {
             println!("{}", pathbuf.display().to_string());
-            let file = fs::File::create_new(pathbuf).unwrap();
+            fs::File::create_new(pathbuf)?;
         } else {
-            println!("error getting file path");
+            warn!("error getting file path");
         }
         Ok(())
     }
@@ -306,7 +302,7 @@ impl Project {
     }
 
     // show the terminal pane
-    pub fn display_terminal(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    pub fn display_terminal(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
         egui::CollapsingHeader::new("Terminal").show(ui, |ui| {
             egui::ScrollArea::both()
             .auto_shrink([false; 2])
@@ -361,25 +357,5 @@ impl Project {
             }
         });
     }
-
-    // returns the Mode that the app should enter into
-    // pub fn display_project_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) -> Option<Self> {
-    //     ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-    //         ui.horizontal(|ui| {
-    //             ui.label("Project Name: ");
-    //             // with this we can edit an existing project
-    //             ui.text_edit_singleline(self.borrow_name());
-    //         });
-    //         ui.label("Search bar will go here...");
-    //         ui.label("Select boards for this project:");
-    //         if ui.button("Develop project").clicked() {
-    //             return ;
-    //         }
-    //         if ui.button("Cancel").clicked() {
-    //             mode = Mode::ProjectDeveloper;
-    //         }
-    //     });
-    //     return mode;
-    // }
 
 }

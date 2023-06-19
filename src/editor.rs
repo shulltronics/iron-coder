@@ -16,9 +16,6 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::io::{Read, Write, Seek};
 
-// for invoking external programs
-use std::process::Command;
-
 use crate::icons;
 use crate::colorscheme::ColorScheme;
 
@@ -115,10 +112,11 @@ impl CodeEditor {
     }
 
     // iterates through and saves all open tabs
-    pub fn save_all(&mut self) {
+    pub fn save_all(&mut self) -> std::io::Result<()> {
         for tab in self.tabs.iter_mut() {
-            tab.save();
+            tab.save()?;
         }
+        Ok(())
     }
 
     pub fn set_colorscheme(&mut self, cs: ColorScheme) {

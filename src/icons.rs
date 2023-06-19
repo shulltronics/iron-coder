@@ -12,7 +12,6 @@ use egui_extras::RetainedImage;
 ///   and exposes them to the app via a const
 
 pub type IconSet = HashMap<&'static str, RetainedImage>;
-pub type Icon = RetainedImage;
 pub const ICON_DIR: &'static str = "assets/icons/pack/white/";
 
 // This function returns a mapping of icon names to RetainedImages 

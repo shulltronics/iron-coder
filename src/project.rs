@@ -1,4 +1,4 @@
-use log::{info, warn};
+use log::{info, warn, debug};
 
 use std::io;
 use std::fs;
@@ -67,6 +67,13 @@ impl Clone for Project {
 }
 
 impl Project {
+    
+    // Helper function for printing both to logs and to built-in terminal
+    fn info_logger(&mut self, msg: &str) {
+        info!("{}", msg);
+        let msg = msg.to_owned() + "\n";
+        self.terminal_buffer += &msg;
+    }
 
     pub fn borrow_name(&mut self) -> &mut String {
         &mut self.name
@@ -88,7 +95,8 @@ impl Project {
     pub fn add_board(&mut self, board: Board) {
         // don't duplicate a board
         if self.boards.contains(&board) {
-            println!("project <{}> already contains board {:?}", self.name, board);
+            info!("project <{}> already contains board <{:?}>", self.name, board);
+            self.terminal_buffer += "project already contains that board\n";
             return;
         }
         self.boards.push(board);
@@ -107,14 +115,15 @@ impl Project {
                     p
                 },
                 Err(e) => {
-                    println!("error opening project.. perhaps the file is misformatted?\n{:?}", e);
+                    warn!("error opening project. perhaps the file is misformatted? Err: {:?}", e);
+                    self.info_logger("error opening project");
                     return Ok(());
                 }
             };
             *self = p;
             self.location = Some(project_folder);
         } else {
-            println!("project open aborted");
+            info!("project open aborted");
         }
         Ok(())
     }
@@ -124,14 +133,15 @@ impl Project {
             // check if there is an existing .ironcoder.toml file that we might overwrite
             for entry in std::fs::read_dir(&project_folder).unwrap() {
                 if entry.unwrap().file_name().to_str().unwrap() == PROJECT_FILE_NAME {
-                    println!("you might be overwriting an existing Iron Coder project! \
-                              Are you sure you wish to continue?");
+                    warn!("you might be overwriting an existing Iron Coder project! \
+                           Are you sure you wish to continue?");
+                    self.terminal_buffer += "beware of overwriting and existing project file!\n";
                     return Ok(());
                 }
             }
             self.location = Some(project_folder);
         } else {
-            println!("project save aborted");
+            info!("project save aborted");
             return Ok(());
         }
         self.save()
@@ -139,7 +149,7 @@ impl Project {
 
     pub fn save(&mut self) -> io::Result<()> {
         if self.location == None {
-            println!("no project location, called save_as...");
+            info!("no project location, calling save_as...");
             self.save_as()
         } else {
             let project_folder = self.location.clone().unwrap();
@@ -152,15 +162,13 @@ impl Project {
             ];
             let output = Command::new("cargo").args(args).output().unwrap();
             if output.status.success() {
-                println!("successfully created cargo package");
+                self.info_logger("successfully created cargo package");
             } else {
-                println!("couldn't create cargo package, maybe because \
+                warn!("couldn't create cargo package, maybe because \
                             it's already been created? {:?}", output.status);
-                let utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
-                self.terminal_buffer += utf8;
             }
             let project_file = project_folder.join(PROJECT_FILE_NAME);
-            println!("saving project to {}", project_file.display().to_string());
+            info!("saving project to {}", project_file.display().to_string());
             let contents: String = toml::to_string(self).unwrap();
             fs::write(project_file, contents)?;
             Ok(())
@@ -170,8 +178,8 @@ impl Project {
     // builds the code
     fn build(&mut self) {
         // Make sure we have a valid path
-        println!("Project directory: {:?}", &self.location);
         if let Some(path) = &self.location {
+            info!("building project at {}", path.display().to_string());
             self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
             let args = [
                 "-Z",
@@ -183,17 +191,19 @@ impl Project {
             // let args = ["version"];
             let mut build_command = Command::new("cargo");
             build_command.args(args);
-            if let Ok(output) = build_command.output() {
-                // TODO -- should I send stdout too?
-                let utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
-                self.terminal_buffer += utf8;
-                // std::io::stdout().write_all(&output.stdout).unwrap();
-                // std::io::stderr().write_all(&output.stderr).unwrap();
-            } else {
-                println!("error executing cargo build!");
+            match build_command.output() {
+                Ok(output) => {
+                    let mut utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
+                    self.terminal_buffer += utf8;
+                    utf8 = std::str::from_utf8(output.stdout.as_slice()).unwrap();
+                    self.terminal_buffer += utf8;
+                },
+                Err(e) => {
+                    warn!("error executing cargo build. Err: {:?}", e);
+                },
             }
         } else {
-            println!("Project doesn't have a valid working directory.");
+            self.info_logger("project needs a valid working directory before building");
         }
     }
 
@@ -210,26 +220,29 @@ impl Project {
             // let args = ["version"];
             let mut build_command = Command::new("cargo");
             build_command.args(args);
-            if let Ok(output) = build_command.output() {
-                let utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
-                self.terminal_buffer += utf8;
-                // std::io::stdout().write_all(&output.stdout).unwrap();
-                // std::io::stderr().write_all(&output.stderr).unwrap();
-            } else {
-                println!("error executing cargo run!");
+            match build_command.output() {
+                Ok(output) => {
+                    // TODO -- should I send stdout too?
+                    let mut utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
+                    self.terminal_buffer += utf8;
+                    utf8 = std::str::from_utf8(output.stdout.as_slice()).unwrap();
+                    self.terminal_buffer += utf8;
+                },
+                Err(e) => {
+                    warn!("error executing cargo run. Err: {:?}", e);
+                },
             }
         } else {
-            println!("Project doesn't have a valid working directory.");
+            self.info_logger("project needs a valid working directory before building");
         }
     }
 
     pub fn new_file(&mut self) -> io::Result<()> {
         if self.location == None {
-            println!("must save project before adding files/directories.");
+            self.info_logger("must save project before adding files/directories");
             return Ok(());
         }
         if let Some(pathbuf) = FileDialog::new().set_directory(self.location.clone().unwrap()).save_file() {
-            println!("{}", pathbuf.display().to_string());
             fs::File::create_new(pathbuf)?;
         } else {
             warn!("error getting file path");
@@ -257,10 +270,7 @@ impl Project {
                 ).frame(false);
                 let resp = ui.add(button);
                 if resp.clicked() {
-                    match self.code_editor.load_from_file(child.path().as_path()) {
-                        Ok(_) => (),
-                        Err(_) => println!("error opening file"),
-                    }
+                    self.code_editor.load_from_file(child.path().as_path()).unwrap_or_else(|_| warn!("error loading file contents"));
                 }
             } else {
                 // DIRECTORY case

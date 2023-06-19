@@ -402,7 +402,7 @@ impl eframe::App for IronCoderApp {
 
     // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        info!("saving program state before shutdown.");
+        info!("saving program state.");
         eframe::set_value(storage, eframe::APP_KEY, self);
     }
 

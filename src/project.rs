@@ -70,9 +70,6 @@ impl Clone for Project {
 }
 
 impl Project {
-    // pub fn new() -> Self {
-    //     Ok(())
-    // }
 
     pub fn borrow_name(&mut self) -> &mut String {
         &mut self.name
@@ -80,6 +77,15 @@ impl Project {
 
     pub fn get_name(&self) -> String {
         return self.name.clone();
+    }
+
+    pub fn get_location(&self) -> String {
+        if let Some(project_folder) = &self.location {
+            // let s = project_folder.display().to_string();
+            return project_folder.display().to_string().clone();
+        } else {
+            return String::from("");
+        }
     }
 
     pub fn add_board(&mut self, board: Board) {
@@ -116,24 +122,36 @@ impl Project {
         Ok(())
     }
 
-    // pub fn save_as()
+    pub fn save_as(&mut self) -> io::Result<()> {
+        if let Some(project_folder) = FileDialog::new().pick_folder() {
+            // check if there is an existing .ironcoder.toml file that we might overwrite
+            for entry in std::fs::read_dir(&project_folder).unwrap() {
+                if entry.unwrap().file_name().to_str().unwrap() == PROJECT_FILE_NAME {
+                    println!("you might be overwriting an existing Iron Coder project! \
+                              Are you sure you wish to continue?");
+                    return Ok(());
+                }
+            }
+            self.location = Some(project_folder);
+        } else {
+            println!("project save aborted");
+            return Ok(());
+        }
+        self.save()
+    }
 
     pub fn save(&mut self) -> io::Result<()> {
         if self.location == None {
-            // TODO -- move this to "save_as" and call that method here
-            if let Some(p) = FileDialog::new().pick_folder() {
-                self.location = Some(p);
-            } else {
-                println!("project save aborted");
-                return Ok(());
-            }
+            println!("no project location, called save_as...");
+            self.save_as()
+        } else {
+            let project_folder = self.location.clone().unwrap();
+            let project_file = project_folder.join(PROJECT_FILE_NAME);
+            println!("saving project to {}", project_file.display().to_string());
+            let contents: String = toml::to_string(self).unwrap();
+            fs::write(project_file, contents)?;
+            Ok(())
         }
-        let project_folder = self.location.clone().unwrap();
-        let project_file = project_folder.join(PROJECT_FILE_NAME);
-        println!("saving project to {}", project_file.display().to_string());
-        let contents: String = toml::to_string(self).unwrap();
-        fs::write(project_file, contents)?;
-        Ok(())
     }
 
     // builds the code

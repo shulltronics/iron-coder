@@ -113,7 +113,7 @@ impl IronCoderApp {
                             "save project as..."
                         );
                         if ui.add(ib).clicked() {
-                            println!("TODO -- save as");
+                            self.project.save_as();
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
@@ -252,7 +252,7 @@ impl IronCoderApp {
                 egui::SidePanel::right("project_view").show(ctx, |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                         ui.heading("Project View");
-                        ui.label(project.get_name());
+                        ui.label(project.get_name()).on_hover_text(project.get_location());
                         if ui.button("edit project").clicked() {
                             *mode = Mode::ProjectEditor;
                         }

@@ -22,6 +22,7 @@ use egui::widgets::Label;
 use crate::board::Board;
 use crate::editor::CodeEditor;
 use crate::icons::Icon;
+use crate::app::Mode;
 
 /// A Project represents the highest level of Iron Coder, which contains
 /// a set of development boards and the project/source code directory
@@ -360,5 +361,25 @@ impl Project {
             }
         });
     }
+
+    // returns the Mode that the app should enter into
+    // pub fn display_project_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) -> Option<Self> {
+    //     ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+    //         ui.horizontal(|ui| {
+    //             ui.label("Project Name: ");
+    //             // with this we can edit an existing project
+    //             ui.text_edit_singleline(self.borrow_name());
+    //         });
+    //         ui.label("Search bar will go here...");
+    //         ui.label("Select boards for this project:");
+    //         if ui.button("Develop project").clicked() {
+    //             return ;
+    //         }
+    //         if ui.button("Cancel").clicked() {
+    //             mode = Mode::ProjectDeveloper;
+    //         }
+    //     });
+    //     return mode;
+    // }
 
 }

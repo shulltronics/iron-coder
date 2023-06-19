@@ -13,8 +13,7 @@ use crate::icons;
 
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
-enum Mode {
-    ProjectCreator,
+pub enum Mode {
     ProjectEditor,
     ProjectDeveloper,
 }
@@ -26,6 +25,7 @@ pub struct IronCoderApp {
     project: Project,
     display_about: bool,
     display_settings: bool,
+    #[serde(skip)]          // future might want this to persist, but this is nice for testing
     mode: Mode,
     #[serde(skip)]
     icons: HashMap<&'static str, RetainedImage>,
@@ -45,7 +45,7 @@ impl Default for IronCoderApp {
             project: Project::default(),
             display_about: false,
             display_settings: false,
-            mode: Mode::ProjectCreator,
+            mode: Mode::ProjectEditor,
             icons: icons::load_icons(Path::new(icons::ICON_DIR)),
             boards: boards,
             new_project: Project::default(),
@@ -71,7 +71,7 @@ impl IronCoderApp {
     }
 
     // Show the menu and app title
-    pub fn menu(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    pub fn display_title_and_menu(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let Self {
             display_about,
             display_settings,
@@ -124,6 +124,8 @@ impl IronCoderApp {
                         if ui.add(ib).clicked() {
                             if let Err(e) = self.project.open() {
                                 println!("error opening project: {:?}", e);
+                            } else {
+                                *mode = Mode::ProjectDeveloper;
                             }
                         }
                         
@@ -134,12 +136,10 @@ impl IronCoderApp {
                         ).shortcut_text("ctrl+n");
                         if ui.add(ib).clicked() {
                             match mode {
-                                Mode::ProjectCreator   => (),
                                 Mode::ProjectEditor    => (),
                                 Mode::ProjectDeveloper => {
                                     *new_project = Project::default();
-                                    *mode = Mode::ProjectCreator;
-                                    // self.project = Project::default();
+                                    *mode = Mode::ProjectEditor;
                                 },
                             }
                         }
@@ -178,8 +178,71 @@ impl IronCoderApp {
         });
     }
 
+    // Display the list of available boards in the Ui, and return one if it was clicked
+    pub fn display_available_boards(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) -> Option<board::Board> {
+        let mut board: Option<board::Board> = None;
+        // Create a grid-based layout to show all the board widgets
+        let available_width = ui.available_width();
+        let mut num_cols = (available_width / 260.0) as usize;
+        if num_cols == 0 {
+            num_cols = 1;
+        }
+        egui::containers::scroll_area::ScrollArea::vertical().show(ui, |ui| {
+            ui.columns(num_cols, |columns| {
+                for (i, b) in self.boards.clone().into_iter().enumerate() {
+                    let col = i % num_cols;
+                    // When a board is clicked, add it to the new project
+                    if columns[col].add(b).on_hover_text(self.boards[i].get_name()).clicked() {
+                        board = Some(self.boards[i].clone());
+                    }
+                }
+            });
+        });
+        return board;
+    }
+
+    // Show the project editor page
+    // new_project will have either a blank project or a copy of the current project,
+    // depending on how we got here (i.e. via edit current or create new).
+    pub fn display_project_editor(&mut self, ctx: &egui::Context) {
+        let Self {
+            project,
+            new_project,
+            mode,
+            ..
+        } = self;
+        // using a frame allows to add inner margins
+        let frame = egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::same(25.0));
+        egui::TopBottomPanel::top("board_selector_top_panel")
+        .frame(frame)
+        .show(ctx, |ui| {
+            ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("Project Name: ");
+                    // with this we can edit an existing project
+                    ui.text_edit_singleline(new_project.borrow_name());
+                });
+                ui.label("Search bar will go here...");
+                ui.label("Select boards for this project:");
+                if ui.button("Develop project").clicked() {
+                    *project = new_project.clone();
+                    *mode = Mode::ProjectDeveloper;
+                }
+                if ui.button("Cancel").clicked() {
+                    *mode = Mode::ProjectDeveloper;
+                }
+            });
+        });
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            if let Some(b) = self.display_available_boards(ctx, ui) {
+                self.new_project.add_board(b);
+            }
+        });
+    }
+
     // Show the main view
-    pub fn main_view(&mut self, ctx: &egui::Context) {
+    pub fn display_project_developer(&mut self, ctx: &egui::Context) {
         let Self {
             new_project,
             project,
@@ -187,137 +250,72 @@ impl IronCoderApp {
             boards,
             ..
         } = self;
-        match mode {
-            // ProjectCreator mode is the mode when creating a new project
-            // for the first time
-            Mode::ProjectCreator => {
-                // using a Frame allows us to add extra margins
-                let frame = egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::same(25.0));
-                egui::TopBottomPanel::top("board_selector_top_panel")
-                .frame(frame)
-                .show(ctx, |ui| {
-                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                        ui.horizontal(|ui| {
-                            ui.label("Project Name: ");
-                            // with this we can edit an existing project
-                            ui.text_edit_singleline(new_project.borrow_name());
-                        });
-                        ui.label("Search bar will go here...");
-                        ui.label("Select boards for this project:");
-                        if ui.button("Create project").clicked() {
-                            // *project = new_project;
-                            *project = new_project.clone();
-                            *mode = Mode::ProjectDeveloper;
-                        }
-                        if ui.button("Cancel").clicked() {
-                            *mode = Mode::ProjectDeveloper;
-                        }
-                    });
-                });
+        // Spec Viewer panel
+        egui::SidePanel::right("project_view").show(ctx, |ui| {
+            ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                ui.heading("Project View");
+                ui.label(project.get_name()).on_hover_text(project.get_location());
+                if ui.button("edit project").clicked() {
+                    *new_project = project.clone();
+                    *mode = Mode::ProjectEditor;
+                }
+                ui.separator();
+            });
 
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    // Create a grid-based layout to show all the board widgets
-                    let available_width = ui.available_width();
-                    let mut num_cols = (available_width / 260.0) as usize;
-                    if num_cols == 0 {
-                        num_cols = 1;
+            egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
+                // option to add a new top-level directory
+                let dir_button = egui::widgets::Button::new("+ dir/file").frame(false);
+                if ui.add(dir_button).clicked() {
+                    project.new_file();
+                }
+                // show the project tree
+                project.display_project_tree(ctx, ui);
+                // show the board widgets
+                let project_boards = project.get_boards();
+                for b in project_boards.iter() {
+                    if let Some(i) = boards.clone().iter().position(|board| board == b) {
+                        ui.add(boards[i].clone());
                     }
-                    egui::containers::scroll_area::ScrollArea::vertical().show(ui, |ui| {
-                        ui.columns(num_cols, |columns| {
-                            for (i, b) in boards.clone().into_iter().enumerate() {
-                                let col = i % num_cols;
-                                // When a board is clicked, add it to the new project
-                                if columns[col].add(b).on_hover_text(boards[i].get_name()).clicked() {
-                                    new_project.add_board(boards[i].clone());
-                                }
-                            }
-                        });
-                    });
-                
+                }
+            });
+
+            ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
+                ui.horizontal(|ui| {
+                    egui::warn_if_debug_build(ui);
                 });
-            },
-            // ProjectEditor mode allows to change aspects of an existing project,
-            // such as the title, boards, etc (maybe more in the future)
-            Mode::ProjectEditor => {
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.label("ProjectEditor mode is under construction...");
-                    if ui.button("Cancel").clicked() {
-                        *mode = Mode::ProjectDeveloper;
-                    }
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 0.0;
+                    ui.label("powered by ");
+                    ui.hyperlink_to("egui", "https://github.com/emilk/egui");
+                    ui.label(" and ");
+                    ui.hyperlink_to(
+                        "eframe",
+                        "https://github.com/emilk/egui/tree/master/crates/eframe",
+                    );
+                    ui.label(".");
                 });
-            },
-            // ProjectDeveloper mode is the main mode for editing and building code
-            Mode::ProjectDeveloper => {
-                // Spec Viewer panel
-                egui::SidePanel::right("project_view").show(ctx, |ui| {
-                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                        ui.heading("Project View");
-                        ui.label(project.get_name()).on_hover_text(project.get_location());
-                        if ui.button("edit project").clicked() {
-                            *mode = Mode::ProjectEditor;
-                        }
-                        ui.separator();
-                    });
+            });
+        });
 
-                    egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
-                        // option to add a new top-level directory
-                        let dir_button = egui::widgets::Button::new("+ dir/file").frame(false);
-                        if ui.add(dir_button).clicked() {
-                            project.new_file();
-                        }
-                        // show the project tree
-                        project.display_project_tree(ctx, ui);
-                        // show the board widgets
-                        let project_boards = project.get_boards();
-                        for b in project_boards.iter() {
-                            if let Some(i) = boards.clone().iter().position(|board| board == b) {
-                                ui.add(boards[i].clone());
-                            }
-                        }
-                    });
-
-                    ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
-                        ui.horizontal(|ui| {
-                            egui::warn_if_debug_build(ui);
-                        });
-                        ui.horizontal(|ui| {
-                            ui.spacing_mut().item_spacing.x = 0.0;
-                            ui.label("powered by ");
-                            ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-                            ui.label(" and ");
-                            ui.hyperlink_to(
-                                "eframe",
-                                "https://github.com/emilk/egui/tree/master/crates/eframe",
-                            );
-                            ui.label(".");
-                        });
-                    });
-                });
-
-                egui::Area::new("editor area").show(ctx, |ui| {
-                    egui::TopBottomPanel::bottom("terminal_panel").resizable(true).show(ctx, |ui| {
-                        project.display_terminal(ctx, ui);
-                    });
-                    egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
-                        project.display_project_toolbar(ctx, ui);
-                    });
-                    egui::TopBottomPanel::top("editor_tabs").show(ctx, |ui| {
-                        project.code_editor.display_editor_tabs(ctx, ui);
-                    });
-                    let frame = egui::Frame::canvas(&ctx.style());
-                    egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
-                        project.code_editor.display_code(ctx, ui);
-                    });
-                });
-
-
-            },
-        }
-
+        egui::Area::new("editor area").show(ctx, |ui| {
+            egui::TopBottomPanel::bottom("terminal_panel").resizable(true).show(ctx, |ui| {
+                project.display_terminal(ctx, ui);
+            });
+            egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
+                project.display_project_toolbar(ctx, ui);
+            });
+            egui::TopBottomPanel::top("editor_tabs").show(ctx, |ui| {
+                project.code_editor.display_editor_tabs(ctx, ui);
+            });
+            let frame = egui::Frame::canvas(&ctx.style());
+            egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
+                project.code_editor.display_code(ctx, ui);
+            });
+        });
     }
 
     // show/hide the settings window and update the appropriate app state.
-    pub fn settings(&mut self, ctx: &egui::Context) {
+    pub fn display_settings_window(&mut self, ctx: &egui::Context) {
         let Self {
             project,
             display_settings,
@@ -375,7 +373,7 @@ impl IronCoderApp {
     } // pub fn settings
 
     // This method will show or hide the "about" window
-    pub fn about(&mut self, ctx: &egui::Context) {
+    pub fn display_about_window(&mut self, ctx: &egui::Context) {
         let Self {
             display_about,
             ..
@@ -413,10 +411,20 @@ impl eframe::App for IronCoderApp {
     //   self in each of these method calls separately, vs once in the beginning of this
     //   method? But I can't do it the latter way while still having these as method calls.
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        self.menu(ctx, frame);
-        self.main_view(ctx);
-        self.settings(ctx);
-        self.about(ctx);
+        // render the title bar with main menu
+        self.display_title_and_menu(ctx, frame);
+        // depending on the Mode, render the proper main view
+        match self.mode {
+            Mode::ProjectEditor => {
+                self.display_project_editor(ctx);
+            },
+            Mode::ProjectDeveloper => {
+                self.display_project_developer(ctx);
+            },
+        }
+        // optionally render these popup windows
+        self.display_settings_window(ctx);
+        self.display_about_window(ctx);
     }
 }
 

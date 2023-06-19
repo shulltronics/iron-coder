@@ -241,6 +241,9 @@ impl IronCoderApp {
             Mode::ProjectEditor => {
                 egui::CentralPanel::default().show(ctx, |ui| {
                     ui.label("ProjectEditor mode is under construction...");
+                    if ui.button("Cancel").clicked() {
+                        *mode = Mode::ProjectDeveloper;
+                    }
                 });
             },
             // ProjectDeveloper mode is the main mode for editing and building code
@@ -250,6 +253,9 @@ impl IronCoderApp {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                         ui.heading("Project View");
                         ui.label(project.get_name());
+                        if ui.button("edit project").clicked() {
+                            *mode = Mode::ProjectEditor;
+                        }
                         ui.separator();
                     });
 

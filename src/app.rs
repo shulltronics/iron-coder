@@ -260,6 +260,11 @@ impl IronCoderApp {
                     });
 
                     egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
+                        // option to add a new top-level directory
+                        let dir_button = egui::widgets::Button::new("+ dir/file").frame(false);
+                        if ui.add(dir_button).clicked() {
+                            project.new_file();
+                        }
                         // show the project tree
                         project.display_project_tree(ctx, ui);
                         // show the board widgets

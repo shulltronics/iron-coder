@@ -146,6 +146,22 @@ impl Project {
             self.save_as()
         } else {
             let project_folder = self.location.clone().unwrap();
+            let args = [
+                "-Z",
+                "unstable-options",
+                "-C",
+                project_folder.as_path().to_str().unwrap(),
+                "init",
+            ];
+            let output = Command::new("cargo").args(args).output().unwrap();
+            if output.status.success() {
+                println!("successfully created cargo package");
+            } else {
+                println!("couldn't create cargo package, maybe because \
+                            it's already been created? {:?}", output.status);
+                let utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
+                self.terminal_buffer += utf8;
+            }
             let project_file = project_folder.join(PROJECT_FILE_NAME);
             println!("saving project to {}", project_file.display().to_string());
             let contents: String = toml::to_string(self).unwrap();
@@ -210,6 +226,20 @@ impl Project {
         }
     }
 
+    pub fn new_file(&mut self) -> io::Result<()> {
+        if self.location == None {
+            println!("must save project before adding files/directories.");
+            return Ok(());
+        }
+        if let Some(pathbuf) = FileDialog::new().set_directory(self.location.clone().unwrap()).save_file() {
+            println!("{}", pathbuf.display().to_string());
+            let file = fs::File::create_new(pathbuf).unwrap();
+        } else {
+            println!("error getting file path");
+        }
+        Ok(())
+    }
+
     // A recursive directory display.
     // <dir> is the starting location, <level> is the recursion depth
     fn display_directory(&mut self, dir: &Path, level: usize, ctx: &egui::Context, ui: &mut egui::Ui) {
@@ -221,20 +251,22 @@ impl Project {
             let child = _child.unwrap();
             let file_name = child.file_name().into_string().unwrap();
             let text = RichText::new(file_name);
+            // FILE case
             if child.file_type().unwrap().is_file() {
                 let button = egui::widgets::Button::image_and_text(
                     self.code_editor.icons.get("file_icon").unwrap().texture_id(ctx),
                     egui::Vec2::new(7.0, 7.0),
                     text,
                 ).frame(false);
-                if ui.add(button).clicked() {
+                let resp = ui.add(button);
+                if resp.clicked() {
                     match self.code_editor.load_from_file(child.path().as_path()) {
                         Ok(_) => (),
                         Err(_) => println!("error opening file"),
                     }
                 }
             } else {
-                // here it's a directory
+                // DIRECTORY case
                 // check if it's expanded or collapsed via our HashMap
                 let mut is_visible: bool = match self.file_tree.get(&child.path()) {
                     None => {
@@ -292,7 +324,6 @@ impl Project {
 
     // show the project tree in a Ui
     pub fn display_project_tree(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        // ui.style_mut().spacing.indent = 10.0;
         let project_folder = match &self.location {
             None => {
                 ui.label("There is currently no folder associated with this project. Please save it somewhere.");

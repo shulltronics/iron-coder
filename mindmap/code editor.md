@@ -6,6 +6,8 @@
 * Could I make the [[spec viewer]] be a separate crate that could also be compiled to WASI format as a Lapce plugin?
 
 **TODO**
-* Read from / write to disk for save/open of projects
+* Read from/write to disk for save/open of projects
+  * Allow for creation of new projects and editing of existing ones
 * Line numbers (togglable in settings)
 * Syntax Highlighting
+  * Benchmarking / optimizations and supporting all colorschemes of the overall app

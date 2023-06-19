@@ -14,8 +14,9 @@ use crate::icons;
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
 enum Mode {
-    BoardSelector,
-    Editor,
+    ProjectCreator,
+    ProjectEditor,
+    ProjectDeveloper,
 }
 
 // derive Deserialize/Serialize so we can persist app state on powercycle.
@@ -30,6 +31,8 @@ pub struct IronCoderApp {
     icons: HashMap<&'static str, RetainedImage>,
     #[serde(skip)]
     boards: Vec<board::Board>,
+    #[serde(skip)]
+    new_project: Project,   // this is a place holder for when we create a new project
 }
 
 impl Default for IronCoderApp {
@@ -42,9 +45,10 @@ impl Default for IronCoderApp {
             project: Project::default(),
             display_about: false,
             display_settings: false,
-            mode: Mode::Editor,
+            mode: Mode::ProjectCreator,
             icons: icons::load_icons(Path::new(icons::ICON_DIR)),
             boards: boards,
+            new_project: Project::default(),
         }
     }
 }
@@ -73,6 +77,7 @@ impl IronCoderApp {
             display_settings,
             mode,
             icons,
+            new_project,
             ..
         } = self;
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -129,10 +134,12 @@ impl IronCoderApp {
                         ).shortcut_text("ctrl+n");
                         if ui.add(ib).clicked() {
                             match mode {
-                                Mode::BoardSelector => (),
-                                Mode::Editor        => {
-                                    *mode = Mode::BoardSelector;
-                                    self.project = Project::default();
+                                Mode::ProjectCreator   => (),
+                                Mode::ProjectEditor    => (),
+                                Mode::ProjectDeveloper => {
+                                    *new_project = Project::default();
+                                    *mode = Mode::ProjectCreator;
+                                    // self.project = Project::default();
                                 },
                             }
                         }
@@ -174,14 +181,16 @@ impl IronCoderApp {
     // Show the main view
     pub fn main_view(&mut self, ctx: &egui::Context) {
         let Self {
+            new_project,
             project,
             mode,
             boards,
             ..
         } = self;
         match mode {
-            // BoardSelector mode is the mode when selecting a new project
-            Mode::BoardSelector => {
+            // ProjectCreator mode is the mode when creating a new project
+            // for the first time
+            Mode::ProjectCreator => {
                 // using a Frame allows us to add extra margins
                 let frame = egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::same(25.0));
                 egui::TopBottomPanel::top("board_selector_top_panel")
@@ -191,12 +200,17 @@ impl IronCoderApp {
                         ui.horizontal(|ui| {
                             ui.label("Project Name: ");
                             // with this we can edit an existing project
-                            ui.text_edit_singleline(project.borrow_name());
+                            ui.text_edit_singleline(new_project.borrow_name());
                         });
                         ui.label("Search bar will go here...");
                         ui.label("Select boards for this project:");
                         if ui.button("Create project").clicked() {
-                            *mode = Mode::Editor;
+                            // *project = new_project;
+                            *project = new_project.clone();
+                            *mode = Mode::ProjectDeveloper;
+                        }
+                        if ui.button("Cancel").clicked() {
+                            *mode = Mode::ProjectDeveloper;
                         }
                     });
                 });
@@ -212,10 +226,9 @@ impl IronCoderApp {
                         ui.columns(num_cols, |columns| {
                             for (i, b) in boards.clone().into_iter().enumerate() {
                                 let col = i % num_cols;
+                                // When a board is clicked, add it to the new project
                                 if columns[col].add(b).on_hover_text(boards[i].get_name()).clicked() {
-                                    // TODO create a new project here
-                                    *mode = Mode::Editor;
-                                    project.add_board(boards[i].clone());
+                                    new_project.add_board(boards[i].clone());
                                 }
                             }
                         });
@@ -223,8 +236,15 @@ impl IronCoderApp {
                 
                 });
             },
-            // Editor mode is the main mode for editing and building code
-            Mode::Editor => {
+            // ProjectEditor mode allows to change aspects of an existing project,
+            // such as the title, boards, etc (maybe more in the future)
+            Mode::ProjectEditor => {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    ui.label("ProjectEditor mode is under construction...");
+                });
+            },
+            // ProjectDeveloper mode is the main mode for editing and building code
+            Mode::ProjectDeveloper => {
                 // Spec Viewer panel
                 egui::SidePanel::right("project_view").show(ctx, |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {

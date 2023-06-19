@@ -56,6 +56,19 @@ impl Default for Project {
     }
 }
 
+impl Clone for Project {
+    fn clone(&self) -> Self {
+        Self {
+            name: self.name.clone(),
+            location: self.location.clone(),
+            file_tree: self.file_tree.clone(),
+            boards: self.boards.clone(),
+            code_editor: CodeEditor::default(),
+            terminal_buffer: self.terminal_buffer.clone(),
+        }
+    }
+}
+
 impl Project {
     // pub fn new() -> Self {
     //     Ok(())

@@ -1,4 +1,4 @@
-use log::info;
+use log::{info, debug};
 use crate::board::{
     Board,
     BoardMiniWidget,
@@ -266,6 +266,7 @@ impl Widget for BoardMiniWidget {
                 ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
             }
         } else {
+            debug!("could not find color_image when rendering BoardMiniWidget");
             response = ui.allocate_response(egui::vec2(128.0, 128.0), egui::Sense::click());
         }
         return response;

@@ -16,8 +16,9 @@ use crate::icons;
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
 pub enum Mode {
-    ProjectEditor,
-    ProjectDeveloper,
+    CreateNewProject,
+    EditCurrentProject,
+    DevelopCurrentProject,
 }
 
 // derive Deserialize/Serialize so we can persist app state on powercycle.
@@ -46,7 +47,7 @@ impl Default for IronCoderApp {
             project: Project::default(),
             display_about: false,
             display_settings: false,
-            mode: Mode::ProjectEditor,
+            mode: Mode::CreateNewProject,
             icons: icons::load_icons(Path::new(icons::ICON_DIR)),
             boards: boards,
             new_project: Project::default(),
@@ -125,7 +126,7 @@ impl IronCoderApp {
                             if let Err(e) = self.project.open() {
                                 println!("error opening project: {:?}", e);
                             } else {
-                                *mode = Mode::ProjectDeveloper;
+                                *mode = Mode::DevelopCurrentProject;
                             }
                         }
                         
@@ -136,10 +137,11 @@ impl IronCoderApp {
                         ).shortcut_text("ctrl+n");
                         if ui.add(ib).clicked() {
                             match mode {
-                                Mode::ProjectEditor    => (),
-                                Mode::ProjectDeveloper => {
+                                Mode::CreateNewProject      => (),
+                                Mode::EditCurrentProject    => (),
+                                Mode::DevelopCurrentProject => {
                                     *new_project = Project::default();
-                                    *mode = Mode::ProjectEditor;
+                                    *mode = Mode::CreateNewProject;
                                 },
                             }
                         }
@@ -201,52 +203,7 @@ impl IronCoderApp {
         return board;
     }
 
-    // Show the project editor page
-    // new_project will have either a blank project or a copy of the current project,
-    // depending on how we got here (i.e. via edit current or create new).
-    pub fn display_project_editor(&mut self, ctx: &egui::Context) {
-        let Self {
-            project,
-            new_project,
-            mode,
-            ..
-        } = self;
-        // using a frame allows to add inner margins
-        let frame = egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::same(25.0));
-        egui::TopBottomPanel::top("board_selector_top_panel")
-        .frame(frame)
-        .show(ctx, |ui| {
-            ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                ui.horizontal(|ui| {
-                    ui.label("Project Name: ");
-                    // with this we can edit an existing project
-                    ui.text_edit_singleline(new_project.borrow_name());
-                });
-                ui.label("Search bar will go here...");
-                ui.label("Select boards for this project:");
-                if ui.button("Develop project").clicked() {
-                    *project = new_project.clone();
-                    *mode = Mode::ProjectDeveloper;
-                }
-                if ui.button("Cancel").clicked() {
-                    *mode = Mode::ProjectDeveloper;
-                }
-                ui.horizontal(|ui| {
-                    for b in new_project.get_boards().iter() {
-                        ui.add_sized(egui::vec2(100.0, 100.0), board::BoardMiniWidget(b.clone()));
-                    }
-                });
-            });
-        });
-
-        egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(b) = self.display_available_boards(ctx, ui) {
-                self.new_project.add_board(b);
-            }
-        });
-    }
-
-    // Show the main view
+    // Show the main view when we're developing a project
     pub fn display_project_developer(&mut self, ctx: &egui::Context) {
         let Self {
             new_project,
@@ -262,7 +219,7 @@ impl IronCoderApp {
                 ui.label(project.get_name()).on_hover_text(project.get_location());
                 if ui.button("edit project").clicked() {
                     *new_project = project.clone();
-                    *mode = Mode::ProjectEditor;
+                    *mode = Mode::EditCurrentProject;
                 }
                 ui.separator();
             });
@@ -418,10 +375,42 @@ impl eframe::App for IronCoderApp {
         self.display_title_and_menu(ctx, frame);
         // depending on the Mode, render the proper main view
         match self.mode {
-            Mode::ProjectEditor => {
-                self.display_project_editor(ctx);
+            Mode::CreateNewProject => {
+                // using a frame allows to add inner margins
+                let frame = egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::same(25.0));
+                egui::TopBottomPanel::top("board_selector_top_panel")
+                .frame(frame)
+                .show(ctx, |ui| {
+                    self.new_project.display_project_editor(ctx, ui);
+                    if ui.button("Start Development").clicked() {
+                        self.project = self.new_project.clone();
+                        self.mode = Mode::DevelopCurrentProject;
+                    }
+                });
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    if let Some(b) = self.display_available_boards(ctx, ui) {
+                        self.new_project.add_board(b);
+                    }
+                });
             },
-            Mode::ProjectDeveloper => {
+            Mode::EditCurrentProject => {
+                // using a frame allows to add inner margins
+                let frame = egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::same(25.0));
+                egui::TopBottomPanel::top("board_selector_top_panel")
+                .frame(frame)
+                .show(ctx, |ui| {
+                    self.project.display_project_editor(ctx, ui);
+                    if ui.button("Resume Development").clicked() {
+                        self.mode = Mode::DevelopCurrentProject;
+                    }
+                });
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    if let Some(b) = self.display_available_boards(ctx, ui) {
+                        self.project.add_board(b);
+                    }
+                });
+            },
+            Mode::DevelopCurrentProject => {
                 self.display_project_developer(ctx);
             },
         }

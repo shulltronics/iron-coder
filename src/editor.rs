@@ -1,3 +1,5 @@
+use log::info;
+
 use std::string::String;
 use egui::Ui;
 // use egui::containers::scroll_area::ScrollArea;
@@ -100,14 +102,27 @@ impl Default for CodeEditor {
 
 impl CodeEditor {
 
-    // Loads a CodeFile and pushes it onto the Vec of tabs
-    // TODO: don't recreate a tab if it already exists, just switch the
-    //   active tab to that one.
+    // Loads a CodeFile and pushes it onto the Vec of tabs,
+    // unless file_path already exists in one of the tabs, in which case
+    // the active tab is switched to that tab
     pub fn load_from_file(&mut self, file_path: &Path) -> std::io::Result<()> {
-        let mut code_file = CodeFile::default();
-        code_file.load_from_file(file_path)?;
-        self.tabs.push(code_file);
-        self.active_tab = Some(self.tabs.len() - 1);
+        let predicate = |elem: &CodeFile| {
+            // elem is a CodeFile, see it the path matches the arg to this method
+            if let Some(path) = &elem.path {
+                // use canonicalize() here to keep things consistent
+                return path.as_path() == file_path.canonicalize().unwrap();
+            } else {
+                return false;
+            }
+        };
+        if let Some(i) = self.tabs.iter().position(predicate) {
+            self.active_tab = Some(i);
+        } else {
+            let mut code_file = CodeFile::default();
+            code_file.load_from_file(file_path)?;
+            self.tabs.push(code_file);
+            self.active_tab = Some(self.tabs.len() - 1);
+        }
         Ok(())
     }
 

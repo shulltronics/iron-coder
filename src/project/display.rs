@@ -141,8 +141,11 @@ impl Project {
             ui.label("Current project boards:");
             ui.label(self.boards.len().to_string());
             ui.horizontal(|ui| {
-                for b in self.boards.iter() {
-                    ui.add_sized(egui::vec2(100.0, 100.0), BoardMiniWidget(b.clone()));
+                for (i, b) in self.boards.clone().into_iter().enumerate() {
+                    // let _b = b.clone();
+                    // println!("{:?}", b);
+                    ui.add_sized(egui::vec2(100.0, 100.0), BoardMiniWidget(b));
+                    // ui.add_sized(egui::vec2(100.0, 100.0), b);
                 }
             });
         });

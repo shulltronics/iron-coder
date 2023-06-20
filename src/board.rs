@@ -90,10 +90,17 @@ pub struct BoardMiniWidget(pub Board);
 
 impl fmt::Debug for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.name);
+        if let Some(image) = &self.pic {
+            write!(f, "  image present");
+        } else {
+            write!(f, "  image absent");
+        }
+        Ok(())
     }
 }
 
+// Boards should be uniquely identified by their name, and thus comparable.
 impl cmp::PartialEq for Board {
     // Boards are equal if their names are equal
     fn eq(&self, other: &Self) -> bool {

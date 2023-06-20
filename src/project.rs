@@ -107,6 +107,24 @@ impl Project {
         return self.boards.clone();
     }
 
+    // this method will populate the project board list via the app-wide
+    // 'known boards' list
+    pub fn load_board_resources(&mut self, known_boards: Vec<Board>) {
+        for b in self.boards.iter_mut() {
+            // returns true if the current, project board is equal to the current known_board
+            let predicate = |known_board: &&Board| {
+                return known_board == &b;
+            };
+            if let Some(known_board) = known_boards.iter().find(predicate) {
+                *b = known_board.clone();
+            } else {
+                warn!("Could not find the project board in the known boards list. Was the project manifest \
+                       generated with an older version of Iron Coder?")
+            }
+        }
+    }
+
+    // TODO -- when populating Boards list, get fields from known app wide boards list
     pub fn open(&mut self) -> io::Result<()> {
         if let Some(project_folder) = FileDialog::new().pick_folder() {
             let project_file = project_folder.join(PROJECT_FILE_NAME);

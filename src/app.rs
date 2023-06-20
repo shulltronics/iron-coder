@@ -126,6 +126,7 @@ impl IronCoderApp {
                             if let Err(e) = self.project.open() {
                                 println!("error opening project: {:?}", e);
                             } else {
+                                self.project.load_board_resources(self.boards.clone());
                                 *mode = Mode::DevelopCurrentProject;
                             }
                         }

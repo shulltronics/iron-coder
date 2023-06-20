@@ -260,7 +260,7 @@ impl Widget for BoardMiniWidget {
                     );
                     retained_image.show_max_size(ui, egui::vec2(96.0, 96.0));
                 });
-            }).response;
+            }).response.interact(egui::Sense::click());
             if ui.rect_contains_pointer(response.rect) {
                 // draw a bounding box
                 ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));

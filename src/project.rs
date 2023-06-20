@@ -76,10 +76,6 @@ impl Project {
         self.terminal_buffer += &msg;
     }
 
-    pub fn borrow_name(&mut self) -> &mut String {
-        &mut self.name
-    }
-
     pub fn get_name(&self) -> String {
         return self.name.clone();
     }

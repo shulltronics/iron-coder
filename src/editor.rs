@@ -1,5 +1,3 @@
-use log::info;
-
 use std::string::String;
 use egui::Ui;
 // use egui::containers::scroll_area::ScrollArea;

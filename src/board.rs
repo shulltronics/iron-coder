@@ -90,13 +90,7 @@ pub struct BoardMiniWidget(pub Board);
 
 impl fmt::Debug for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name);
-        if let Some(image) = &self.pic {
-            write!(f, "  image present");
-        } else {
-            write!(f, "  image absent");
-        }
-        Ok(())
+        write!(f, "{}", self.name)
     }
 }
 

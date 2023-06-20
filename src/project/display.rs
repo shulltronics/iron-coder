@@ -131,7 +131,7 @@ impl Project {
     // Show the project editor page
     // new_project will have either a blank project or a copy of the current project,
     // depending on how we got here (i.e. via edit current or create new).
-    pub fn display_project_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    pub fn display_project_editor(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
         ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
             ui.horizontal(|ui| {
                 ui.label("Project Name: ");
@@ -142,10 +142,9 @@ impl Project {
             ui.label(self.boards.len().to_string());
             ui.horizontal(|ui| {
                 for (i, b) in self.boards.clone().into_iter().enumerate() {
-                    // let _b = b.clone();
-                    // println!("{:?}", b);
-                    ui.add_sized(egui::vec2(100.0, 100.0), BoardMiniWidget(b));
-                    // ui.add_sized(egui::vec2(100.0, 100.0), b);
+                    if ui.add_sized(egui::vec2(100.0, 100.0), BoardMiniWidget(b)).clicked() {
+                        self.boards.remove(i);
+                    }
                 }
             });
         });

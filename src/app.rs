@@ -192,7 +192,7 @@ impl IronCoderApp {
                 for (i, b) in self.boards.clone().into_iter().enumerate() {
                     let col = i % num_cols;
                     // When a board is clicked, add it to the new project
-                    if columns[col].add(b).on_hover_text(self.boards[i].get_name()).clicked() {
+                    if columns[col].add(b).clicked() {
                         board = Some(self.boards[i].clone());
                     }
                 }

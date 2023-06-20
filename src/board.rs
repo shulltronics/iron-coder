@@ -1,4 +1,4 @@
-use log::warn;
+use log::{info, warn, debug};
 
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -30,9 +30,18 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
                 }
                 r.append(&mut get_boards(&entry.path()));
             // otherwise, if the entry is a file ending in "toml" try to parse it
-            // as a board file
-            } else if entry.path().extension().unwrap() == "toml" {
-                if let Ok(board) = Board::load_from_toml(&entry.path()) {
+            // as a board file. unwrap_or_default works well here as the default 
+            // ("") for &str will never match "toml"
+            } else if entry.path().extension().unwrap_or_default() == "toml" {
+                if let Ok(mut board) = Board::load_from_toml(&entry.path()) {
+                    let mut parent = entry.path().parent().unwrap().canonicalize().unwrap();
+                    let template_dir = parent.join("template");
+                    if let Ok(true) = template_dir.try_exists() {
+                        debug!("found template dir for board <{}> at {:?}", board.name.clone(), entry.path().parent().unwrap().canonicalize().unwrap().join("template"));
+                        board.template_dir = Some(template_dir);
+                    } else {
+                        debug!("not template directory found for board <{}>", board.name.clone());
+                    }
                     r.push(board);
                 } else {
                     warn!("error loading board from {}", entry.path().display().to_string());
@@ -79,6 +88,8 @@ pub struct Board {
     #[serde(skip)]                  ///   via file hierarchy, hence no serde
     pic: Option<egui::ColorImage>,  //
     related_crates: Option<Vec<String>>,
+    #[serde(skip)]                  // we'll populate this dynamically when loading boards
+    template_dir: Option<PathBuf>,
 }
 
 // Define some thin wrappers around Board so we can display a Board with the
@@ -90,7 +101,11 @@ pub struct BoardMiniWidget(pub Board);
 
 impl fmt::Debug for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "Board {}\n", self.name)?;
+        write!(f, "  num examples: {}\n", self.examples.len())?;
+        write!(f, "  has pic: {}\n", self.pic.is_some())?;
+        write!(f, "  has template: {}", self.template_dir.is_some())?;
+        Ok(())
     }
 }
 
@@ -140,5 +155,9 @@ impl Board {
 
     pub fn get_name(&self) -> &str {
         self.name.as_str()
+    }
+
+    pub fn get_template_dir(&self) -> Option<PathBuf> {
+        return self.template_dir.clone();
     }
 }

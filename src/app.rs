@@ -385,6 +385,8 @@ impl eframe::App for IronCoderApp {
                     self.new_project.display_project_editor(ctx, ui);
                     if ui.button("Start Development").clicked() {
                         self.project = self.new_project.clone();
+                        self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
+                        info!("{:?}", self.project.get_boards()[0]);
                         self.mode = Mode::DevelopCurrentProject;
                     }
                 });

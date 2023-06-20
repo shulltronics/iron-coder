@@ -3,6 +3,7 @@ use log::{info, warn};
 use std::io;
 use std::fs;
 use std::path::PathBuf;
+use fs_extra;
 
 use std::collections::HashMap;
 use std::vec::Vec;
@@ -155,6 +156,19 @@ impl Project {
                 }
             }
             self.location = Some(project_folder);
+            // TODO copy over template files to the new project directory
+            // 1. find template directory based on "programmable board" (for now just use board 0)
+            // 2. recursively copy those files into project_folder
+            if let Some(template_dir) = self.boards[0].get_template_dir() {
+                // copy_recursive(template_dir, project_dir)
+                let options = fs_extra::dir::CopyOptions::new();
+                for entry in std::fs::read_dir(template_dir).unwrap() {
+                    let entry = entry.unwrap().path();
+                    if let Err(e) = fs_extra::dir::copy(entry.clone(), self.location.clone().unwrap(), &options) {
+                        warn!("couldn't copy template item {:?} to new project folder; {:?}", entry, e);
+                    }
+                }
+            }
         } else {
             info!("project save aborted");
             return Ok(());
@@ -162,6 +176,7 @@ impl Project {
         self.save()
     }
 
+    // TODO - have this save all project files, maybe, except the target directory
     pub fn save(&mut self) -> io::Result<()> {
         if self.location == None {
             info!("no project location, calling save_as...");
@@ -174,13 +189,18 @@ impl Project {
                 "-C",
                 project_folder.as_path().to_str().unwrap(),
                 "init",
+                "--name",
+                self.name.as_str(),
+                "--vcs",
+                "none",
             ];
             let output = Command::new("cargo").args(args).output().unwrap();
             if output.status.success() {
                 self.info_logger("successfully created cargo package");
             } else {
+                let utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
                 warn!("couldn't create cargo package, maybe because \
-                            it's already been created? {:?}", output.status);
+                            it's already been created? {}", utf8);
             }
             let project_file = project_folder.join(PROJECT_FILE_NAME);
             info!("saving project to {}", project_file.display().to_string());

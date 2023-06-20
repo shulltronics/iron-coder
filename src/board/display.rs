@@ -1,6 +1,7 @@
 use log::info;
 use crate::board::{
     Board,
+    BoardMiniWidget,
     BoardSelectorWidget,
 };
 use egui::{
@@ -235,6 +236,35 @@ impl Widget for BoardSelectorWidget {
                 ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
             }
 
+        } else {
+            response = ui.allocate_response(egui::vec2(128.0, 128.0), egui::Sense::click());
+        }
+        return response;
+    }
+}
+
+impl Widget for BoardMiniWidget {
+    fn ui(self, ui: &mut Ui) -> Response {
+        let this_board = self.0;
+        let response: egui::Response;
+        if let Some(color_image) = this_board.pic {
+            // Use a frame to display multiple widgets within our widget,
+            // with an inner margin
+            response = egui::Frame::none()
+            .show(ui, |ui| {
+                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    ui.label(this_board.name);
+                    let retained_image = RetainedImage::from_color_image(
+                        "pic",
+                        color_image,
+                    );
+                    retained_image.show_max_size(ui, egui::vec2(96.0, 96.0));
+                });
+            }).response;
+            if ui.rect_contains_pointer(response.rect) {
+                // draw a bounding box
+                ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
+            }
         } else {
             response = ui.allocate_response(egui::vec2(128.0, 128.0), egui::Sense::click());
         }

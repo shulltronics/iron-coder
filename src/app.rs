@@ -231,6 +231,11 @@ impl IronCoderApp {
                 if ui.button("Cancel").clicked() {
                     *mode = Mode::ProjectDeveloper;
                 }
+                ui.horizontal(|ui| {
+                    for b in new_project.get_boards().iter() {
+                        ui.add_sized(egui::vec2(100.0, 100.0), board::BoardMiniWidget(b.clone()));
+                    }
+                });
             });
         });
 

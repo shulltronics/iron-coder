@@ -86,6 +86,7 @@ pub struct Board {
 //   see https://doc.rust-lang.org/book/ch19-03-advanced-traits.html#using-the-newtype-pattern-to-implement-external-traits-on-external-types
 //   for the Newtype pattern
 pub struct BoardSelectorWidget(pub Board);
+pub struct BoardMiniWidget(pub Board);
 
 impl fmt::Debug for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

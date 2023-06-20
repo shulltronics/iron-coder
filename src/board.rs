@@ -1,3 +1,5 @@
+use log::warn;
+
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::vec::Vec;
@@ -36,7 +38,11 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
             // otherwise, if the entry is a file ending in "toml" try to parse it
             // as a board file
             } else if entry.path().extension().unwrap() == "toml" {
-                r.push(Board::load_from_toml(&entry.path()));
+                if let Ok(board) = Board::load_from_toml(&entry.path()) {
+                    r.push(board);
+                } else {
+                    warn!("error loading board from {}", entry.path().display().to_string());
+                }
             }
         }
     }
@@ -78,6 +84,7 @@ pub struct Board {
     examples: Vec<PathBuf>,         //\__ all of these fields are populated
     #[serde(skip)]                  ///   via file hierarchy, hence no serde
     pic: Option<egui::ColorImage>,  //
+    related_crates: Vec<String>,
 }
 
 impl fmt::Debug for Board {
@@ -95,10 +102,15 @@ impl cmp::PartialEq for Board {
 
 impl Board {
 
-    fn load_from_toml(path: &Path) -> Self {
+    fn load_from_toml(path: &Path) -> std::io::Result<Self> {
         
-        let toml_str = fs::read_to_string(path).unwrap();
-        let mut b: Board = toml::from_str(&toml_str).unwrap();
+        let toml_str = fs::read_to_string(path)?;
+        let mut b: Board = match toml::from_str(&toml_str) {
+            Ok(b) => b,
+            Err(e) => {
+                return Err(std::io::Error::other("load from toml failed"));
+            },
+        };
 
         // See if there is an image
         if let Ok(pic_path) = path.with_extension("png").canonicalize() {
@@ -121,7 +133,7 @@ impl Board {
             }
         }
 
-        return b;
+        return Ok(b);
     }
 
     pub fn get_name(&self) -> &str {

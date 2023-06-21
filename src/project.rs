@@ -1,6 +1,6 @@
 use log::{info, warn, debug};
 
-use std::io::{Read, BufRead};
+use std::io::BufRead;
 use std::io;
 use std::fs;
 use std::path::PathBuf;

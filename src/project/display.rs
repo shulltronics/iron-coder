@@ -7,8 +7,6 @@ use egui::widget_text::RichText;
 use crate::project::Project;
 use crate::board::BoardMiniWidget;
 
-use std::io::Read;
-
 // this block contains the display related
 // methods for showing the Project in egui.
 impl Project {

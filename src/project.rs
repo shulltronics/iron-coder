@@ -1,5 +1,6 @@
-use log::{info, warn};
+use log::{info, warn, debug};
 
+use std::io::Read;
 use std::io;
 use std::fs;
 use std::path::PathBuf;
@@ -39,6 +40,8 @@ pub struct Project {
     pub code_editor: CodeEditor,
     #[serde(skip)]
     terminal_buffer: String,
+    #[serde(skip)]
+    receiver: Option<std::sync::mpsc::Receiver<String>>,
 }
 
 impl Default for Project {
@@ -50,6 +53,7 @@ impl Default for Project {
             boards: Vec::new(),
             code_editor: CodeEditor::default(),
             terminal_buffer: String::new(),
+            receiver: None,
         }
     }
 }
@@ -63,6 +67,7 @@ impl Clone for Project {
             boards: self.boards.clone(),
             code_editor: CodeEditor::default(),
             terminal_buffer: self.terminal_buffer.clone(),
+            receiver: None,
         }
     }
 }
@@ -252,21 +257,37 @@ impl Project {
                 path.as_path().to_str().unwrap(),
                 "run"
             ];
-            // let args = ["version"];
+            // construct command, with stderr & stdout
             let mut build_command = Command::new("cargo");
-            build_command.args(args);
-            match build_command.output() {
-                Ok(output) => {
-                    // TODO -- should I send stdout too?
-                    let mut utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
-                    self.terminal_buffer += utf8;
-                    utf8 = std::str::from_utf8(output.stdout.as_slice()).unwrap();
-                    self.terminal_buffer += utf8;
-                },
-                Err(e) => {
-                    warn!("error executing cargo run. Err: {:?}", e);
-                },
-            }
+            build_command.args(args)
+            // .stdin(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped());
+            // create comms channel
+            let (tx, rx) = std::sync::mpsc::channel();
+            self.receiver = Some(rx);
+            // create a thread that polls the output of the command, sending any
+            // available data across the channel
+            let _ = std::thread::spawn(move || {
+                debug!("spawning thread");
+                let mut child = build_command.spawn().unwrap();
+                let mut buffer = String::new();
+                child.stderr.as_mut().unwrap().read_to_string(&mut buffer).unwrap();
+                tx.send(buffer).unwrap();
+                // if let Ok(mut child) = build_command.spawn() {
+                //     // poll the process's stderr, until it's dead
+                //     // let mut stderr = child.stderr.take().unwrap();
+                //     // let mut stdout = child.stdout.take().unwrap();
+                //     loop {
+                //         let mut buffer: String = String::new();
+                //         child.stderr.as_mut().unwrap().read_to_string(&mut buffer).unwrap();
+                //         child.stdout.as_mut().unwrap().read_to_string(&mut buffer).unwrap();
+                //         tx.send(buffer).unwrap();
+                //     }
+                // } else {
+                //     warn!("couldn't create child process!");
+                // }
+            });
         } else {
             self.info_logger("project needs a valid working directory before building");
         }

@@ -1,5 +1,6 @@
-use log::{info, warn};
+use log::{info, warn, debug};
 
+use std::io::{Read, BufRead};
 use std::io;
 use std::fs;
 use std::path::PathBuf;
@@ -39,6 +40,8 @@ pub struct Project {
     pub code_editor: CodeEditor,
     #[serde(skip)]
     terminal_buffer: String,
+    #[serde(skip)]
+    receiver: Option<std::sync::mpsc::Receiver<String>>,
 }
 
 impl Default for Project {
@@ -50,6 +53,7 @@ impl Default for Project {
             boards: Vec::new(),
             code_editor: CodeEditor::default(),
             terminal_buffer: String::new(),
+            receiver: None,
         }
     }
 }
@@ -63,6 +67,7 @@ impl Clone for Project {
             boards: self.boards.clone(),
             code_editor: CodeEditor::default(),
             terminal_buffer: self.terminal_buffer.clone(),
+            receiver: None,
         }
     }
 }
@@ -245,28 +250,35 @@ impl Project {
     // loads the code (for now using 'cargo run')
     fn load_to_board(&mut self) {
         if let Some(path) = &self.location {
-            let args = [
-                "-Z",
-                "unstable-options",
-                "-C",
-                path.as_path().to_str().unwrap(),
-                "run"
-            ];
-            // let args = ["version"];
-            let mut build_command = Command::new("cargo");
-            build_command.args(args);
-            match build_command.output() {
-                Ok(output) => {
-                    // TODO -- should I send stdout too?
-                    let mut utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
-                    self.terminal_buffer += utf8;
-                    utf8 = std::str::from_utf8(output.stdout.as_slice()).unwrap();
-                    self.terminal_buffer += utf8;
-                },
-                Err(e) => {
-                    warn!("error executing cargo run. Err: {:?}", e);
-                },
-            }
+            // let args = [
+            //     "-Z",
+            //     "unstable-options",
+            //     "-C",
+            //     path.as_path().to_str().unwrap(),
+            //     "run"
+            // ];
+            // construct command, with stderr & stdout
+            // let mut build_command = Command::new("cargo");
+            // build_command.args(args)
+            // // .stdin(std::process::Stdio::piped())
+            // .stderr(std::process::Stdio::piped())
+            // .stdout(std::process::Stdio::piped());
+
+            // create comms channel
+            let (tx, rx) = std::sync::mpsc::channel();
+            self.receiver = Some(rx);
+            // create a thread that polls the output of the command, sending any
+            // available data across the channel
+            let reader = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run").stderr_to_stdout().unchecked().reader().unwrap();
+            let mut lines = std::io::BufReader::new(reader).lines();
+            let _ = std::thread::spawn(move || {
+                while let Some(line) = lines.next() {
+                    let line = line.unwrap() + "\n";
+                    tx.send(line).unwrap();
+                    // TODO - why doens't the gui render these before I move the mouse around?
+                }
+                info!("leaving thread");
+            });
         } else {
             self.info_logger("project needs a valid working directory before building");
         }

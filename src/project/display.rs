@@ -1,4 +1,4 @@
-use log::warn;
+use log::{info, warn, debug};
 
 use std::path::Path;
 
@@ -6,6 +6,8 @@ use egui::widget_text::RichText;
 
 use crate::project::Project;
 use crate::board::BoardMiniWidget;
+
+use std::io::Read;
 
 // this block contains the display related
 // methods for showing the Project in egui.
@@ -73,18 +75,26 @@ impl Project {
 
     // show the terminal pane
     pub fn display_terminal(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
+        // If there is an open channel, see if we can get some data from it
+        if let Some(rx) = &self.receiver {
+            while let Ok(s) = rx.try_recv() {
+                self.terminal_buffer += s.as_str();
+            }
+        }
         egui::CollapsingHeader::new("Terminal").show(ui, |ui| {
             egui::ScrollArea::both()
             .auto_shrink([false; 2])
             .stick_to_bottom(true)
             .show(ui, |ui| {
-                ui.add(
+                if ui.add(
                     egui::TextEdit::multiline(&mut self.terminal_buffer)
                     .code_editor()
                     .interactive(false)
                     .desired_width(f32::INFINITY)
                     .frame(false)
-                );
+                ).clicked() {
+                    self.terminal_buffer.clear();
+                }
             });
         });
     }

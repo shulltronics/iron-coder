@@ -271,9 +271,9 @@ impl Project {
             let _ = std::thread::spawn(move || {
                 debug!("spawning thread");
                 let mut child = build_command.spawn().unwrap();
-                let mut buffer = String::new();
-                child.stderr.as_mut().unwrap().read_to_string(&mut buffer).unwrap();
-                tx.send(buffer).unwrap();
+                let mut buffer = [0u8; 16];
+                child.stderr.as_mut().unwrap().read(&mut buffer).unwrap();
+                tx.send(String::from_utf8(buffer.to_vec()).unwrap()).unwrap();
                 // if let Ok(mut child) = build_command.spawn() {
                 //     // poll the process's stderr, until it's dead
                 //     // let mut stderr = child.stderr.take().unwrap();

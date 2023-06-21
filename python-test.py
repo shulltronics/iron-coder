@@ -1,4 +1,6 @@
 import time
-while True:
-    print("hi")
-    time.sleep(1)
+n = 3
+while n >= 0:
+    print(n)
+    n -= 1
+    time.sleep(0.5)

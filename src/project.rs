@@ -248,7 +248,7 @@ impl Project {
     }
 
     // loads the code (for now using 'cargo run')
-    fn load_to_board(&mut self) {
+    fn load_to_board(&mut self, ctx: &egui::Context) {
         if let Some(path) = &self.location {
             // let args = [
             //     "-Z",
@@ -263,7 +263,7 @@ impl Project {
             // // .stdin(std::process::Stdio::piped())
             // .stderr(std::process::Stdio::piped())
             // .stdout(std::process::Stdio::piped());
-
+            let context = ctx.clone();
             // create comms channel
             let (tx, rx) = std::sync::mpsc::channel();
             self.receiver = Some(rx);
@@ -274,7 +274,9 @@ impl Project {
             let _ = std::thread::spawn(move || {
                 while let Some(line) = lines.next() {
                     let line = line.unwrap() + "\n";
+                    debug!("sending line through channel");
                     tx.send(line).unwrap();
+                    context.request_repaint();
                     // TODO - why doens't the gui render these before I move the mouse around?
                 }
                 info!("leaving thread");

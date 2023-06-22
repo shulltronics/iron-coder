@@ -131,7 +131,7 @@ impl Project {
                 " load onto board",
             ).frame(false);
             if ui.add(button).clicked() {
-                self.load_to_board();
+                self.load_to_board(ctx);
             }
         });
     }

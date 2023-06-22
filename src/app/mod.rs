@@ -12,6 +12,7 @@ use crate::board;
 use crate::project::Project;
 pub mod icons;
 pub mod colorscheme;
+use colorscheme::ColorScheme;
 
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -36,6 +37,8 @@ pub struct IronCoderApp {
     boards: Vec<board::Board>,
     #[serde(skip)]
     new_project: Project,   // this is a place holder for when we create a new project
+    #[serde(skip)]
+    colorscheme: ColorScheme,
 }
 
 impl Default for IronCoderApp {
@@ -51,6 +54,7 @@ impl Default for IronCoderApp {
             icons: icons::load_icons(Path::new(icons::ICON_DIR)),
             boards: boards,
             new_project: Project::default(),
+            colorscheme: colorscheme::SOLARIZED_DARK,
         }
     }
 }
@@ -248,6 +252,7 @@ impl IronCoderApp {
         let Self {
             project,
             display_settings,
+            colorscheme,
             ..
         } = self;
 
@@ -259,16 +264,17 @@ impl IronCoderApp {
             .movable(false)
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
-                let mut visuals = ctx.style().visuals.clone();
-                ui.checkbox(&mut visuals.dark_mode, "Dark Mode");
-                if visuals.dark_mode {
-                    colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_DARK);
-                    project.code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
-                } else {
-                    colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_LIGHT);
-                    project.code_editor.set_colorscheme(colorscheme::SOLARIZED_DARK);
-                }
 
+                // Create radio buttons for colorscheme selection
+                for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
+                    // ui.radio_value(&mut colorscheme, colorscheme::SOLARIZED_DARK, cs.name);
+                    let rb = egui::RadioButton::new(*colorscheme == cs.clone(), cs.name);
+                    if ui.add(rb).clicked() {
+                        *colorscheme = cs.clone();
+                        colorscheme::set_colorscheme(ctx, cs.clone());
+                    }
+                }
+               
                 // create a font selector:
                 for (text_style, font_id) in ctx.style().text_styles.iter() {
                     // println!("{:?}: {:?}", text_style, font_id);

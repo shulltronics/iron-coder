@@ -5,6 +5,13 @@ An embedded Rust IDE with an emphasis on a fun and insightful coding experience
 
 ![Screenshot](screenshots/iron-coder.png)
 
+## Roadmap to Alpha Build
+
+| Project Section | Goals           |
+|-----------------|-----------------|
+| test            | - [ ] another   |
+| world           | - [ ] hello     |
+
 ## Prototype Features (as of June 13th, 2023)
 The application is currently in prototype phase, with the following features implemented:
 * Overall GUI functionality with persistent state:

@@ -1,4 +1,4 @@
-use log::{info, warn, debug};
+use log::{warn, debug};
 
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -34,7 +34,7 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
             // ("") for &str will never match "toml"
             } else if entry.path().extension().unwrap_or_default() == "toml" {
                 if let Ok(mut board) = Board::load_from_toml(&entry.path()) {
-                    let mut parent = entry.path().parent().unwrap().canonicalize().unwrap();
+                    let parent = entry.path().parent().unwrap().canonicalize().unwrap();
                     let template_dir = parent.join("template");
                     if let Ok(true) = template_dir.try_exists() {
                         debug!("found template dir for board <{}> at {:?}", board.name.clone(), entry.path().parent().unwrap().canonicalize().unwrap().join("template"));

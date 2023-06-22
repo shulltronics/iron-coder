@@ -16,8 +16,8 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::io::{Read, Write, Seek};
 
-use crate::icons;
-use crate::colorscheme::ColorScheme;
+use crate::app::icons;
+use crate::app::colorscheme::ColorScheme;
 
 /// This module contains functionality for the code editor.
 /// The namesake struct CodeEditor contains the state of the editor,

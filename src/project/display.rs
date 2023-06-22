@@ -1,4 +1,4 @@
-use log::{info, warn, debug};
+use log::{info, warn};
 
 use std::path::Path;
 

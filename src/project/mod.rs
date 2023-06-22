@@ -9,9 +9,6 @@ use fs_extra;
 use std::collections::HashMap;
 use std::vec::Vec;
 
-// for invoking external programs
-use std::process::Command;
-
 use rfd::FileDialog;
 use toml;
 
@@ -102,10 +99,6 @@ impl Project {
             return;
         }
         self.boards.push(board);
-    }
-
-    pub fn get_boards(&self) -> Vec<Board> {
-        return self.boards.clone();
     }
 
     // this method will populate the project board list via the app-wide
@@ -239,7 +232,7 @@ impl Project {
         let commands = cmds.to_owned();
         let (tx, rx) = std::sync::mpsc::channel();
         self.receiver = Some(rx);
-        let thread_handle = std::thread::spawn(move || {
+        let _ = std::thread::spawn(move || {
             for cmd in commands.iter() {
                 let reader = cmd.stderr_to_stdout().unchecked().reader().unwrap();
                 let mut lines = std::io::BufReader::new(reader).lines();

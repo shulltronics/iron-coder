@@ -9,9 +9,9 @@ use egui_extras::image::RetainedImage;
 
 // Separate modules
 use crate::board;
-use crate::colorscheme;
 use crate::project::Project;
-use crate::icons;
+pub mod icons;
+pub mod colorscheme;
 
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -210,7 +210,6 @@ impl IronCoderApp {
             new_project,
             project,
             mode,
-            boards,
             ..
         } = self;
         // Spec Viewer panel
@@ -372,7 +371,7 @@ impl eframe::App for IronCoderApp {
                                         board and a set of peripheral boards. Then, give your project a name. \
                                         After clicking \"Start Development\" you will be prompted to choose \
                                         a location to save you project.");
-                        let egui::Vec2 {mut x, y} = ui.available_size();
+                        let egui::Vec2 {mut x, y: _} = ui.available_size();
                         if x > 300.0 { x = 300.0 }
                         ui.add_sized([x, 0.0], label);
                         if ui.button("Start Development").clicked() {
@@ -427,31 +426,31 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     fonts.font_data.insert(
         "roboto_mono_regular".to_owned(),
         egui::FontData::from_static(include_bytes!(
-            "../assets/fonts/Roboto_Mono/static/RobotoMono-Regular.ttf"
+            "../../assets/fonts/Roboto_Mono/static/RobotoMono-Regular.ttf"
         )),
     );
     fonts.font_data.insert(
         "roboto_mono_bold".to_owned(),
         egui::FontData::from_static(include_bytes!(
-            "../assets/fonts/Roboto_Mono/static/RobotoMono-Bold.ttf"
+            "../../assets/fonts/Roboto_Mono/static/RobotoMono-Bold.ttf"
         )),
     );
     fonts.font_data.insert(
         "chintzy_cpu".to_owned(),
         egui::FontData::from_static(include_bytes!(
-            "../assets/fonts/chintzycpu/chintzy.ttf"
+            "../../assets/fonts/chintzycpu/chintzy.ttf"
         )),
     );
     fonts.font_data.insert(
         "vcr_osd_mono".to_owned(),
         egui::FontData::from_static(include_bytes!(
-            "../assets/fonts/vcr_osd_mono/VCR_OSD_MONO_1.001.ttf"
+            "../../assets/fonts/vcr_osd_mono/VCR_OSD_MONO_1.001.ttf"
         )),
     );
     fonts.font_data.insert(
         "unispace".to_owned(),
         egui::FontData::from_static(include_bytes!(
-            "../assets/fonts/unispace/unispace it.otf"
+            "../../assets/fonts/unispace/unispace it.otf"
         )),
     );
 
@@ -468,13 +467,13 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     fonts.font_data.insert(
         "platinum_sign_under".to_owned(),    // serves as the unique font identifier?
         egui::FontData::from_static(include_bytes!(
-            "../assets/fonts/platinum-sign/Platinum-Sign-Under.ttf"
+            "../../assets/fonts/platinum-sign/Platinum-Sign-Under.ttf"
         )),
     );
     fonts.font_data.insert(
         "platinum_sign_over".to_owned(),    // serves as the unique font identifier?
         egui::FontData::from_static(include_bytes!(
-            "../assets/fonts/platinum-sign/Platinum-Sign-Over.ttf"
+            "../../assets/fonts/platinum-sign/Platinum-Sign-Over.ttf"
         )),
     );
 

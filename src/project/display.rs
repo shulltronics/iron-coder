@@ -157,8 +157,13 @@ impl Project {
                     for rc in required_crates.iter() {
                         ui.horizontal(|ui| {
                             if ui.link(rc).clicked() {
-                                info!("TODO - deal with the required crate!")
-                                // TODO - call cargo add or something to install the crate
+                                if let Some(path) = &self.location {
+                                    let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "add", rc.as_str());
+                                    self.run_background_command(cmd, ctx);
+                                } else {
+                                    self.terminal_buffer += "save project first!\n";
+                                }
+                                
                             };
                         });
                     }

@@ -120,7 +120,7 @@ impl Project {
                 " build project",
             ).frame(false);
             if ui.add(button).clicked() {
-                self.build();
+                self.build(ctx);
             }
 
             ui.separator();

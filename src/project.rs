@@ -214,32 +214,13 @@ impl Project {
     }
 
     // builds the code
-    fn build(&mut self) {
+    fn build(&mut self, ctx: &egui::Context) {
         // Make sure we have a valid path
         if let Some(path) = &self.location {
             info!("building project at {}", path.display().to_string());
             self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
-            let args = [
-                "-Z",
-                "unstable-options",
-                "-C",
-                path.as_path().to_str().unwrap(),
-                "build"
-            ];
-            // let args = ["version"];
-            let mut build_command = Command::new("cargo");
-            build_command.args(args);
-            match build_command.output() {
-                Ok(output) => {
-                    let mut utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
-                    self.terminal_buffer += utf8;
-                    utf8 = std::str::from_utf8(output.stdout.as_slice()).unwrap();
-                    self.terminal_buffer += utf8;
-                },
-                Err(e) => {
-                    warn!("error executing cargo build. Err: {:?}", e);
-                },
-            }
+            let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "build");
+            self.run_background_command(cmd, ctx);
         } else {
             self.info_logger("project needs a valid working directory before building");
         }
@@ -248,37 +229,8 @@ impl Project {
     // loads the code (for now using 'cargo run')
     fn load_to_board(&mut self, ctx: &egui::Context) {
         if let Some(path) = &self.location {
-            // let args = [
-            //     "-Z",
-            //     "unstable-options",
-            //     "-C",
-            //     path.as_path().to_str().unwrap(),
-            //     "run"
-            // ];
-            // construct command, with stderr & stdout
-            // let mut build_command = Command::new("cargo");
-            // build_command.args(args)
-            // // .stdin(std::process::Stdio::piped())
-            // .stderr(std::process::Stdio::piped())
-            // .stdout(std::process::Stdio::piped());
-            let context = ctx.clone();
-            // create comms channel
-            let (tx, rx) = std::sync::mpsc::channel();
-            self.receiver = Some(rx);
-            // create a thread that polls the output of the command, sending any
-            // available data across the channel
-            let reader = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run").stderr_to_stdout().unchecked().reader().unwrap();
-            let mut lines = std::io::BufReader::new(reader).lines();
-            let _ = std::thread::spawn(move || {
-                while let Some(line) = lines.next() {
-                    let line = line.unwrap() + "\n";
-                    debug!("sending line through channel");
-                    tx.send(line).unwrap();
-                    context.request_repaint();
-                    // TODO - why doens't the gui render these before I move the mouse around?
-                }
-                info!("leaving thread");
-            });
+            let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run");
+            self.run_background_command(cmd, ctx);
         } else {
             self.info_logger("project needs a valid working directory before building");
         }
@@ -295,6 +247,26 @@ impl Project {
             warn!("error getting file path");
         }
         Ok(())
+    }
+
+    // This method will run a background command and send the output
+    // through the channel to the project's terminal buffer
+    fn run_background_command(&mut self, cmd: duct::Expression, ctx: &egui::Context) {
+        let context = ctx.clone();
+        // create comms channel
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.receiver = Some(rx);
+        let reader = cmd.stderr_to_stdout().unchecked().reader().unwrap();
+        let mut lines = std::io::BufReader::new(reader).lines();
+        let _ = std::thread::spawn(move || {
+            while let Some(line) = lines.next() {
+                let line = line.unwrap() + "\n";
+                debug!("sending line through channel");
+                tx.send(line).unwrap();
+                context.request_repaint();
+            }
+            info!("leaving thread");
+        });
     }
 
 }

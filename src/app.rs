@@ -300,7 +300,7 @@ impl IronCoderApp {
             });
         }
         
-    } // pub fn settings
+    }
 
     // This method will show or hide the "about" window
     pub fn display_about_window(&mut self, ctx: &egui::Context) {
@@ -378,7 +378,8 @@ impl eframe::App for IronCoderApp {
                         if ui.button("Start Development").clicked() {
                             self.project = self.new_project.clone();
                             self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
-                            info!("{:?}", self.project.get_boards()[0]);
+                            self.project.add_crates_to_project(ctx);
+                            // info!("{:?}", self.project.get_boards()[0]);
                             self.mode = Mode::DevelopCurrentProject;
                         }
                     });

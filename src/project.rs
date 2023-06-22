@@ -159,15 +159,13 @@ impl Project {
                 }
             }
             self.location = Some(project_folder);
-            // TODO copy over template files to the new project directory
-            // 1. find template directory based on "programmable board" (for now just use board 0)
-            // 2. recursively copy those files into project_folder
+            // TOD: find template directory based on "programmable board" (for now just use board 0)
             if let Some(template_dir) = self.boards[0].get_template_dir() {
                 // copy_recursive(template_dir, project_dir)
                 let options = fs_extra::dir::CopyOptions::new();
                 for entry in std::fs::read_dir(template_dir).unwrap() {
                     let entry = entry.unwrap().path();
-                    if let Err(e) = fs_extra::dir::copy(entry.clone(), self.location.clone().unwrap(), &options) {
+                    if let Err(e) = fs_extra::copy_items(&[entry.clone()], self.location.clone().unwrap(), &options) {
                         warn!("couldn't copy template item {:?} to new project folder; {:?}", entry, e);
                     }
                 }
@@ -186,27 +184,8 @@ impl Project {
             self.save_as()
         } else {
             let project_folder = self.location.clone().unwrap();
-            let args = [
-                "-Z",
-                "unstable-options",
-                "-C",
-                project_folder.as_path().to_str().unwrap(),
-                "init",
-                "--name",
-                self.name.as_str(),
-                "--vcs",
-                "none",
-            ];
-            let output = Command::new("cargo").args(args).output().unwrap();
-            if output.status.success() {
-                self.info_logger("successfully created cargo package");
-            } else {
-                let utf8 = std::str::from_utf8(output.stderr.as_slice()).unwrap();
-                warn!("couldn't create cargo package, maybe because \
-                            it's already been created? {}", utf8);
-            }
             let project_file = project_folder.join(PROJECT_FILE_NAME);
-            info!("saving project to {}", project_file.display().to_string());
+            info!("saving project file to {}", project_file.display().to_string());
             let contents: String = toml::to_string(self).unwrap();
             fs::write(project_file, contents)?;
             Ok(())
@@ -220,7 +199,7 @@ impl Project {
             info!("building project at {}", path.display().to_string());
             self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
             let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "build");
-            self.run_background_command(cmd, ctx);
+            self.run_background_commands(&[cmd], ctx);
         } else {
             self.info_logger("project needs a valid working directory before building");
         }
@@ -230,7 +209,7 @@ impl Project {
     fn load_to_board(&mut self, ctx: &egui::Context) {
         if let Some(path) = &self.location {
             let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run");
-            self.run_background_command(cmd, ctx);
+            self.run_background_commands(&[cmd], ctx);
         } else {
             self.info_logger("project needs a valid working directory before building");
         }
@@ -249,24 +228,62 @@ impl Project {
         Ok(())
     }
 
-    // This method will run a background command and send the output
-    // through the channel to the project's terminal buffer
-    fn run_background_command(&mut self, cmd: duct::Expression, ctx: &egui::Context) {
-        let context = ctx.clone();
+    // This method will run a series of command sequentially on a separate
+    // thread, sending their output through the channel to the project's terminal buffer
+    // TODO - fix bug that calling this command again before a former call's thread is 
+    //   complete will overwrite the rx channel in the Project object. Possible solution
+    //   might be to add a command to a queue to be evaluated.
+    fn run_background_commands(&mut self, cmds: &[duct::Expression], ctx: &egui::Context) {
         // create comms channel
+        let context = ctx.clone();
+        let commands = cmds.to_owned();
         let (tx, rx) = std::sync::mpsc::channel();
         self.receiver = Some(rx);
-        let reader = cmd.stderr_to_stdout().unchecked().reader().unwrap();
-        let mut lines = std::io::BufReader::new(reader).lines();
-        let _ = std::thread::spawn(move || {
-            while let Some(line) = lines.next() {
-                let line = line.unwrap() + "\n";
-                debug!("sending line through channel");
-                tx.send(line).unwrap();
-                context.request_repaint();
+        let thread_handle = std::thread::spawn(move || {
+            for cmd in commands.iter() {
+                let reader = cmd.stderr_to_stdout().unchecked().reader().unwrap();
+                let mut lines = std::io::BufReader::new(reader).lines();
+                while let Some(line) = lines.next() {
+                    let line = line.unwrap() + "\n";
+                    debug!("sending line through channel");
+                    tx.send(line).unwrap();
+                    context.request_repaint();
+                }
             }
             info!("leaving thread");
         });
+    }
+
+    // pub fn init_cargo_package(&mut self, ctx: &egui::Context) {
+    //     if let Some(project_folder) = self.location.clone() {
+    //         let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C",
+    //             project_folder.as_path().to_str().unwrap(), "init",
+    //             "--name", self.name.as_str(), "--vcs", "none");
+    //         self.run_background_commands(&[cmd], ctx);
+    //         self.add_crates_to_project(ctx);
+    //     } else {
+    //         warn!("couldn't execute cargo init: no project folder yet");
+    //     }
+    // }
+
+    pub fn add_crates_to_project(&mut self, ctx: &egui::Context) {
+        if let Some(project_folder) = self.location.clone() {
+            for b in self.boards.clone().iter() {
+                if let Some(rc) = b.required_crates() {
+                    info!("installing required crates for board {:?}", b);
+                    let mut cmds: Vec<duct::Expression> = rc.iter().map(|c| {
+                        duct::cmd!("cargo", "-Z", "unstable-options", "-C",
+                            project_folder.as_path().to_str().unwrap(), "add",
+                            c)
+                    }).collect();
+                    let init_cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C",
+                        project_folder.as_path().to_str().unwrap(), "init",
+                        "--name", self.name.as_str(), "--vcs", "none");
+                    cmds.insert(0, init_cmd);
+                    self.run_background_commands(cmds.as_slice(), ctx);
+                }
+            }
+        }
     }
 
 }

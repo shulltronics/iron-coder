@@ -159,7 +159,7 @@ impl Project {
                             if ui.link(rc).clicked() {
                                 if let Some(path) = &self.location {
                                     let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "add", rc.as_str());
-                                    self.run_background_command(cmd, ctx);
+                                    self.run_background_commands(&[cmd], ctx);
                                 } else {
                                     self.terminal_buffer += "save project first!\n";
                                 }

@@ -7,6 +7,10 @@ An embedded Rust IDE with an emphasis on a fun and insightful coding experience
 
 ## Roadmap to Alpha Build
 
+#### General GUI Features
+- [ ] Better colorscheme integration
+- [ ] testing
+
 | Project Section | Goals           |
 |-----------------|-----------------|
 | test            | - [ ] another   |

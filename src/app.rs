@@ -383,12 +383,21 @@ impl eframe::App for IronCoderApp {
                 .frame(frame)
                 .show(ctx, |ui| {
                     self.new_project.display_project_editor(ctx, ui);
-                    if ui.button("Start Development").clicked() {
-                        self.project = self.new_project.clone();
-                        self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
-                        info!("{:?}", self.project.get_boards()[0]);
-                        self.mode = Mode::DevelopCurrentProject;
-                    }
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                        let label = egui::widgets::Label::new("Welcome to Iron Coder! To get started on a project, select a main \
+                                        board and a set of peripheral boards. Then, give your project a name. \
+                                        After clicking \"Start Development\" you will be prompted to choose \
+                                        a location to save you project.");
+                        let egui::Vec2 {mut x, y} = ui.available_size();
+                        if x > 300.0 { x = 300.0 }
+                        ui.add_sized([x, 0.0], label);
+                        if ui.button("Start Development").clicked() {
+                            self.project = self.new_project.clone();
+                            self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
+                            info!("{:?}", self.project.get_boards()[0]);
+                            self.mode = Mode::DevelopCurrentProject;
+                        }
+                    });
                 });
                 egui::CentralPanel::default().show(ctx, |ui| {
                     if let Some(b) = self.display_available_boards(ctx, ui) {

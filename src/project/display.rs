@@ -137,24 +137,36 @@ impl Project {
     }
 
     // Show the project editor page
-    // new_project will have either a blank project or a copy of the current project,
-    // depending on how we got here (i.e. via edit current or create new).
     pub fn display_project_editor(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
         ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-            ui.horizontal(|ui| {
-                ui.label("Project Name: ");
-                // with this we can edit an existing project
-                ui.text_edit_singleline(&mut self.name);
-            });
-            ui.label("Current project boards:");
-            ui.label(self.boards.len().to_string());
-            ui.horizontal(|ui| {
-                for (i, b) in self.boards.clone().into_iter().enumerate() {
-                    if ui.add_sized(egui::vec2(100.0, 100.0), BoardMiniWidget(b)).clicked() {
-                        self.boards.remove(i);
+            let label = RichText::new("Project Name").underline();
+            ui.label(label);
+            ui.text_edit_singleline(&mut self.name);
+
+            let label = RichText::new("Project Boards").underline();
+            ui.label(label);
+        });
+        // compute outer margin based on how many widgets to show:
+        let width_per_board = 120.0;
+        let mut margin_val = 0.0;
+        let num_boards = self.boards.len();
+        if num_boards > 0 {
+            let w = ui.available_width();
+            let needed = num_boards as f32 * width_per_board;
+            margin_val = (w - needed) / 2.0;
+        }
+        egui::Frame::default().outer_margin(egui::Margin::symmetric(margin_val, 10.0)).show(ui, |ui| {
+            if num_boards > 0 {
+                ui.columns(num_boards, |columns| {
+                    for (i, b) in self.boards.clone().into_iter().enumerate() {
+                        let this_r = columns[i].add(BoardMiniWidget(b));
+                        // ui.painter().rect_stroke(this_r.rect, 0.0, (1.0, egui::Color32::WHITE));
+                        if this_r.clicked() {
+                            self.boards.remove(i);
+                        }
                     }
-                }
-            });
+                });
+            }
         });
     }
 }

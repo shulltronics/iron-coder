@@ -76,9 +76,11 @@ impl fmt::Display for BoardStandards {
 
 // The board struct defines a board type
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(default)]
 pub struct Board {
     name: String,
     manufacturer: String,
+    is_main_board: bool,            // in Iron Coder, a project can only have one "main board" -- the one that the firmware targets
     standard: Option<BoardStandards>,
     cpu: Option<String>,
     ram: Option<isize>,
@@ -92,6 +94,24 @@ pub struct Board {
     template_dir: Option<PathBuf>,
 }
 
+// A board shell template
+impl Default for Board {
+    fn default() -> Self {
+        Self {
+            name: "".to_string(),
+            manufacturer: "".to_string(),
+            is_main_board: false,
+            standard: None,
+            cpu: None,
+            ram: None,
+            flash: None,
+            examples: Vec::new(),
+            pic: None,
+            related_crates: None,
+            template_dir: None,
+        }
+    }
+}
 // Define some thin wrappers around Board so we can display a Board with the
 //   Widget trait in multiple ways
 //   see https://doc.rust-lang.org/book/ch19-03-advanced-traits.html#using-the-newtype-pattern-to-implement-external-traits-on-external-types
@@ -102,6 +122,7 @@ pub struct BoardMiniWidget(pub Board);
 impl fmt::Debug for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Board {}\n", self.name)?;
+        write!(f, "  is main board? {}\n", self.is_main_board)?;
         write!(f, "  num examples: {}\n", self.examples.len())?;
         write!(f, "  has pic: {}\n", self.pic.is_some())?;
         write!(f, "  has template: {}", self.template_dir.is_some())?;
@@ -155,6 +176,10 @@ impl Board {
 
     pub fn get_name(&self) -> &str {
         self.name.as_str()
+    }
+
+    pub fn is_main_board(&self) -> bool {
+        self.is_main_board
     }
 
     pub fn get_template_dir(&self) -> Option<PathBuf> {

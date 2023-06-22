@@ -56,8 +56,7 @@ impl Widget for Board {
             // Use a frame to display multiple widgets within our widget,
             // with an inner margin
             response = egui::Frame::none()
-            // .inner_margin(egui::Margin::same(10.0))
-            // .outer_margin(egui::Margin::same(3.0))
+            .inner_margin(egui::Margin::same(10.0))
             .show(ui, |ui| {
                 egui::CollapsingHeader::new(self.name.as_str())
                 .default_open(true)
@@ -191,12 +190,11 @@ impl Widget for BoardSelectorWidget {
     fn ui(self, ui: &mut Ui) -> Response {
         let this_board = self.0;
         let response: egui::Response;
-        if let Some(color_image) = this_board.pic {
+        if let Some(color_image) = this_board.clone().pic {
             // Use a frame to display multiple widgets within our widget,
             // with an inner margin
             response = egui::Frame::none()
-            // .inner_margin(egui::Margin::same(10.0))
-            // .outer_margin(egui::Margin::same(3.0))
+            .inner_margin(egui::Margin::same(10.0))
             .show(ui, |ui| {
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     // let label = egui::RichText::new(this_board.name).strong();
@@ -223,7 +221,7 @@ impl Widget for BoardSelectorWidget {
                 });
                 ui.horizontal(|ui| {
                     ui.label("Ecosystem: ");
-                    if let Some(standard) = this_board.standard {
+                    if let Some(standard) = this_board.clone().standard {
                         ui.label(standard.to_string());
                     } else {
                         ui.label("none");
@@ -231,7 +229,7 @@ impl Widget for BoardSelectorWidget {
                 });
             }).response.interact(egui::Sense::click());
 
-            if ui.rect_contains_pointer(response.rect) {
+            if this_board.clone().is_main_board() {
                 // draw a bounding box
                 ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
             }
@@ -247,13 +245,14 @@ impl Widget for BoardMiniWidget {
     fn ui(self, ui: &mut Ui) -> Response {
         let this_board = self.0;
         let response: egui::Response;
-        if let Some(color_image) = this_board.pic {
+        if let Some(color_image) = this_board.clone().pic {
             // Use a frame to display multiple widgets within our widget,
             // with an inner margin
             response = egui::Frame::none()
+            .inner_margin(egui::Margin::same(5.0))
             .show(ui, |ui| {
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    ui.label(this_board.name);
+                    ui.label(this_board.clone().name);
                     let retained_image = RetainedImage::from_color_image(
                         "pic",
                         color_image,
@@ -261,7 +260,7 @@ impl Widget for BoardMiniWidget {
                     retained_image.show_max_size(ui, egui::vec2(96.0, 96.0));
                 });
             }).response.interact(egui::Sense::click());
-            if ui.rect_contains_pointer(response.rect) {
+            if this_board.clone().is_main_board() {
                 // draw a bounding box
                 ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
             }

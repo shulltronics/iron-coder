@@ -89,6 +89,7 @@ pub struct Board {
     examples: Vec<PathBuf>,         //\__ all of these fields are populated
     #[serde(skip)]                  ///   via file hierarchy, hence no serde
     pic: Option<egui::ColorImage>,  //
+    required_crates: Option<Vec<String>>,
     related_crates: Option<Vec<String>>,
     #[serde(skip)]                  // we'll populate this dynamically when loading boards
     template_dir: Option<PathBuf>,
@@ -107,6 +108,7 @@ impl Default for Board {
             flash: None,
             examples: Vec::new(),
             pic: None,
+            required_crates: None,
             related_crates: None,
             template_dir: None,
         }
@@ -124,6 +126,8 @@ impl fmt::Debug for Board {
         write!(f, "Board {}\n", self.name)?;
         write!(f, "  is main board? {}\n", self.is_main_board)?;
         write!(f, "  num examples: {}\n", self.examples.len())?;
+        write!(f, "  num required crates: {}\n", self.required_crates.clone().unwrap_or_default().len())?;
+        write!(f, "  num related crates: {}\n", self.related_crates.clone().unwrap_or_default().len())?;
         write!(f, "  has pic: {}\n", self.pic.is_some())?;
         write!(f, "  has template: {}", self.template_dir.is_some())?;
         Ok(())
@@ -176,6 +180,14 @@ impl Board {
 
     pub fn get_name(&self) -> &str {
         self.name.as_str()
+    }
+
+    pub fn required_crates(&self) -> Option<Vec<String>> {
+        self.required_crates.clone()
+    }
+
+    pub fn related_crates(&self) -> Option<Vec<String>> {
+        self.related_crates.clone()
     }
 
     pub fn is_main_board(&self) -> bool {

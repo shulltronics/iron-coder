@@ -98,7 +98,7 @@ impl Project {
     }
 
     // show the project tree in a Ui
-    pub fn display_project_tree(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    fn display_project_tree(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         let project_folder = match &self.location {
             None => {
                 ui.label("There is currently no folder associated with this project. Please save it somewhere.");
@@ -132,6 +132,52 @@ impl Project {
             ).frame(false);
             if ui.add(button).clicked() {
                 self.load_to_board(ctx);
+            }
+        });
+    }
+
+    pub fn display_project_sidebar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
+            // option to add a new top-level directory
+            let dir_button = egui::widgets::Button::new("+ dir/file").frame(false);
+            if ui.add(dir_button).clicked() {
+                self.new_file().unwrap_or_else(|_| warn!("couldn't create new file"));
+            }
+            // show the project tree
+            self.display_project_tree(ctx, ui);
+            // show the board widgets
+            for b in self.boards.clone().iter() {
+                ui.add(b.clone());
+                // show the required crates
+                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    let label = egui::RichText::new("Required Crates").underline();
+                    ui.label(label);
+                });
+                if let Some(required_crates) = b.required_crates() {
+                    for rc in required_crates.iter() {
+                        ui.horizontal(|ui| {
+                            if ui.link(rc).clicked() {
+                                info!("TODO - deal with the required crate!")
+                                // TODO - call cargo add or something to install the crate
+                            };
+                        });
+                    }
+                }
+                ui.separator();
+                // show the related crates
+                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    let label = egui::RichText::new("Related Crates").underline();
+                    ui.label(label);
+                });
+                if let Some(related_crates) = b.related_crates() {
+                    for rc in related_crates.iter() {
+                        ui.horizontal(|ui| {
+                            if ui.link(rc).clicked() {
+                                info!("TODO - deal with the related crate!")
+                            };
+                        });
+                    }
+                }
             }
         });
     }

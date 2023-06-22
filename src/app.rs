@@ -224,23 +224,7 @@ impl IronCoderApp {
                 }
                 ui.separator();
             });
-
-            egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
-                // option to add a new top-level directory
-                let dir_button = egui::widgets::Button::new("+ dir/file").frame(false);
-                if ui.add(dir_button).clicked() {
-                    project.new_file().unwrap_or_else(|_| warn!("couldn't create new file"));
-                }
-                // show the project tree
-                project.display_project_tree(ctx, ui);
-                // show the board widgets
-                let project_boards = project.get_boards();
-                for b in project_boards.iter() {
-                    if let Some(i) = boards.clone().iter().position(|board| board == b) {
-                        ui.add(boards[i].clone());
-                    }
-                }
-            });
+            project.display_project_sidebar(ctx, ui);
         });
 
         egui::Area::new("editor area").show(ctx, |_ui| {

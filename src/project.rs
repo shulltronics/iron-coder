@@ -34,7 +34,6 @@ pub struct Project {
     location: Option<PathBuf>,
     #[serde(skip)]
     file_tree: HashMap<PathBuf, bool>,
-    // file_tree: Option<Vec<(bool, PathBuf)>>,
     boards: Vec<Board>,
     #[serde(skip)]
     pub code_editor: CodeEditor,
@@ -126,7 +125,6 @@ impl Project {
         }
     }
 
-    // TODO -- when populating Boards list, get fields from known app wide boards list
     pub fn open(&mut self) -> io::Result<()> {
         if let Some(project_folder) = FileDialog::new().pick_folder() {
             let project_file = project_folder.join(PROJECT_FILE_NAME);

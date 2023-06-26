@@ -159,6 +159,8 @@ impl Project {
                         ui.horizontal(|ui| {
                             if ui.link(rc).clicked() {
                                 info!("TODO - deal with the related crate!")
+                                // TODO -- instead, open another UI with crate details, links to 
+                                // docs.rs, repository, and maybe things like drag-n-drop code snippets
                             };
                         });
                     }

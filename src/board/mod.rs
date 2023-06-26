@@ -8,6 +8,7 @@ use std::cmp;
 
 use serde::{Serialize, Deserialize};
 
+pub mod interface;
 pub mod display;
 
 // this function reads the boards directory and returns a Vec in RAM
@@ -33,18 +34,21 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
             // as a board file. unwrap_or_default works well here as the default 
             // ("") for &str will never match "toml"
             } else if entry.path().extension().unwrap_or_default() == "toml" {
-                if let Ok(mut board) = Board::load_from_toml(&entry.path()) {
-                    let parent = entry.path().parent().unwrap().canonicalize().unwrap();
-                    let template_dir = parent.join("template");
-                    if let Ok(true) = template_dir.try_exists() {
-                        debug!("found template dir for board <{}> at {:?}", board.name.clone(), entry.path().parent().unwrap().canonicalize().unwrap().join("template"));
-                        board.template_dir = Some(template_dir);
-                    } else {
-                        debug!("not template directory found for board <{}>", board.name.clone());
-                    }
-                    r.push(board);
-                } else {
-                    warn!("error loading board from {}", entry.path().display().to_string());
+                match Board::load_from_toml(&entry.path()) {
+                    Ok(mut board) => {
+                        let parent = entry.path().parent().unwrap().canonicalize().unwrap();
+                        let template_dir = parent.join("template");
+                        if let Ok(true) = template_dir.try_exists() {
+                            debug!("found template dir for board <{}> at {:?}", board.name.clone(), entry.path().parent().unwrap().canonicalize().unwrap().join("template"));
+                            board.template_dir = Some(template_dir);
+                        } else {
+                            debug!("not template directory found for board <{}>", board.name.clone());
+                        }
+                        r.push(board);
+                    },
+                    Err(e) => {
+                        warn!("error loading board from {}: {:?}", entry.path().display().to_string(), e);
+                    },
                 }
             }
         }
@@ -85,19 +89,24 @@ pub struct Board {
     cpu: Option<String>,
     ram: Option<isize>,
     flash: Option<isize>,
-    #[serde(skip)]                  //
-    examples: Vec<PathBuf>,         //\__ all of these fields are populated
-    #[serde(skip)]                  ///   via file hierarchy, hence no serde
-    pic: Option<egui::ColorImage>,  //
+    interfaces: Vec<interface::Interface>,
+    #[serde(skip)]
+    examples: Vec<PathBuf>,
+    #[serde(skip)]
+    template_dir: Option<PathBuf>,
+    #[serde(skip)]
+    pic: Option<egui::ColorImage>,
     required_crates: Option<Vec<String>>,
     related_crates: Option<Vec<String>>,
-    #[serde(skip)]                  // we'll populate this dynamically when loading boards
-    template_dir: Option<PathBuf>,
 }
 
 // A board shell template
 impl Default for Board {
     fn default() -> Self {
+        let mut i = Vec::new();
+        i.push(interface::Interface::I2C(interface::InterfaceDirection::Controller));
+        i.push(interface::Interface::I2C(interface::InterfaceDirection::Peripheral));
+        i.push(interface::Interface::ADC);
         Self {
             name: "".to_string(),
             manufacturer: "".to_string(),
@@ -106,11 +115,12 @@ impl Default for Board {
             cpu: None,
             ram: None,
             flash: None,
+            interfaces: i,
             examples: Vec::new(),
+            template_dir: None,
             pic: None,
             required_crates: None,
             related_crates: None,
-            template_dir: None,
         }
     }
 }

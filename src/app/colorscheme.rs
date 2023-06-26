@@ -1,9 +1,12 @@
 use egui::Color32;
 use serde::{Serialize, Deserialize};
 
+use std::borrow::Cow;
+
 #[derive(PartialEq, Clone, Serialize, Deserialize)]
 pub struct ColorScheme {
-    pub name: &'static str,
+    // pub name: &'static str,
+    pub name: Cow<'static, str>,
     is_dark: bool,
     colors: [Color32; 4],
 }
@@ -43,7 +46,7 @@ pub fn set_colorscheme(ctx: &egui::Context, cs: ColorScheme) {
 // TODO -- make these serializable in a toml file for addition of new ones
 //         without re-complilation (but maybe there also are some built-in ones)
 pub const SOLARIZED_DARK: ColorScheme = ColorScheme {
-    name: "Solarized Dark",
+    name: Cow::Borrowed("Solarized Dark"),
     is_dark: true,
     colors: [
         Color32::from_rgb(  0,  43,  54),   // Base 03 (background)
@@ -54,7 +57,7 @@ pub const SOLARIZED_DARK: ColorScheme = ColorScheme {
 };
 
 pub const SOLARIZED_LIGHT: ColorScheme = ColorScheme {
-    name: "Solarized Light",
+    name: Cow::Borrowed("Solarized Light"),
     is_dark: false,
     colors: [
         Color32::from_rgb(253, 246, 227),   // Base 3 (background)
@@ -65,7 +68,7 @@ pub const SOLARIZED_LIGHT: ColorScheme = ColorScheme {
 };
 
 pub const INDUSTRIAL_DARK: ColorScheme = ColorScheme {
-    name: "Industrial Dark",
+    name: Cow::Borrowed("Industrial Dark"),
     is_dark: true,
     colors: [
         Color32::from_rgb(31,   31,  31),   // Base 3 (background)

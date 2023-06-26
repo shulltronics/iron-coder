@@ -45,7 +45,6 @@ pub struct IronCoderApp {
     boards: Vec<board::Board>,
     #[serde(skip)]
     new_project: Project,   // this is a place holder for when we create a new project
-    #[serde(skip)]
     colorscheme: ColorScheme,
 }
 
@@ -61,7 +60,7 @@ impl Default for IronCoderApp {
             mode: Mode::CreateNewProject,
             boards: boards,
             new_project: Project::default(),
-            colorscheme: colorscheme::SOLARIZED_DARK,
+            colorscheme: colorscheme::INDUSTRIAL_DARK,
         }
     }
 }
@@ -74,12 +73,18 @@ impl IronCoderApp {
         setup_fonts_and_style(&cc.egui_ctx);
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
-        // if let Some(storage) = cc.storage {
-        //     info!("loading former app state from storage...");
-        //     return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        // }
+        if let Some(storage) = cc.storage {
+            info!("loading former app state from storage...");
+            let app: IronCoderApp = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+            app.set_colorscheme(&cc.egui_ctx);
+            return app;
+        }
         // Now return a default IronCoderApp
         Default::default()
+    }
+
+    fn set_colorscheme(&self, ctx: &egui::Context) {
+        colorscheme::set_colorscheme(ctx, self.colorscheme.clone());
     }
 
     // Show the menu and app title
@@ -221,15 +226,10 @@ impl IronCoderApp {
     // Show the main view when we're developing a project
     pub fn display_project_developer(&mut self, ctx: &egui::Context) {
         let Self {
-            new_project,
             project,
             mode,
             ..
         } = self;
-        let icons_ref: Arc<IconSet> = ctx.data_mut(|data| {
-            data.get_temp("icons".into()).expect("couldn't load icons!")
-        });
-        let icons = icons_ref.clone();
         // Spec Viewer panel
         egui::SidePanel::right("project_view").show(ctx, |ui| {
             if project.label_with_action(ctx, ui).clicked() {
@@ -259,7 +259,6 @@ impl IronCoderApp {
     // show/hide the settings window and update the appropriate app state.
     pub fn display_settings_window(&mut self, ctx: &egui::Context) {
         let Self {
-            project,
             display_settings,
             colorscheme,
             ..
@@ -277,7 +276,7 @@ impl IronCoderApp {
                 // Create radio buttons for colorscheme selection
                 for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
                     // ui.radio_value(&mut colorscheme, colorscheme::SOLARIZED_DARK, cs.name);
-                    let rb = egui::RadioButton::new(*colorscheme == cs.clone(), cs.name);
+                    let rb = egui::RadioButton::new(*colorscheme == cs.clone(), cs.name.clone());
                     if ui.add(rb).clicked() {
                         *colorscheme = cs.clone();
                         colorscheme::set_colorscheme(ctx, cs.clone());
@@ -552,8 +551,6 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         info!("Adding IconSet to egui Context temp data.");
         map.insert_temp("icons".into(), Arc::new(icons::load_icons(Path::new(icons::ICON_DIR))));
     });
-
-    colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_DARK);
 }
 
 use std::sync::{Arc, Mutex};

@@ -224,30 +224,10 @@ impl IronCoderApp {
         } = self;
         // Spec Viewer panel
         egui::SidePanel::right("project_view").show(ctx, |ui| {
-            ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                let color = ui.style().visuals.window_stroke.color;
-                let mut height: f32 = 0.0;
-                // prepare the project name label
-                let text = egui::RichText::new(project.get_name()).underline().italics();
-                let project_label = egui::widgets::Label::new(text);
-                // create a column for the text and a column for the buttons
-                ui.columns(2, |columns| {
-                    let resp = columns[0].add(project_label).on_hover_text(project.get_location());
-                    // capture the height of drawn text
-                    height = (resp.rect.max - resp.rect.min).y;
-                    let button = egui::widgets::ImageButton::new(
-                        icons.get("edit_icon").unwrap().texture_id(ctx),
-                        Vec2::new(height, height),
-                    ).frame(false).tint(color);
-                    columns[1].with_layout(Layout::top_down(Align::RIGHT), |ui| {
-                        if ui.add(button).on_hover_text("edit project").clicked() {
-                            *new_project = project.clone();
-                            *mode = Mode::EditCurrentProject;
-                        }
-                    });
-                });
-                ui.separator();
-            });
+            if project.label_with_action(ctx, ui).clicked() {
+                *mode = Mode::EditCurrentProject;
+            };
+            ui.separator();
             project.display_project_sidebar(ctx, ui);
         });
 

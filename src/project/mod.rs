@@ -18,6 +18,7 @@ use crate::board::Board;
 use crate::editor::CodeEditor;
 
 pub mod display;
+pub mod egui_helpers;
 
 /// A Project represents the highest level of Iron Coder, which contains
 /// a set of development boards and the project/source code directory

@@ -1,11 +1,13 @@
 use log::{info, warn};
 
 use std::path::Path;
+use std::sync::Arc;
 
 use egui::widget_text::RichText;
 
 use crate::project::Project;
 use crate::board::BoardMiniWidget;
+use crate::app::icons::IconSet;
 
 // this block contains the display related
 // methods for showing the Project in egui.
@@ -13,6 +15,10 @@ impl Project {
     // A recursive directory display.
     // <dir> is the starting location, <level> is the recursion depth
     fn display_directory(&mut self, dir: &Path, level: usize, ctx: &egui::Context, ui: &mut egui::Ui) {
+        let iconref: Arc<IconSet> = ctx.data_mut(|data| {
+            data.get_temp("icons".into()).unwrap()
+        });
+        let icons = iconref.clone();
         // if the entry is a file, just show it
         // if the entry is a directory, show it, and if it's "open"
         //   also recursively display it's contents
@@ -24,7 +30,7 @@ impl Project {
             // FILE case
             if child.file_type().unwrap().is_file() {
                 let button = egui::widgets::Button::image_and_text(
-                    self.code_editor.icons.get("file_icon").unwrap().texture_id(ctx),
+                    icons.get("file_icon").unwrap().texture_id(ctx),
                     egui::Vec2::new(7.0, 7.0),
                     text,
                 ).frame(false);
@@ -47,8 +53,8 @@ impl Project {
                 };
                 // select the proper folder icon
                 let folder_icon = match is_visible {
-                    true => self.code_editor.icons.get("folder_open_icon").unwrap(),
-                    false => self.code_editor.icons.get("folder_closed_icon").unwrap(),
+                    true => icons.get("folder_open_icon").unwrap(),
+                    false => icons.get("folder_closed_icon").unwrap(),
                 };
                 // construct and display the entry
                 let button = egui::widgets::Button::image_and_text(
@@ -112,10 +118,14 @@ impl Project {
 
     // show the project toolbar
     pub fn display_project_toolbar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        let iconref: Arc<IconSet> = ctx.data_mut(|data| {
+            data.get_temp("icons".into()).expect("error loading shared icons!")
+        });
+        let icons = iconref.clone();
         ui.horizontal(|ui| {
             // Buttons for various code actions, like compilation
             let button = egui::widgets::Button::image_and_text(
-                self.code_editor.icons.get("build_icon").unwrap().texture_id(ctx),
+                icons.get("build_icon").unwrap().texture_id(ctx),
                 egui::Vec2::new(9.0, 9.0),
                 " build project",
             ).frame(false);
@@ -126,7 +136,7 @@ impl Project {
             ui.separator();
 
             let button = egui::widgets::Button::image_and_text(
-                self.code_editor.icons.get("load_icon").unwrap().texture_id(ctx),
+                icons.get("load_icon").unwrap().texture_id(ctx),
                 egui::Vec2::new(9.0, 9.0),
                 " load onto board",
             ).frame(false);

@@ -16,7 +16,8 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::io::{Read, Write, Seek};
 
-use crate::app::icons;
+use std::sync::Arc;
+use crate::app::icons::IconSet;
 use crate::app::colorscheme::ColorScheme;
 
 /// This module contains functionality for the code editor.
@@ -82,7 +83,6 @@ pub struct CodeEditor {
     ps: SyntaxSet,
     ts: ThemeSet,
     cs: ColorScheme,
-    pub icons: icons::IconSet,
 }
 
 impl Default for CodeEditor {
@@ -93,7 +93,6 @@ impl Default for CodeEditor {
             ps: SyntaxSet::load_defaults_newlines(),
             ts: ThemeSet::load_defaults(),
             cs: ColorScheme::default(),
-            icons: icons::load_icons(Path::new(icons::ICON_DIR)),
         }
     }
 }
@@ -225,12 +224,16 @@ impl CodeEditor {
     }
 
     pub fn display_editor_tabs(&mut self, ctx: &egui::Context, ui: &mut Ui) {
+        let icons_ref: Arc<IconSet> = ctx.data_mut(|data| {
+            data.get_temp("icons".into()).expect("error loading shared icon map!")
+        });
+        let icons = icons_ref.clone();
         ui.horizontal(|ui| {
             let mut idx_to_remove: Option<usize> = None;
             for (i, code_file) in self.tabs.iter().enumerate() {
                 // display the close icon
                 let x_icon = egui::widgets::ImageButton::new(
-                    self.icons.get("quit_icon").unwrap().texture_id(ctx),
+                    icons.get("quit_icon").unwrap().texture_id(ctx),
                     egui::Vec2::new(6.0, 6.0),
                 ).frame(true);
                 if ui.add(x_icon).clicked() {

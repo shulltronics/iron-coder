@@ -2,7 +2,10 @@ use std::path::Path;
 use std::collections::HashMap;
 
 use image;
-use egui::ColorImage;
+use egui::{
+    ColorImage,
+    Vec2,
+};
 use egui_extras::RetainedImage;
 
 /// icons module
@@ -13,7 +16,8 @@ use egui_extras::RetainedImage;
 
 pub type IconSet = HashMap<&'static str, RetainedImage>;
 pub const ICON_DIR: &'static str = "assets/icons/pack/white/";
-pub const DEFAULT_ICON_SIZE: egui::Vec2 = egui::Vec2::new(12.0, 12.0);
+pub const SMALL_ICON_SIZE: Vec2 = Vec2::new(8.0, 8.0);
+pub const DEFAULT_ICON_SIZE: Vec2 = Vec2::new(12.0, 12.0);
 
 // This function returns a mapping of icon names to RetainedImages 
 pub fn load_icons(icon_path: &Path) -> HashMap<&'static str, RetainedImage> {

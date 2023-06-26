@@ -15,7 +15,13 @@ use egui::{
 // Separate modules
 use crate::board;
 use crate::project::Project;
+
 pub mod icons;
+use icons::{
+    IconSet,
+    SMALL_ICON_SIZE,
+};
+
 pub mod colorscheme;
 use colorscheme::ColorScheme;
 
@@ -34,10 +40,7 @@ pub struct IronCoderApp {
     project: Project,
     display_about: bool,
     display_settings: bool,
-    //#[serde(skip)]          // future might want this to persist, but this is nice for testing
     mode: Mode,
-    #[serde(skip)]
-    icons: HashMap<&'static str, RetainedImage>,
     #[serde(skip)]
     boards: Vec<board::Board>,
     #[serde(skip)]
@@ -56,7 +59,6 @@ impl Default for IronCoderApp {
             display_about: false,
             display_settings: false,
             mode: Mode::CreateNewProject,
-            icons: icons::load_icons(Path::new(icons::ICON_DIR)),
             boards: boards,
             new_project: Project::default(),
             colorscheme: colorscheme::SOLARIZED_DARK,
@@ -72,10 +74,10 @@ impl IronCoderApp {
         setup_fonts_and_style(&cc.egui_ctx);
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
-        if let Some(storage) = cc.storage {
-            info!("loading former app state from storage...");
-            return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        }
+        // if let Some(storage) = cc.storage {
+        //     info!("loading former app state from storage...");
+        //     return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        // }
         // Now return a default IronCoderApp
         Default::default()
     }
@@ -86,10 +88,13 @@ impl IronCoderApp {
             display_about,
             display_settings,
             mode,
-            icons,
             new_project,
             ..
         } = self;
+        let icons_ref: Arc<IconSet> = ctx.data_mut(|data| {
+            data.get_temp("icons".into()).expect("couldn't load icons!")
+        });
+        let icons = icons_ref.clone();
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 // Create a NOTHING Rect so we can track where the header is drawn
@@ -108,7 +113,7 @@ impl IronCoderApp {
                         
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("save_icon").unwrap().texture_id(ctx),
-                            egui::Vec2::new(8.0, 8.0),
+                            SMALL_ICON_SIZE,
                             "save project"
                         ).shortcut_text("ctrl+s");
                         if ui.add(ib).clicked() {
@@ -119,7 +124,7 @@ impl IronCoderApp {
 
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("save_icon").unwrap().texture_id(ctx),
-                            egui::Vec2::new(8.0, 8.0),
+                            SMALL_ICON_SIZE,
                             "save project as..."
                         );
                         if ui.add(ib).clicked() {
@@ -128,7 +133,7 @@ impl IronCoderApp {
 
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("folder_icon").unwrap().texture_id(ctx),
-                            egui::Vec2::new(8.0, 8.0),
+                            SMALL_ICON_SIZE,
                             "open"
                         ).shortcut_text("ctrl+o");
                         if ui.add(ib).clicked() {
@@ -142,7 +147,7 @@ impl IronCoderApp {
                         
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("boards_icon").unwrap().texture_id(ctx),
-                            egui::Vec2::new(8.0, 8.0),
+                            SMALL_ICON_SIZE,
                             "new project"
                         ).shortcut_text("ctrl+n");
                         if ui.add(ib).clicked() {
@@ -158,7 +163,7 @@ impl IronCoderApp {
 
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("settings_icon").unwrap().texture_id(ctx),
-                            egui::Vec2::new(8.0, 8.0),
+                            SMALL_ICON_SIZE,
                             "settings"
                         );
                         if ui.add(ib).clicked() {
@@ -167,7 +172,7 @@ impl IronCoderApp {
 
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("about_icon").unwrap().texture_id(ctx),
-                            egui::Vec2::new(8.0, 8.0),
+                            SMALL_ICON_SIZE,
                             "about Iron Coder"
                         );
                         if ui.add(ib).clicked() {
@@ -176,7 +181,7 @@ impl IronCoderApp {
                    
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("quit_icon").unwrap().texture_id(ctx),
-                            egui::Vec2::new(8.0, 8.0),
+                            SMALL_ICON_SIZE,
                             "quit"
                         ).shortcut_text("ctrl+q");
                         //.tint(egui::Color32::WHITE);
@@ -219,9 +224,12 @@ impl IronCoderApp {
             new_project,
             project,
             mode,
-            icons,
             ..
         } = self;
+        let icons_ref: Arc<IconSet> = ctx.data_mut(|data| {
+            data.get_temp("icons".into()).expect("couldn't load icons!")
+        });
+        let icons = icons_ref.clone();
         // Spec Viewer panel
         egui::SidePanel::right("project_view").show(ctx, |ui| {
             if project.label_with_action(ctx, ui).clicked() {
@@ -510,11 +518,6 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     // setup our custom style
     let mut style = egui::style::Style::default();
 
-    // we could change certain aspects of the global spacing like so:
-    // style.spacing.menu_margin.left  = 64.0;
-    // style.spacing.menu_margin.right = 64.0;
-    // println!("{:?}", style.spacing.menu_margin.left_top());
-
     // Redefine text_styles
     use egui::FontId;
     use egui::FontFamily;
@@ -544,8 +547,16 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
 
     ctx.set_style(style);
 
+    // Store icons in the egui shared Context
+    ctx.data_mut(|map| {
+        info!("Adding IconSet to egui Context temp data.");
+        map.insert_temp("icons".into(), Arc::new(icons::load_icons(Path::new(icons::ICON_DIR))));
+    });
+
     colorscheme::set_colorscheme(ctx, colorscheme::SOLARIZED_DARK);
 }
+
+use std::sync::{Arc, Mutex};
 
 // Displays a cool looking header in the Ui element, utilizing our custom fonts
 // and returns the rect that was drawn to.

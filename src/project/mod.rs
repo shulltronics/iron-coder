@@ -6,7 +6,6 @@ use std::fs;
 use std::path::PathBuf;
 use fs_extra;
 
-use std::collections::HashMap;
 use std::vec::Vec;
 
 use rfd::FileDialog;
@@ -30,8 +29,6 @@ const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 pub struct Project {
     name: String,
     location: Option<PathBuf>,
-    #[serde(skip)]
-    file_tree: HashMap<PathBuf, bool>,
     boards: Vec<Board>,
     #[serde(skip)]
     pub code_editor: CodeEditor,
@@ -46,7 +43,6 @@ impl Default for Project {
         Self {
             name: "".to_string(),
             location: None,
-            file_tree: HashMap::new(),
             boards: Vec::new(),
             code_editor: CodeEditor::default(),
             terminal_buffer: String::new(),
@@ -60,7 +56,6 @@ impl Clone for Project {
         Self {
             name: self.name.clone(),
             location: self.location.clone(),
-            file_tree: self.file_tree.clone(),
             boards: self.boards.clone(),
             code_editor: CodeEditor::default(),
             terminal_buffer: self.terminal_buffer.clone(),

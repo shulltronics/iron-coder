@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::project::Project;
 use crate::app::icons::{
@@ -7,18 +7,14 @@ use crate::app::icons::{
 };
 
 use egui::{
-    TextureId,
-    Vec2,
     Align,
     Layout,
     Response,
     Ui,
-    Widget,
     Context,
     RichText,
 };
 
-use egui::widget_text::WidgetText;
 use egui::widgets::{
     Label,
     ImageButton,

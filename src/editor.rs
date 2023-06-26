@@ -18,7 +18,7 @@ use std::io::{Read, Write, Seek};
 
 use std::sync::Arc;
 use crate::app::icons::IconSet;
-use crate::app::colorscheme::ColorScheme;
+// use crate::app::colorscheme::ColorScheme;
 
 /// This module contains functionality for the code editor.
 /// The namesake struct CodeEditor contains the state of the editor,
@@ -82,7 +82,7 @@ pub struct CodeEditor {
     active_tab: Option<usize>,
     ps: SyntaxSet,
     ts: ThemeSet,
-    cs: ColorScheme,
+    // cs: ColorScheme,
 }
 
 impl Default for CodeEditor {
@@ -92,7 +92,7 @@ impl Default for CodeEditor {
             active_tab: None,
             ps: SyntaxSet::load_defaults_newlines(),
             ts: ThemeSet::load_defaults(),
-            cs: ColorScheme::default(),
+            // cs: ColorScheme::default(),
         }
     }
 }
@@ -131,9 +131,9 @@ impl CodeEditor {
         Ok(())
     }
 
-    pub fn set_colorscheme(&mut self, cs: ColorScheme) {
-        self.cs = cs;
-    }
+    // pub fn set_colorscheme(&mut self, cs: ColorScheme) {
+    //     self.cs = cs;
+    // }
 
     // This method computes the syntax highlighting.
     // The module function `highlight` caches the result and should

@@ -1,13 +1,13 @@
 //! Iron Coder is an app for developing embedded firmware in Rust
 
-use log::{info, warn, debug};
+use log::{info, warn};
 
 use std::path::Path;
-use std::collections::HashMap;
+use std::sync::Arc;
 
-use egui_extras::image::RetainedImage;
 use egui::{
     Align,
+    Align2,
     Layout,
     Vec2,
 };
@@ -114,7 +114,7 @@ impl IronCoderApp {
                 // Now use that Rect to draw the menu icon at the proper place
                 ui.allocate_ui_at_rect(r, |ui| {
                     let tid = icons.get("menu_icon").unwrap().texture_id(ctx);
-                    ui.menu_image_button(tid, egui::Vec2::new(12.0, 12.0), |ui| {
+                    ui.menu_image_button(tid, Vec2::new(12.0, 12.0), |ui| {
                         
                         let ib = egui::widgets::Button::image_and_text(
                             icons.get("save_icon").unwrap().texture_id(ctx),
@@ -270,7 +270,7 @@ impl IronCoderApp {
             .collapsible(false)
             .resizable(false)
             .movable(false)
-            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
 
                 // Create radio buttons for colorscheme selection
@@ -328,7 +328,7 @@ impl IronCoderApp {
         .collapsible(false)
         .resizable(false)
         .movable(false)
-        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ctx, |ui| {
             ui.label(
                 "Iron Coder is an app for practicing embedded Rust development.\n\
@@ -380,12 +380,12 @@ impl eframe::App for IronCoderApp {
                 .frame(frame)
                 .show(ctx, |ui| {
                     self.new_project.display_project_editor(ctx, ui);
-                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    ui.with_layout(Layout::top_down(Align::Center), |ui| {
                         let label = egui::widgets::Label::new("Welcome to Iron Coder! To get started on a project, select a main \
                                         board and a set of peripheral boards. Then, give your project a name. \
                                         After clicking \"Start Development\" you will be prompted to choose \
                                         a location to save you project.");
-                        let egui::Vec2 {mut x, y: _} = ui.available_size();
+                        let Vec2 {mut x, y: _} = ui.available_size();
                         if x > 300.0 { x = 300.0 }
                         ui.add_sized([x, 0.0], label);
                         if ui.button("Start Development").clicked() {
@@ -552,8 +552,6 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         map.insert_temp("icons".into(), Arc::new(icons::load_icons(Path::new(icons::ICON_DIR))));
     });
 }
-
-use std::sync::{Arc, Mutex};
 
 // Displays a cool looking header in the Ui element, utilizing our custom fonts
 // and returns the rect that was drawn to.

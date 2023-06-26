@@ -40,39 +40,9 @@ impl Project {
                 }
             } else {
                 // DIRECTORY case
-                // check if it's expanded or collapsed via our HashMap
-                let mut is_visible: bool = match self.file_tree.get(&child.path()) {
-                    None => {
-                        // if the PathBuf isn't in the mapping yet, add it as not visible
-                        let _ = self.file_tree.insert(child.path(), false);
-                        false
-                    },
-                    Some(visible) => {
-                        *visible
-                    }
-                };
-                // select the proper folder icon
-                let folder_icon = match is_visible {
-                    true => icons.get("folder_open_icon").unwrap(),
-                    false => icons.get("folder_closed_icon").unwrap(),
-                };
-                // construct and display the entry
-                let button = egui::widgets::Button::image_and_text(
-                    folder_icon.texture_id(ctx),
-                    egui::Vec2::new(7.0, 7.0),
-                    text,
-                ).frame(false);
-                let resp = ui.add(button);
-                if resp.clicked() {
-                    is_visible = !is_visible;
-                    self.file_tree.insert(child.path(), is_visible);
-                }
-                // now recurse if the directory is marked visible.
-                if is_visible {
-                    ui.indent(level, |ui| {
-                        self.display_directory(child.path().as_path(), level+1, ctx, ui);
-                    });
-                }
+                egui::CollapsingHeader::new(child.path().file_name().unwrap().to_str().unwrap()).show(ui, |ui| {
+                    self.display_directory(child.path().as_path(), level+1, ctx, ui);
+                });
             }
         }
     }

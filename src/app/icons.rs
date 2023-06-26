@@ -13,13 +13,14 @@ use egui_extras::RetainedImage;
 
 pub type IconSet = HashMap<&'static str, RetainedImage>;
 pub const ICON_DIR: &'static str = "assets/icons/pack/white/";
+pub const DEFAULT_ICON_SIZE: egui::Vec2 = egui::Vec2::new(12.0, 12.0);
 
 // This function returns a mapping of icon names to RetainedImages 
 pub fn load_icons(icon_path: &Path) -> HashMap<&'static str, RetainedImage> {
 
     let mut icon_map = HashMap::new();
 
-    let icon_names_and_files: [(&str, &str); 12] = [
+    let icon_names_and_files: [(&str, &str); 13] = [
         ("settings_icon", "gear.png"),
         ("boards_icon", "chip.png"),
         ("about_icon", "005b_13.gif"),
@@ -32,6 +33,7 @@ pub fn load_icons(icon_path: &Path) -> HashMap<&'static str, RetainedImage> {
         ("folder_closed_icon", "005b_49.gif"),
         ("folder_open_icon", "005b_50.gif"),
         ("file_icon", "005b_65.gif"),
+        ("edit_icon", "005b_19.gif"),
     ];
 
     for (icon_name, icon_file) in icon_names_and_files.into_iter() {

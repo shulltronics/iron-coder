@@ -1,11 +1,16 @@
 //! Iron Coder is an app for developing embedded firmware in Rust
 
-use log::{info, warn};
+use log::{info, warn, debug};
 
 use std::path::Path;
 use std::collections::HashMap;
 
 use egui_extras::image::RetainedImage;
+use egui::{
+    Align,
+    Layout,
+    Vec2,
+};
 
 // Separate modules
 use crate::board;
@@ -29,7 +34,7 @@ pub struct IronCoderApp {
     project: Project,
     display_about: bool,
     display_settings: bool,
-    #[serde(skip)]          // future might want this to persist, but this is nice for testing
+    //#[serde(skip)]          // future might want this to persist, but this is nice for testing
     mode: Mode,
     #[serde(skip)]
     icons: HashMap<&'static str, RetainedImage>,
@@ -214,17 +219,33 @@ impl IronCoderApp {
             new_project,
             project,
             mode,
+            icons,
             ..
         } = self;
         // Spec Viewer panel
         egui::SidePanel::right("project_view").show(ctx, |ui| {
             ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                ui.heading("Project View");
-                ui.label(project.get_name()).on_hover_text(project.get_location());
-                if ui.button("edit project").clicked() {
-                    *new_project = project.clone();
-                    *mode = Mode::EditCurrentProject;
-                }
+                let color = ui.style().visuals.window_stroke.color;
+                let mut height: f32 = 0.0;
+                // prepare the project name label
+                let text = egui::RichText::new(project.get_name()).underline().italics();
+                let project_label = egui::widgets::Label::new(text);
+                // create a column for the text and a column for the buttons
+                ui.columns(2, |columns| {
+                    let resp = columns[0].add(project_label).on_hover_text(project.get_location());
+                    // capture the height of drawn text
+                    height = (resp.rect.max - resp.rect.min).y;
+                    let button = egui::widgets::ImageButton::new(
+                        icons.get("edit_icon").unwrap().texture_id(ctx),
+                        Vec2::new(height, height),
+                    ).frame(false).tint(color);
+                    columns[1].with_layout(Layout::top_down(Align::RIGHT), |ui| {
+                        if ui.add(button).on_hover_text("edit project").clicked() {
+                            *new_project = project.clone();
+                            *mode = Mode::EditCurrentProject;
+                        }
+                    });
+                });
                 ui.separator();
             });
             project.display_project_sidebar(ctx, ui);

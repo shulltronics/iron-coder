@@ -1,6 +1,9 @@
 use std::string::String;
+
+use tracing::info;
+
 use egui::Ui;
-// use egui::containers::scroll_area::ScrollArea;
+use egui::containers::scroll_area::ScrollArea;
 use egui::text::LayoutJob;
 use egui::Label;
 use egui::Sense;
@@ -193,6 +196,8 @@ impl CodeEditor {
     // bug fixes
     pub fn display_code(&mut self, ctx: &egui::Context, ui: &mut Ui) {
 
+        // First, get some data from the object, and detect if any tabs are open
+        // (if not, just return)
         let CodeEditor { tabs, active_tab, .. } = self;
         let i: usize;
         if *active_tab == None {
@@ -201,6 +206,24 @@ impl CodeEditor {
             i = active_tab.unwrap();
         }
 
+        // See if a code snippet was released over the editor.
+        // TODO -- if so, insert it on the proper line
+        ctx.memory_mut(|mem| {
+            let id = egui::Id::new("released_code_snippet");
+            // if mem.is_being_dragged(id) {
+            //     info!("a code snippet is being dragged");
+            // }
+            // if mem.is_anything_being_dragged() {
+            //     info!("something is being dragged");
+            // }
+            let data: Option<String> = mem.data.get_temp(id);
+            if let Some(value) = data {
+                info!("found a released code snippet!");
+                mem.data.remove::<String>(id);
+                tabs[i].code += &value;
+            }
+        });
+
         let mut layouter = |ui: &egui::Ui, string: &str, _wrap_width: f32| {
             // Call the highlight function (below), which is a memoized version
             // of this struct's highlight method
@@ -208,10 +231,8 @@ impl CodeEditor {
             ui.fonts(|f| f.layout_job(layout_job))
         };
 
-        egui::containers::scroll_area::ScrollArea::both()
-        .auto_shrink([false; 2])
-        .show(ui, |ui| {
-            ui.add(
+        ScrollArea::both().auto_shrink([false; 2]).show(ui, |ui| {
+            let resp = ui.add(
                 egui::TextEdit::multiline(&mut tabs[i].code)
                     .font(egui::TextStyle::Name("EditorFont".into()))
                     .code_editor()
@@ -220,6 +241,9 @@ impl CodeEditor {
                     .frame(false)
                     .layouter(&mut layouter),
             );
+            // if resp.hovered() {
+            //     info!("Code editor is hovered!");
+            // }
         });
     }
 

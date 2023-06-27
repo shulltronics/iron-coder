@@ -144,13 +144,18 @@ impl Project {
         });
     }
 
+    pub fn show_crate_info(&mut self, crate_name: String) {
+        self.current_view = ProjectViewType::CrateView(crate_name);
+    }
+
     pub fn display_project_sidebar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
 
         self.display_sidebar_tabs(ctx, ui);
         ui.separator();
 
         egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
-            match self.current_view {
+            // The sidebar will display information according to the current view
+            match &self.current_view {
                 ProjectViewType::BoardsView => {
                      // show the board widgets
                     for b in self.boards.clone().iter() {
@@ -185,17 +190,33 @@ impl Project {
                             for rc in related_crates.iter() {
                                 ui.horizontal(|ui| {
                                     if ui.link(rc).clicked() {
-                                        info!("TODO - deal with the related crate!")
-                                        // TODO -- instead, open another UI with crate details, links to 
-                                        // docs.rs, repository, and maybe things like drag-n-drop code snippets
+                                        self.show_crate_info(rc.clone());
                                     };
                                 });
                             }
                         }
                     }
                 },
-                ProjectViewType::CrateView(_) => {
-
+                ProjectViewType::CrateView(s) => {
+                    ui.label(s);
+                    let code_snippets: &Path = Path::new("./assets/code-snippets/");
+                    let mut snippet = self.load_snippets(code_snippets, s.clone()).unwrap();
+                    let te = egui::TextEdit::multiline(&mut snippet)
+                        .code_editor()
+                        .interactive(false)
+                        .desired_width(f32::INFINITY)
+                        .frame(false);
+                    let resp = ui.add(te);
+                    let resp = resp.interact(egui::Sense::drag());
+                    // check if the drag was released. if so, store the snippet in memory 
+                    // so we can retrieve it in the CodeEditor
+                    if resp.drag_released() {
+                        info!("drag released! storing snippet in memory.");
+                        let id = egui::Id::new("released_code_snippet");
+                        ctx.memory_mut(|mem| {
+                            mem.data.insert_temp(id, snippet.clone());
+                        })
+                    }
                 },
                 ProjectViewType::FileTree => {
                     // option to add a new top-level directory
@@ -243,4 +264,6 @@ impl Project {
             }
         });
     }
+
+
 }

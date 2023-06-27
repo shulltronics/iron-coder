@@ -42,7 +42,7 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
                             debug!("found template dir for board <{}> at {:?}", board.name.clone(), entry.path().parent().unwrap().canonicalize().unwrap().join("template"));
                             board.template_dir = Some(template_dir);
                         } else {
-                            debug!("not template directory found for board <{}>", board.name.clone());
+                            debug!("no template directory found for board <{}>", board.name.clone());
                         }
                         r.push(board);
                     },

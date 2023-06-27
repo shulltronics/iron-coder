@@ -3,7 +3,7 @@ use log::{info, warn, debug};
 use std::io::BufRead;
 use std::io;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use fs_extra;
 
 use std::vec::Vec;
@@ -277,6 +277,21 @@ impl Project {
                 }
             }
         }
+    }
+
+    // Attempt to load code snippets for the provided crate
+    fn load_snippets(&self, base_dir: &Path, crate_name: String) -> io::Result<String> {
+        let snippets_dir = base_dir.join(crate_name.clone());
+        if let Ok(true) = snippets_dir.try_exists() {
+            for entry in snippets_dir.read_dir().unwrap() {
+                let entry = entry.unwrap();
+                let contents = std::fs::read_to_string(entry.path())?;
+                return Ok(contents);
+            }
+        } else {
+            warn!("couldn't load code snippets for crate {}", crate_name);
+        }
+        Ok("".to_string())
     }
 
 }

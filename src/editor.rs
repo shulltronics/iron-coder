@@ -1,6 +1,7 @@
 use std::string::String;
+use std::fmt;
 
-use tracing::info;
+use log::{info, debug};
 
 use egui::Ui;
 use egui::containers::scroll_area::ScrollArea;
@@ -34,10 +35,12 @@ use crate::app::icons::IconSet;
 
 // A CodeFile is some code in memory, its path in the filesystem,
 // and its file descriptor.
+#[derive(Debug)]
 struct CodeFile {
     code: String,
     path: Option<PathBuf>,
     file: Option<fs::File>,
+    synced: bool,   // represents whether the code buffer is synced to the filesystem
 }
 
 impl Default for CodeFile {
@@ -46,6 +49,7 @@ impl Default for CodeFile {
             code: String::new(),
             path: None,
             file: None,
+            synced: false,
         }
     }
 }
@@ -65,6 +69,7 @@ impl CodeFile {
         // println!("{:?}", self.file);
         if let Some(file) = &mut self.file {
             file.read_to_string(code)?;
+            self.synced = true;
         }
         Ok(())
     }
@@ -75,6 +80,7 @@ impl CodeFile {
             file.set_len(0)?;
             file.write(self.code.as_bytes())?;
             file.sync_all()?;
+            self.synced = true;
         }
         Ok(())
     }
@@ -86,6 +92,14 @@ pub struct CodeEditor {
     ps: SyntaxSet,
     ts: ThemeSet,
     // cs: ColorScheme,
+}
+
+impl fmt::Debug for CodeEditor {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "num tabs: {:?}", self.tabs.len())?;
+        write!(f, "active_tab: {:?}", self.active_tab)?;
+        Ok(())
+    }
 }
 
 impl Default for CodeEditor {
@@ -144,6 +158,8 @@ impl CodeEditor {
     fn highlight(&mut self, text: &str, language: &str) -> LayoutJob {
         // Destructure, and do the highlighting
         let CodeEditor {
+            tabs,
+            active_tab,
             ps,
             ts,
             ..
@@ -206,24 +222,6 @@ impl CodeEditor {
             i = active_tab.unwrap();
         }
 
-        // See if a code snippet was released over the editor.
-        // TODO -- if so, insert it on the proper line
-        ctx.memory_mut(|mem| {
-            let id = egui::Id::new("released_code_snippet");
-            // if mem.is_being_dragged(id) {
-            //     info!("a code snippet is being dragged");
-            // }
-            // if mem.is_anything_being_dragged() {
-            //     info!("something is being dragged");
-            // }
-            let data: Option<String> = mem.data.get_temp(id);
-            if let Some(value) = data {
-                info!("found a released code snippet!");
-                mem.data.remove::<String>(id);
-                tabs[i].code += &value;
-            }
-        });
-
         let mut layouter = |ui: &egui::Ui, string: &str, _wrap_width: f32| {
             // Call the highlight function (below), which is a memoized version
             // of this struct's highlight method
@@ -232,6 +230,7 @@ impl CodeEditor {
         };
 
         ScrollArea::both().auto_shrink([false; 2]).show(ui, |ui| {
+            let former_contents = tabs[i].code.clone();
             let resp = ui.add(
                 egui::TextEdit::multiline(&mut tabs[i].code)
                     .font(egui::TextStyle::Name("EditorFont".into()))
@@ -241,9 +240,23 @@ impl CodeEditor {
                     .frame(false)
                     .layouter(&mut layouter),
             );
-            // if resp.hovered() {
-            //     info!("Code editor is hovered!");
-            // }
+            // check if the code has changed, so we can set the synced flag
+            if tabs[i].synced && tabs[i].code != former_contents {
+                tabs[i].synced = false;
+            }
+            // See if a code snippet was released over the editor.
+            // TODO -- if so, insert it on the proper line
+            ctx.memory_mut(|mem| {
+                let id = egui::Id::new("released_code_snippet");
+                let data: Option<String> = mem.data.get_temp(id);
+                if let Some(value) = data {
+                    if resp.hovered() {
+                        info!("found a released code snippet!");
+                        mem.data.remove::<String>(id);
+                        tabs[i].code += &value;
+                    }
+                }
+            });
         });
     }
 
@@ -270,10 +283,14 @@ impl CodeEditor {
                 let fname = p.as_path().file_name().unwrap();
                 let fname = fname.to_str().unwrap();
                 let mut text = RichText::new(fname);
+                // active tab should be hightlighted
                 if let Some(at) = self.active_tab {
                     if at == i {
-                        text = text.strong();
+                        text = text.underline();
                     }
+                }
+                if !self.tabs[i].synced {
+                    text = text.color(egui::Color32::RED);
                 }
                 let label = Label::new(text).sense(Sense::click());
                 if ui.add(label).clicked() {
@@ -310,20 +327,23 @@ fn as_byte_range(whole: &str, range: &str) -> std::ops::Range<usize> {
     offset..(offset + range.len())
 }
 
+// Implementation of egui's ComputerMut trait to cache the syntax highlighting.
+// This function will only call the compute function if the  (code, lang) tuple
+// changes (i.e. the code was modified), or the language type changed (not  yet
+// supported in Iron Coder). Otherwise, the cached LayoutJob will be returned.
 pub fn highlight(ctx: &egui::Context, code: &str, language: &str) -> LayoutJob {
-    // Implement this trait for the CodeEditor struct
-    // should this be moved outside of the function?
+    // ComputerMut trait
     impl egui::util::cache::ComputerMut<(&str, &str), LayoutJob> for CodeEditor {
         fn compute(&mut self, (code, lang): (&str, &str)) -> LayoutJob {
             self.highlight(code, lang)
         }
     }
-
     type HighlightCache = egui::util::cache::FrameCache<LayoutJob, CodeEditor>;
-
+    // either return cached LayoutJob, or compute the new one
     ctx.memory_mut(|mem| {
         mem.caches
             .cache::<HighlightCache>()
             .get((code, language))
     })
+    
 }

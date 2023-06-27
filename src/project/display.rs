@@ -4,10 +4,20 @@ use std::path::Path;
 use std::sync::Arc;
 
 use egui::widget_text::RichText;
+use egui::widgets::Button;
 
 use crate::project::Project;
 use crate::board::BoardMiniWidget;
 use crate::app::icons::IconSet;
+
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum ProjectViewType {
+    FileTree,
+    BoardsView,
+    CrateView(String),
+}
 
 // this block contains the display related
 // methods for showing the Project in egui.
@@ -116,55 +126,86 @@ impl Project {
         });
     }
 
+    fn display_sidebar_tabs(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        // show the tabs to switch between view modes
+        ui.columns(2, |columns| {
+            let mut new_view: ProjectViewType;
+            let button = Button::new("File Explorer").frame(false);
+            if columns[0].add(button).clicked() {
+                new_view = ProjectViewType::FileTree;
+                self.current_view = new_view;
+            };
+            // ui.separator();
+            let button = Button::new("Project Boards").frame(false);
+            if columns[1].add(button).clicked() {
+                new_view = ProjectViewType::BoardsView;
+                self.current_view = new_view;
+            };
+        });
+    }
+
     pub fn display_project_sidebar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+
+        self.display_sidebar_tabs(ctx, ui);
+        ui.separator();
+
         egui::containers::scroll_area::ScrollArea::both().show(ui, |ui| {
-            // option to add a new top-level directory
-            let dir_button = egui::widgets::Button::new("+ dir/file").frame(false);
-            if ui.add(dir_button).clicked() {
-                self.new_file().unwrap_or_else(|_| warn!("couldn't create new file"));
-            }
-            // show the project tree
-            self.display_project_tree(ctx, ui);
-            // show the board widgets
-            for b in self.boards.clone().iter() {
-                ui.add(b.clone());
-                // show the required crates
-                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    let label = egui::RichText::new("Required Crates").underline();
-                    ui.label(label);
-                });
-                if let Some(required_crates) = b.required_crates() {
-                    for rc in required_crates.iter() {
-                        ui.horizontal(|ui| {
-                            if ui.link(rc).clicked() {
-                                if let Some(path) = &self.location {
-                                    let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "add", rc.as_str());
-                                    self.run_background_commands(&[cmd], ctx);
-                                } else {
-                                    self.terminal_buffer += "save project first!\n";
-                                }
-                                
-                            };
+            match self.current_view {
+                ProjectViewType::BoardsView => {
+                     // show the board widgets
+                    for b in self.boards.clone().iter() {
+                        ui.add(b.clone());
+                        // show the required crates
+                        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                            let label = egui::RichText::new("Required Crates").underline();
+                            ui.label(label);
                         });
-                    }
-                }
-                ui.separator();
-                // show the related crates
-                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    let label = egui::RichText::new("Related Crates").underline();
-                    ui.label(label);
-                });
-                if let Some(related_crates) = b.related_crates() {
-                    for rc in related_crates.iter() {
-                        ui.horizontal(|ui| {
-                            if ui.link(rc).clicked() {
-                                info!("TODO - deal with the related crate!")
-                                // TODO -- instead, open another UI with crate details, links to 
-                                // docs.rs, repository, and maybe things like drag-n-drop code snippets
-                            };
+                        if let Some(required_crates) = b.required_crates() {
+                            for rc in required_crates.iter() {
+                                ui.horizontal(|ui| {
+                                    if ui.link(rc).clicked() {
+                                        if let Some(path) = &self.location {
+                                            let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "add", rc.as_str());
+                                            self.run_background_commands(&[cmd], ctx);
+                                        } else {
+                                            self.terminal_buffer += "save project first!\n";
+                                        }
+                                        
+                                    };
+                                });
+                            }
+                        }
+                        ui.separator();
+                        // show the related crates
+                        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                            let label = egui::RichText::new("Related Crates").underline();
+                            ui.label(label);
                         });
+                        if let Some(related_crates) = b.related_crates() {
+                            for rc in related_crates.iter() {
+                                ui.horizontal(|ui| {
+                                    if ui.link(rc).clicked() {
+                                        info!("TODO - deal with the related crate!")
+                                        // TODO -- instead, open another UI with crate details, links to 
+                                        // docs.rs, repository, and maybe things like drag-n-drop code snippets
+                                    };
+                                });
+                            }
+                        }
                     }
-                }
+                },
+                ProjectViewType::CrateView(_) => {
+
+                },
+                ProjectViewType::FileTree => {
+                    // option to add a new top-level directory
+                    let dir_button = egui::widgets::Button::new("+ dir/file").frame(false);
+                    if ui.add(dir_button).clicked() {
+                        self.new_file().unwrap_or_else(|_| warn!("couldn't create new file"));
+                    }
+                    // show the project tree
+                    self.display_project_tree(ctx, ui);
+                },
             }
         });
     }

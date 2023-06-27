@@ -17,6 +17,7 @@ use crate::board::Board;
 use crate::editor::CodeEditor;
 
 pub mod display;
+use display::ProjectViewType;
 pub mod egui_helpers;
 
 /// A Project represents the highest level of Iron Coder, which contains
@@ -36,6 +37,7 @@ pub struct Project {
     terminal_buffer: String,
     #[serde(skip)]
     receiver: Option<std::sync::mpsc::Receiver<String>>,
+    current_view: ProjectViewType,
 }
 
 impl Default for Project {
@@ -47,6 +49,7 @@ impl Default for Project {
             code_editor: CodeEditor::default(),
             terminal_buffer: String::new(),
             receiver: None,
+            current_view: ProjectViewType::BoardsView,
         }
     }
 }
@@ -60,6 +63,7 @@ impl Clone for Project {
             code_editor: CodeEditor::default(),
             terminal_buffer: self.terminal_buffer.clone(),
             receiver: None,
+            current_view: self.current_view.clone(),
         }
     }
 }

@@ -27,7 +27,7 @@ use colorscheme::ColorScheme;
 
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
-pub enum Mode {
+enum Mode {
     CreateNewProject,
     EditCurrentProject,
     DevelopCurrentProject,

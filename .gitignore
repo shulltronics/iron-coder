@@ -5,3 +5,4 @@ projects/
 # Added by cargo
 
 /target
+/dist

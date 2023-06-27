@@ -1167,6 +1167,7 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-subscriber",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]

@@ -11,6 +11,8 @@ use egui::{
     Layout,
     Vec2,
     RichText,
+    Label,
+    Color32,
 };
 
 // Separate modules
@@ -29,9 +31,8 @@ use colorscheme::ColorScheme;
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
 enum Mode {
-    CreateNewProject,
-    EditCurrentProject,
-    DevelopCurrentProject,
+    EditProject,
+    DevelopProject,
 }
 
 // derive Deserialize/Serialize so we can persist app state on powercycle.
@@ -45,8 +46,6 @@ pub struct IronCoderApp {
     mode: Mode,
     #[serde(skip)]
     boards: Vec<board::Board>,
-    #[serde(skip)]
-    new_project: Project,   // this is a place holder for when we create a new project
     colorscheme: ColorScheme,
 }
 
@@ -60,9 +59,8 @@ impl Default for IronCoderApp {
             display_about: false,
             display_settings: false,
             display_boards_window: false,
-            mode: Mode::CreateNewProject,
+            mode: Mode::EditProject,
             boards: boards,
-            new_project: Project::default(),
             colorscheme: colorscheme::INDUSTRIAL_DARK,
         }
     }
@@ -100,7 +98,7 @@ impl IronCoderApp {
             display_about,
             display_settings,
             mode,
-            new_project,
+            project,
             ..
         } = self;
         let icons_ref: Arc<IconSet> = ctx.data_mut(|data| {
@@ -129,7 +127,7 @@ impl IronCoderApp {
                             "save project"
                         ).shortcut_text("ctrl+s");
                         if ui.add(ib).clicked() {
-                            if let Err(e) = self.project.save() {
+                            if let Err(e) = project.save() {
                                 println!("error saving project: {:?}", e);
                             }
                         }
@@ -140,7 +138,7 @@ impl IronCoderApp {
                             "save project as..."
                         );
                         if ui.add(ib).clicked() {
-                            self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
+                            project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
@@ -149,11 +147,11 @@ impl IronCoderApp {
                             "open"
                         ).shortcut_text("ctrl+o");
                         if ui.add(ib).clicked() {
-                            if let Err(e) = self.project.open() {
+                            if let Err(e) = project.open() {
                                 println!("error opening project: {:?}", e);
                             } else {
-                                self.project.load_board_resources(self.boards.clone());
-                                *mode = Mode::DevelopCurrentProject;
+                                project.load_board_resources(self.boards.clone());
+                                *mode = Mode::DevelopProject;
                             }
                         }
                         
@@ -164,11 +162,13 @@ impl IronCoderApp {
                         ).shortcut_text("ctrl+n");
                         if ui.add(ib).clicked() {
                             match mode {
-                                Mode::CreateNewProject      => (),
-                                Mode::EditCurrentProject    => (),
-                                Mode::DevelopCurrentProject => {
-                                    *new_project = Project::default();
-                                    *mode = Mode::CreateNewProject;
+                                Mode::EditProject      => (),
+                                Mode::DevelopProject => {
+                                    // TODO -- add a popup here confirming that user
+                                    // wants to leave the current project, and probably save
+                                    // the project in it's current state.
+                                    *project = Project::default();
+                                    *mode = Mode::EditProject;
                                 },
                             }
                         }
@@ -256,7 +256,7 @@ impl IronCoderApp {
         // Spec Viewer panel
         egui::SidePanel::right("project_view").show(ctx, |ui| {
             if project.label_with_action(ctx, ui).clicked() {
-                *mode = Mode::EditCurrentProject;
+                *mode = Mode::EditProject;
             };
             ui.separator();
             project.display_project_sidebar(ctx, ui);
@@ -396,7 +396,7 @@ impl eframe::App for IronCoderApp {
         self.display_title_and_menu(ctx, frame);
         // depending on the Mode, render the proper main view
         match self.mode {
-            Mode::CreateNewProject => {
+            Mode::EditProject => {
                 // 1: show the project title in a top panel.
                 egui::TopBottomPanel::top("board_selector_top_panel").show(ctx, |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
@@ -408,11 +408,10 @@ impl eframe::App for IronCoderApp {
                 // 2: show the action buttons in a bottom panel.
                 egui::TopBottomPanel::bottom("new_project_bottom_panel").show(ctx, |ui| {
                     if ui.button("Start Development").clicked() {
-                        self.project = self.new_project.clone();
                         self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
                         self.project.add_crates_to_project(ctx);
                         // info!("{:?}", self.project.get_boards()[0]);
-                        self.mode = Mode::DevelopCurrentProject;
+                        self.mode = Mode::DevelopProject;
                     }
                     if ui.button("Add a board").clicked() {
                         self.display_boards_window = true;
@@ -420,7 +419,7 @@ impl eframe::App for IronCoderApp {
                 });
                 // 3: show the CentralPanel with the boards and such.
                 egui::CentralPanel::default().show(ctx, |ui| {
-                    if self.new_project.borrow_boards().is_empty() {
+                    if self.project.borrow_boards().is_empty() {
 
                         ui.with_layout(Layout::top_down(Align::Center), |ui| {
                             let label = egui::widgets::Label::new("Welcome to Iron Coder! To get started on a project, select a main \
@@ -432,32 +431,15 @@ impl eframe::App for IronCoderApp {
                             ui.add_sized([x, 0.0], label);
                         });
                     } else {
-                        self.new_project.display_project_editor(ctx, ui);
+                        self.project.display_project_editor(ctx, ui);
                     }
                 });
                 // 4: (possibly) show the available boards window
                 if let Some(b) = self.display_available_boards(ctx) {
-                    self.new_project.add_board(b);
+                    self.project.add_board(b);
                 }
             },
-            Mode::EditCurrentProject => {
-                // using a frame allows to add inner margins
-                let frame = egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::same(25.0));
-                egui::TopBottomPanel::top("board_selector_top_panel")
-                .frame(frame)
-                .show(ctx, |ui| {
-                    self.project.display_project_editor(ctx, ui);
-                    if ui.button("Resume Development").clicked() {
-                        self.mode = Mode::DevelopCurrentProject;
-                    }
-                });
-                // egui::CentralPanel::default().show(ctx, |ui| {
-                    if let Some(b) = self.display_available_boards(ctx) {
-                        self.project.add_board(b);
-                    }
-                // });
-            },
-            Mode::DevelopCurrentProject => {
+            Mode::DevelopProject => {
                 self.display_project_developer(ctx);
             },
         }
@@ -593,7 +575,6 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
 // Displays a cool looking header in the Ui element, utilizing our custom fonts
 // and returns the rect that was drawn to.
 fn pretty_header(ui: &mut egui::Ui, text: &str) -> egui::Rect {
-    use egui::{RichText, Label, Color32};
     // draw the background and get the rectangle we drew to
     let text_bg = RichText::new(text.to_uppercase())
         .text_style(egui::TextStyle::Name("HeadingBg".into()));

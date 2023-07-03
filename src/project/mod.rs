@@ -14,11 +14,15 @@ use toml;
 use serde::{Serialize, Deserialize};
 
 use crate::board::Board;
-use crate::editor::CodeEditor;
+use crate::code_editor::CodeEditor;
 
 pub mod display;
 use display::ProjectViewType;
+
 pub mod egui_helpers;
+
+mod system;
+use system::System;
 
 /// A Project represents the highest level of Iron Coder, which contains
 /// a set of development boards and the project/source code directory
@@ -30,7 +34,7 @@ const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 pub struct Project {
     name: String,
     location: Option<PathBuf>,
-    boards: Vec<Board>,
+    system: System,
     #[serde(skip)]
     pub code_editor: CodeEditor,
     #[serde(skip)]
@@ -45,7 +49,7 @@ impl Default for Project {
         Self {
             name: "".to_string(),
             location: None,
-            boards: Vec::new(),
+            system: System::default(),
             code_editor: CodeEditor::default(),
             terminal_buffer: String::new(),
             receiver: None,
@@ -59,7 +63,7 @@ impl Clone for Project {
         Self {
             name: self.name.clone(),
             location: self.location.clone(),
-            boards: self.boards.clone(),
+            system: self.system.clone(),
             code_editor: CodeEditor::default(),
             terminal_buffer: self.terminal_buffer.clone(),
             receiver: None,
@@ -83,7 +87,7 @@ impl Project {
     }
 
     pub fn borrow_boards(&mut self) -> &mut Vec<Board> {
-        return &mut self.boards;
+        return &mut self.system.boards;
     }
 
     pub fn get_location(&self) -> String {
@@ -97,18 +101,18 @@ impl Project {
 
     pub fn add_board(&mut self, board: Board) {
         // don't duplicate a board
-        if self.boards.contains(&board) {
+        if self.system.boards.contains(&board) {
             info!("project <{}> already contains board <{:?}>", self.name, board);
             self.terminal_buffer += "project already contains that board\n";
             return;
         }
-        self.boards.push(board);
+        self.system.boards.push(board);
     }
 
     // this method will populate the project board list via the app-wide
     // 'known boards' list
     pub fn load_board_resources(&mut self, known_boards: Vec<Board>) {
-        for b in self.boards.iter_mut() {
+        for b in self.system.boards.iter_mut() {
             // returns true if the current, project board is equal to the current known_board
             let predicate = |known_board: &&Board| {
                 return known_board == &b;
@@ -157,7 +161,7 @@ impl Project {
             }
             self.location = Some(project_folder);
             // TOD: find template directory based on "programmable board" (for now just use board 0)
-            if let Some(template_dir) = self.boards[0].get_template_dir() {
+            if let Some(template_dir) = self.system.boards[0].get_template_dir() {
                 // copy_recursive(template_dir, project_dir)
                 let options = fs_extra::dir::CopyOptions::new();
                 for entry in std::fs::read_dir(template_dir).unwrap() {
@@ -265,7 +269,7 @@ impl Project {
 
     pub fn add_crates_to_project(&mut self, ctx: &egui::Context) {
         if let Some(project_folder) = self.location.clone() {
-            for b in self.boards.clone().iter() {
+            for b in self.system.boards.clone().iter() {
                 if let Some(rc) = b.required_crates() {
                     info!("installing required crates for board {:?}", b);
                     let mut cmds: Vec<duct::Expression> = rc.iter().map(|c| {

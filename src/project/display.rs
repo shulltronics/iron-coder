@@ -158,7 +158,7 @@ impl Project {
             match &self.current_view {
                 ProjectViewType::BoardsView => {
                      // show the board widgets
-                    for b in self.boards.clone().iter() {
+                    for b in self.system.boards.clone().iter() {
                         ui.add(b.clone());
                         // show the required crates
                         ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
@@ -236,7 +236,7 @@ impl Project {
         // compute outer margin based on how many widgets to show:
         let width_per_board = 120.0;
         let mut margin_val = 0.0;
-        let num_boards = self.boards.len();
+        let num_boards = self.system.boards.len();
         if num_boards > 0 {
             let w = ui.available_width();
             let needed = num_boards as f32 * width_per_board;
@@ -245,11 +245,11 @@ impl Project {
         egui::Frame::default().outer_margin(egui::Margin::symmetric(margin_val, 10.0)).show(ui, |ui| {
             if num_boards > 0 {
                 ui.columns(num_boards, |columns| {
-                    for (i, b) in self.boards.clone().into_iter().enumerate() {
+                    for (i, b) in self.system.boards.clone().into_iter().enumerate() {
                         let this_r = columns[i].add(BoardMiniWidget(b));
                         // ui.painter().rect_stroke(this_r.rect, 0.0, (1.0, egui::Color32::WHITE));
                         if this_r.clicked() {
-                            self.boards.remove(i);
+                            self.system.boards.remove(i);
                         }
                     }
                 });

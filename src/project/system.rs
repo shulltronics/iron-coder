@@ -1,7 +1,7 @@
 use std::vec::Vec;
 use serde::{Deserialize, Serialize};
 
-use crate::board::Board;
+use crate::board::{Board, BoardMiniWidget};
 
 // This struct represents the development boards and their connecting interfaces
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -18,7 +18,5 @@ impl Default for System {
 }
 
 impl System {
-    pub fn display_system_editor() {
 
-    }
 }

@@ -420,7 +420,6 @@ impl eframe::App for IronCoderApp {
                 // 3: show the CentralPanel with the boards and such.
                 egui::CentralPanel::default().show(ctx, |ui| {
                     if self.project.borrow_boards().is_empty() {
-
                         ui.with_layout(Layout::top_down(Align::Center), |ui| {
                             let label = egui::widgets::Label::new("Welcome to Iron Coder! To get started on a project, select a main \
                                             board and a set of peripheral boards. Then, give your project a name. \
@@ -431,7 +430,7 @@ impl eframe::App for IronCoderApp {
                             ui.add_sized([x, 0.0], label);
                         });
                     } else {
-                        self.project.display_project_editor(ctx, ui);
+                        self.project.display_system_editor(ctx, ui);
                     }
                 });
                 // 4: (possibly) show the available boards window

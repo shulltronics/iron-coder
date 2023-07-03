@@ -255,18 +255,6 @@ impl Project {
         });
     }
 
-    // pub fn init_cargo_package(&mut self, ctx: &egui::Context) {
-    //     if let Some(project_folder) = self.location.clone() {
-    //         let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C",
-    //             project_folder.as_path().to_str().unwrap(), "init",
-    //             "--name", self.name.as_str(), "--vcs", "none");
-    //         self.run_background_commands(&[cmd], ctx);
-    //         self.add_crates_to_project(ctx);
-    //     } else {
-    //         warn!("couldn't execute cargo init: no project folder yet");
-    //     }
-    // }
-
     pub fn add_crates_to_project(&mut self, ctx: &egui::Context) {
         if let Some(project_folder) = self.location.clone() {
             for b in self.system.boards.clone().iter() {

@@ -257,5 +257,16 @@ impl Project {
         });
     }
 
+    // Show the boards in egui "Area"s so we can move them around!
+    pub fn display_system_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        
+        for board in self.system.boards.iter() {
+            let area_name = String::from("area") + board.get_name();
+            egui::Area::new(area_name).show(ctx, |ui| {
+                ui.add(BoardMiniWidget(board.clone()));
+            });
+        }
+
+    }
 
 }

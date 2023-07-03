@@ -78,8 +78,12 @@ impl Project {
         self.terminal_buffer += &msg;
     }
 
-    pub fn get_name(&self) -> String {
-        return self.name.clone();
+    pub fn borrow_name(&mut self) -> &mut String {
+        return &mut self.name;
+    }
+
+    pub fn borrow_boards(&mut self) -> &mut Vec<Board> {
+        return &mut self.boards;
     }
 
     pub fn get_location(&self) -> String {

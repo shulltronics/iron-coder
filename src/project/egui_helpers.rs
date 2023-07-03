@@ -32,7 +32,7 @@ impl Project {
             let color = ui.style().visuals.window_stroke.color;
             let mut height: f32 = 0.0;
             // prepare the project name label
-            let text = RichText::new(self.get_name()).underline().italics();
+            let text = RichText::new(self.borrow_name().clone()).underline().italics();
             let project_label = Label::new(text);
             // create a column for the text and a column for the buttons
             ui.columns(2, |columns| {

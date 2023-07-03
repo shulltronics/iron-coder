@@ -10,6 +10,7 @@ use egui::{
     Align2,
     Layout,
     Vec2,
+    RichText,
 };
 
 // Separate modules
@@ -40,6 +41,7 @@ pub struct IronCoderApp {
     project: Project,
     display_about: bool,
     display_settings: bool,
+    display_boards_window: bool,
     mode: Mode,
     #[serde(skip)]
     boards: Vec<board::Board>,
@@ -57,6 +59,7 @@ impl Default for IronCoderApp {
             project: Project::default(),
             display_about: false,
             display_settings: false,
+            display_boards_window: false,
             mode: Mode::CreateNewProject,
             boards: boards,
             new_project: Project::default(),
@@ -204,24 +207,40 @@ impl IronCoderApp {
         });
     }
 
-    // Display the list of available boards in the Ui, and return one if it was clicked
-    pub fn display_available_boards(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) -> Option<board::Board> {
+    // Display the list of available boards in a window, and return one if it was clicked
+    pub fn display_available_boards(&mut self, ctx: &egui::Context) -> Option<board::Board> {
+        let Self {
+            display_boards_window,
+            ..
+        } = self;
+        
+        if !*display_boards_window { return None; }
+
         let mut board: Option<board::Board> = None;
-        // Create a grid-based layout to show all the board widgets
-        let available_width = ui.available_width();
-        let mut num_cols = (available_width / 260.0) as usize;
-        if num_cols == 0 {
-            num_cols = 1;
-        }
-        egui::containers::scroll_area::ScrollArea::vertical().show(ui, |ui| {
-            ui.columns(num_cols, |columns| {
-                for (i, b) in self.boards.clone().into_iter().enumerate() {
-                    let col = i % num_cols;
-                    // When a board is clicked, add it to the new project
-                    if columns[col].add(board::BoardSelectorWidget(b)).clicked() {
-                        board = Some(self.boards[i].clone());
+        // create the window
+        egui::Window::new("Boards")
+        .open(display_boards_window)
+        .collapsible(false)
+        .resizable(false)
+        .movable(false)
+        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ctx, |ui| {
+            // Create a grid-based layout to show all the board widgets
+            let available_width = ui.available_width();
+            let mut num_cols = (available_width / 260.0) as usize;
+            if num_cols == 0 {
+                num_cols = 1;
+            }
+            egui::containers::scroll_area::ScrollArea::vertical().show(ui, |ui| {
+                ui.columns(num_cols, |columns| {
+                    for (i, b) in self.boards.clone().into_iter().enumerate() {
+                        let col = i % num_cols;
+                        // When a board is clicked, add it to the new project
+                        if columns[col].add(board::BoardSelectorWidget(b)).clicked() {
+                            board = Some(self.boards[i].clone());
+                        }
                     }
-                }
+                });
             });
         });
         return board;
@@ -378,34 +397,48 @@ impl eframe::App for IronCoderApp {
         // depending on the Mode, render the proper main view
         match self.mode {
             Mode::CreateNewProject => {
-                // using a frame allows to add inner margins
-                let frame = egui::Frame::side_top_panel(&ctx.style()).inner_margin(egui::Margin::same(25.0));
-                egui::TopBottomPanel::top("board_selector_top_panel")
-                .frame(frame)
-                .show(ctx, |ui| {
-                    self.new_project.display_project_editor(ctx, ui);
-                    ui.with_layout(Layout::top_down(Align::Center), |ui| {
-                        let label = egui::widgets::Label::new("Welcome to Iron Coder! To get started on a project, select a main \
-                                        board and a set of peripheral boards. Then, give your project a name. \
-                                        After clicking \"Start Development\" you will be prompted to choose \
-                                        a location to save you project.");
-                        let Vec2 {mut x, y: _} = ui.available_size();
-                        if x > 300.0 { x = 300.0 }
-                        ui.add_sized([x, 0.0], label);
-                        if ui.button("Start Development").clicked() {
-                            self.project = self.new_project.clone();
-                            self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
-                            self.project.add_crates_to_project(ctx);
-                            // info!("{:?}", self.project.get_boards()[0]);
-                            self.mode = Mode::DevelopCurrentProject;
-                        }
+                // 1: show the project title in a top panel.
+                egui::TopBottomPanel::top("board_selector_top_panel").show(ctx, |ui| {
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                        let label = RichText::new("Project Name").underline();
+                        ui.label(label);
+                        ui.text_edit_singleline(self.project.borrow_name());
                     });
                 });
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    if let Some(b) = self.display_available_boards(ctx, ui) {
-                        self.new_project.add_board(b);
+                // 2: show the action buttons in a bottom panel.
+                egui::TopBottomPanel::bottom("new_project_bottom_panel").show(ctx, |ui| {
+                    if ui.button("Start Development").clicked() {
+                        self.project = self.new_project.clone();
+                        self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
+                        self.project.add_crates_to_project(ctx);
+                        // info!("{:?}", self.project.get_boards()[0]);
+                        self.mode = Mode::DevelopCurrentProject;
+                    }
+                    if ui.button("Add a board").clicked() {
+                        self.display_boards_window = true;
                     }
                 });
+                // 3: show the CentralPanel with the boards and such.
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    if self.new_project.borrow_boards().is_empty() {
+
+                        ui.with_layout(Layout::top_down(Align::Center), |ui| {
+                            let label = egui::widgets::Label::new("Welcome to Iron Coder! To get started on a project, select a main \
+                                            board and a set of peripheral boards. Then, give your project a name. \
+                                            After clicking \"Start Development\" you will be prompted to choose \
+                                            a location to save you project.");
+                            let Vec2 {mut x, y: _} = ui.available_size();
+                            if x > 300.0 { x = 300.0 }
+                            ui.add_sized([x, 0.0], label);
+                        });
+                    } else {
+                        self.new_project.display_project_editor(ctx, ui);
+                    }
+                });
+                // 4: (possibly) show the available boards window
+                if let Some(b) = self.display_available_boards(ctx) {
+                    self.new_project.add_board(b);
+                }
             },
             Mode::EditCurrentProject => {
                 // using a frame allows to add inner margins
@@ -418,11 +451,11 @@ impl eframe::App for IronCoderApp {
                         self.mode = Mode::DevelopCurrentProject;
                     }
                 });
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    if let Some(b) = self.display_available_boards(ctx, ui) {
+                // egui::CentralPanel::default().show(ctx, |ui| {
+                    if let Some(b) = self.display_available_boards(ctx) {
                         self.project.add_board(b);
                     }
-                });
+                // });
             },
             Mode::DevelopCurrentProject => {
                 self.display_project_developer(ctx);

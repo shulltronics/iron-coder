@@ -233,14 +233,6 @@ impl Project {
 
     // Show the project editor page
     pub fn display_project_editor(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
-        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-            let label = RichText::new("Project Name").underline();
-            ui.label(label);
-            ui.text_edit_singleline(&mut self.name);
-
-            let label = RichText::new("Project Boards").underline();
-            ui.label(label);
-        });
         // compute outer margin based on how many widgets to show:
         let width_per_board = 120.0;
         let mut margin_val = 0.0;

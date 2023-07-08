@@ -45,8 +45,9 @@ impl Connection {
         }
     }
 
-    pub fn display(&self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        ui.label(format!("{:?}", self));
+    pub fn display(&self, ctx: &egui::Context, ui: &mut egui::Ui) -> egui::Response {
+        let label = egui::Label::new(format!("{:?}", self)).sense(egui::Sense::click());
+        ui.add(label)
     }
 }
 

@@ -192,6 +192,10 @@ impl Board {
         self.name.as_str()
     }
 
+    pub fn get_interfaces(&self) -> Vec<interface::Interface> {
+        self.interfaces.clone()
+    }
+
     pub fn required_crates(&self) -> Option<Vec<String>> {
         self.required_crates.clone()
     }

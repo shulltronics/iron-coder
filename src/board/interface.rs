@@ -1,9 +1,10 @@
 /// This module defines interfaces that a development board has
+use enum_iterator::Sequence;
 
 use serde::{Serialize, Deserialize};
 use std::fmt;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Sequence)]
 pub enum InterfaceDirection {
     Controller,
     Peripheral,
@@ -15,7 +16,7 @@ impl fmt::Display for InterfaceDirection {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Sequence)]
 pub enum Interface {
     GPIO,
     ADC,

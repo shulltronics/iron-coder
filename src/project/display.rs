@@ -7,8 +7,12 @@ use egui::widget_text::RichText;
 use egui::widgets::Button;
 
 use crate::project::Project;
+use crate::project::system::Connection;
 use crate::board::BoardMiniWidget;
+use crate::board::interface::Interface;
 use crate::app::icons::IconSet;
+
+use enum_iterator::all;
 
 use serde::{Serialize, Deserialize};
 
@@ -260,12 +264,45 @@ impl Project {
     // Show the boards in egui "Area"s so we can move them around!
     pub fn display_system_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         
-        for board in self.system.boards.iter() {
+        let mut recs: Vec<egui::Rect> = Vec::new();
+        for (idx, board) in self.system.boards.iter().enumerate() {
             let area_name = String::from("area") + board.get_name();
-            egui::Area::new(area_name).show(ctx, |ui| {
+            let resp = egui::Area::new(area_name).show(ctx, |ui| {
                 ui.add(BoardMiniWidget(board.clone()));
+                self.system.connections.iter().for_each(|connection| {
+                    if connection.main_board_idx == idx {
+                        connection.display(ctx, ui);
+                    }
+                });
+            }).response;
+            recs.push(resp.rect);
+            resp.context_menu(|ui| {
+                ui.menu_button("add connection", |ui| {
+                    // for interface in all::<Interface>().collect::<Vec<_>>().iter() {
+                    for interface in board.get_interfaces().iter() {
+                        let label = format!("{:?}", interface);
+                        if ui.button(label).clicked() {
+                            let connection = Connection::new(idx, 0, interface.clone());
+                            self.system.connections.push(connection);
+                        }
+                    }
+                });
             });
+            // egui::Window::new(area_name)
+            // .open(&mut true)
+            // .collapsible(false)
+            // .resizable(false)
+            // .movable(true)
+            // .show(ctx, |ui| {
+            //     ui.add(BoardMiniWidget(board.clone()));
+            // });
         }
+
+        self.system.connections.iter().enumerate().for_each(|(idx, connection)| {
+            let start_y = recs[connection.main_board_idx].min.y;
+            let end_y   = recs[connection.secondary_board_idx].min.y;
+            ui.painter().vline(50.0 + 10.0*(idx as f32), start_y..=end_y, egui::Stroke::new(2.0, egui::Color32::RED));
+        });
 
     }
 

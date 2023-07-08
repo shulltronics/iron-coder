@@ -264,62 +264,67 @@ impl Project {
     // Show the boards in egui "Area"s so we can move them around!
     pub fn display_system_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         
-        let mut recs: Vec<egui::Rect> = Vec::new();
-        for (idx, board) in self.system.boards.iter().enumerate() {
-            // create a unique name for the board display window
-            let area_name = String::from("area") + board.get_name();
-            // let resp = egui::Area::new(area_name).show(ctx, |ui| {
-            //     ui.add(BoardMiniWidget(board.clone()));
-            //     self.system.connections.iter().for_each(|connection| {
-            //         if connection.main_board_idx == idx {
-            //             connection.display(ctx, ui);
-            //         }
-            //     });
-            // }).response;
-            // show the board in a Window, and save the response
-            let resp = egui::Window::new(area_name)
+        let mut recs: Vec<(egui::Rect, egui::Rect)> = vec![(egui::Rect::NOTHING, egui::Rect::NOTHING); self.system.connections.len()];
+        let mut board_to_remove = None;
+        for (board_idx, board) in self.system.boards.iter().enumerate() {
+            // show the board in a Window
+            let window = egui::Window::new(board.get_name())
                 .open(&mut true)
-                .collapsible(false)
+                .title_bar(false)
                 .resizable(false)
                 .movable(true)
                 .show(ctx, |ui| {
                     ui.add(BoardMiniWidget(board.clone()));
-                    let mut idx_to_remove = None;
-                    self.system.connections.iter().enumerate().for_each(|(local_idx, connection)| {
-                        if connection.main_board_idx == idx {
-                            if connection.display(ctx, ui).clicked() {
-                                idx_to_remove = Some(local_idx);
-                            }
+                    let mut connection_to_remove = None;
+                    self.system.connections.iter().enumerate().for_each(|(connection_idx, connection)| {
+                        // add the connection info to the Board Ui
+                        let resp = connection.display(ctx, ui);
+                        // remove it if it is clicked (TODO -- improve this)
+                        if resp.clicked() { connection_to_remove = Some(connection_idx) }
+                        // save the rect for future drawing
+                        if board_idx == connection.main_board_idx {
+                            recs[connection_idx].0 = resp.rect;
+                        } else if board_idx == connection.secondary_board_idx {
+                            recs[connection_idx].1 = resp.rect;
                         }
                     });
-                    if let Some(local_idx) = idx_to_remove {
-                        self.system.connections.swap_remove(local_idx);
+                    if let Some(connection_to_remove) = connection_to_remove {
+                        self.system.connections.remove(connection_to_remove);
+                        recs.remove(connection_to_remove);
                     }
                 }).unwrap().response;
-            recs.push(resp.rect);
+
             // create a right-clickable menu to add a connection from the selected board
-            resp.context_menu(|ui| {
+            window.context_menu(|ui| {
                 ui.menu_button("add connection", |ui| {
                     // for interface in all::<Interface>().collect::<Vec<_>>().iter() {
                     for interface in board.get_interfaces().iter() {
                         let label = format!("{:?}", interface);
                         if ui.button(label).clicked() {
-                            let connection = Connection::new(idx, 0, interface.clone());
+                            let connection = Connection::new(board_idx, 0, interface.clone());
                             self.system.connections.push(connection);
+                            recs.push((egui::Rect::NOTHING, egui::Rect::NOTHING));
                         }
                     }
                 });
-                ui.menu_button("another option", |ui| {
-                    ui.label("testin!");
-                });
+                if ui.button("remove board from system").clicked() {
+                    // TODO -- also remove all connections that involved this board, to prevent a crash
+                    board_to_remove = Some(board_idx);
+                }
             });
+        } // for each Board
+
+        if let Some(board_idx) = board_to_remove {
+            self.system.boards.remove(board_idx);
         }
 
         // iterate through connections and draw a line to represent each one
         self.system.connections.iter().enumerate().for_each(|(idx, connection)| {
-            let start_y = recs[connection.main_board_idx].min.y;
-            let end_y   = recs[connection.secondary_board_idx].min.y;
-            ui.painter().vline(50.0 + 10.0*(idx as f32), start_y..=end_y, egui::Stroke::new(2.0, egui::Color32::RED));
+            // the length of our recs vector needs to be equal to the number of connections
+            assert!(recs.len() == self.system.connections.len());
+            let start = recs[idx].0.max;
+            let end   = recs[idx].1.min;
+            ui.painter().line_segment([start, end], egui::Stroke::new(2.0, egui::Color32::GREEN));
         });
 
     }

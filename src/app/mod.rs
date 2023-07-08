@@ -74,14 +74,14 @@ impl IronCoderApp {
         setup_fonts_and_style(&cc.egui_ctx);
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
-        let mut app: IronCoderApp;
-        if let Some(storage) = cc.storage {
-            info!("loading former app state from storage...");
-            app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        } else {
-            // Now return a default IronCoderApp
-            app = Default::default();
-        }
+        let mut app = IronCoderApp::default();
+        //if let Some(storage) = cc.storage {
+        //    info!("loading former app state from storage...");
+        //    app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        //} else {
+        //    // Now return a default IronCoderApp
+        //    app = Default::default();
+        //}
         app.set_colorscheme(&cc.egui_ctx);
         let kb = app.boards.clone();
         app.project.load_board_resources(kb);

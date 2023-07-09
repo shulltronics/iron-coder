@@ -1,0 +1,7 @@
+
+name = "OLED Featherwing (128x64)"
+manufacturer = "Adafruit"
+is_main_board = false
+standard = "Feather"
+
+related_crates = ["sh1107"]

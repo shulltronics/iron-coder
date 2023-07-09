@@ -1,7 +1,11 @@
 
 name = "Feather RP2040"
 manufacturer = "Adafruit"
+is_main_board = true
 standard = "Feather"
 cpu = "Cortex-M0"
 ram = 264
 flash = 8000
+interfaces = [{ I2C = "Controller" }, { I2C = "Peripheral" }, "ADC", "GPIO", "ADC", "PIO", "PWM"]
+required_crates = ["adafruit-feather-rp2040", "embedded-hal", "embedded-time", "cortex-m-rt", "cortex-m", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]

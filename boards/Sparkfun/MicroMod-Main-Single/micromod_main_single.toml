@@ -1,0 +1,4 @@
+name = "MicroMod Main Board - Single"
+manufacturer = "Sparkfun"
+standard = "MicroMod"
+is_main_board = false

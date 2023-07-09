@@ -1,0 +1,10 @@
+name = "neopixel_example"
+location = 'C:\Users\carst\Projects\iron-coder\boards\Adafruit\Feather_RP2040\examples\neopixel'
+
+[[boards]]
+name = "Feather RP2040"
+manufacturer = "Adafruit"
+standard = "Feather"
+cpu = "Cortex-M0"
+ram = 264
+flash = 8000

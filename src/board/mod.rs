@@ -1,6 +1,6 @@
 //! This module provides functionality for development boards
 
-use log::{warn, debug};
+use log::{info, warn, debug};
 
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -10,10 +10,15 @@ use std::cmp;
 
 use serde::{Serialize, Deserialize};
 
+// use ra_ap_rust_analyzer::cli::load_cargo::load_workspace_at;
+use ra_ap_ide;
+
 pub mod pinout;
 pub mod display;
 
-/// Read the boards directory and returns a vector of boards
+/// This function recursively reads the boards directory and returns a vector of boards.
+/// This includes searching for template directories, examples, and local BSPs for each
+/// board.
 pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
     let mut r = Vec::new();
     if let Ok(entries) = fs::read_dir(boards_dir) {
@@ -33,12 +38,24 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
                 match Board::load_from_toml(&entry.path()) {
                     Ok(mut board) => {
                         let parent = entry.path().parent().unwrap().canonicalize().unwrap();
+                        // look for a template directory
                         let template_dir = parent.join("template");
                         if let Ok(true) = template_dir.try_exists() {
                             debug!("found template dir for board <{}> at {:?}", board.name.clone(), entry.path().parent().unwrap().canonicalize().unwrap().join("template"));
                             board.template_dir = Some(template_dir);
                         } else {
                             debug!("no template directory found for board <{}>", board.name.clone());
+                        }
+                        // look for a local BSP
+                        let bsp_dir = parent.join("bsp");
+                        if let Ok(true) = bsp_dir.try_exists() {
+                            info!("found local bsp crate for board {}", board.name.clone());
+                            board.bsp_dir = Some(bsp_dir.clone());
+                            let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
+                            let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
+                            info!("syntax tree is: \n{:?}", analysis.file_structure(fid));
+                        } else {
+                            debug!("no bsp directory found for board <{}>", board.name.clone());
                         }
                         r.push(board);
                     },
@@ -96,6 +113,8 @@ pub struct Board {
     #[serde(skip)]
     template_dir: Option<PathBuf>,
     #[serde(skip)]
+    bsp_dir: Option<PathBuf>,
+    #[serde(skip)]
     pic: Option<egui::ColorImage>,
     required_crates: Option<Vec<String>>,
     related_crates: Option<Vec<String>>,
@@ -118,6 +137,7 @@ impl Default for Board {
             interfaces: i,
             examples: Vec::new(),
             template_dir: None,
+            bsp_dir: None,
             pic: None,
             required_crates: None,
             related_crates: None,
@@ -140,6 +160,7 @@ impl fmt::Debug for Board {
         write!(f, "  num related crates: {}\n", self.related_crates.clone().unwrap_or_default().len())?;
         write!(f, "  has pic: {}\n", self.pic.is_some())?;
         write!(f, "  has template: {}", self.template_dir.is_some())?;
+        write!(f, "  has local bsp: {}", self.bsp_dir.is_some())?;
         Ok(())
     }
 }

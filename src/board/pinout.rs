@@ -34,3 +34,14 @@ impl fmt::Display for Interface {
         write!(f, "{:?}", self)
     }
 }
+
+/// And InterfaceMapping is a map of an Interface to a set of pins on the Board.
+pub struct InterfaceMapping {
+    interface: Interface,
+    pins: Vec<usize>,
+}
+
+/// A Pinout is a description of the available interfaces on a Board
+pub struct Pinout {
+    pinout: Vec<InterfaceMapping>,
+}

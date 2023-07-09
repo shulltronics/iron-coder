@@ -1,4 +1,7 @@
+.vscode
 .obsidian/
+
+# for now don't track these as they constantly have breaking changes
 boards/
 projects/
 

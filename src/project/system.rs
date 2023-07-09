@@ -1,12 +1,16 @@
+//! This module represents a hardware system, i.e. a main board,
+//! a set of peripheral boards, and the connections between them.
+
 use std::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 use crate::board::{Board, BoardMiniWidget};
-use crate::board::interface::Interface;
+use crate::board::pinout::Interface;
 
-// This struct represents the development boards and their connecting interfaces
+/// This struct represents the development boards and their connecting interfaces
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct System {
+    pub main_board: Option<Board>,
     pub boards: Vec<Board>,
     pub connections: Vec<Connection>,
 }
@@ -14,6 +18,7 @@ pub struct System {
 impl Default for System {
     fn default() -> Self {
         Self {
+            main_board: None,
             boards: Vec::new(),
             connections: Vec::new(),
         }
@@ -30,16 +35,16 @@ impl System {
 /// network. 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Connection {
-    pub main_board_idx: usize,
+    // pub main_board_idx: usize,
     pub secondary_board_idx: usize,
     pub interface: Interface,
 }
 
 impl Connection {
 
-    pub fn new(main_idx: usize, secondary_idx: usize, interface: Interface) -> Self {
+    pub fn new(secondary_idx: usize, interface: Interface) -> Self {
         Self {
-            main_board_idx: main_idx,
+            // main_board_idx: main_idx,
             secondary_board_idx: secondary_idx,
             interface: interface,
         }

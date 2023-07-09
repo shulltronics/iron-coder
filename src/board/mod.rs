@@ -1,3 +1,5 @@
+//! This module provides functionality for development boards
+
 use log::{warn, debug};
 
 use std::path::{Path, PathBuf};
@@ -8,16 +10,10 @@ use std::cmp;
 
 use serde::{Serialize, Deserialize};
 
-pub mod interface;
+pub mod pinout;
 pub mod display;
 
-// this function reads the boards directory and returns a Vec in RAM
-// the boards directory is structured as:
-// boards/
-// -- manufacturer/
-// -- -- board/
-// -- -- -- <name>.toml
-// -- -- -- <name>.png
+/// Read the boards directory and returns a vector of boards
 pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
     let mut r = Vec::new();
     if let Ok(entries) = fs::read_dir(boards_dir) {
@@ -56,7 +52,7 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
     return r;
 }
 
-// These are the various standard development board specifications
+/// These are the various standard development board form factors
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum BoardStandards {
     Feather,
@@ -78,18 +74,23 @@ impl fmt::Display for BoardStandards {
     }
 }
 
-// The board struct defines a board type
+/// The board struct defines a board type
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(default)]
 pub struct Board {
+    /// The name of the board
     name: String,
+    /// The board manufacturer
     manufacturer: String,
-    is_main_board: bool,            // in Iron Coder, a project can only have one "main board" -- the one that the firmware targets
+    /// Whether or not the board has a processor that can run code
+    is_main_board: bool,
+    /// A possible form factor that the board adheres to
     standard: Option<BoardStandards>,
     cpu: Option<String>,
     ram: Option<isize>,
     flash: Option<isize>,
-    interfaces: Vec<interface::Interface>,
+    /// A list of the interfaces available on the board
+    interfaces: Vec<pinout::Interface>,
     #[serde(skip)]
     examples: Vec<PathBuf>,
     #[serde(skip)]
@@ -100,13 +101,12 @@ pub struct Board {
     related_crates: Option<Vec<String>>,
 }
 
-// A board shell template
 impl Default for Board {
     fn default() -> Self {
         let mut i = Vec::new();
-        i.push(interface::Interface::I2C(interface::InterfaceDirection::Controller));
-        i.push(interface::Interface::I2C(interface::InterfaceDirection::Peripheral));
-        i.push(interface::Interface::ADC);
+        i.push(pinout::Interface::I2C(pinout::InterfaceDirection::Controller));
+        i.push(pinout::Interface::I2C(pinout::InterfaceDirection::Peripheral));
+        i.push(pinout::Interface::ADC);
         Self {
             name: "".to_string(),
             manufacturer: "".to_string(),
@@ -154,6 +154,7 @@ impl cmp::PartialEq for Board {
 
 impl Board {
 
+    /// Loads a board from its toml description
     fn load_from_toml(path: &Path) -> std::io::Result<Self> {
         
         let toml_str = fs::read_to_string(path)?;
@@ -192,7 +193,7 @@ impl Board {
         self.name.as_str()
     }
 
-    pub fn get_interfaces(&self) -> Vec<interface::Interface> {
+    pub fn get_interfaces(&self) -> Vec<pinout::Interface> {
         self.interfaces.clone()
     }
 

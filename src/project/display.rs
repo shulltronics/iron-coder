@@ -9,7 +9,7 @@ use egui::widgets::Button;
 use crate::project::Project;
 use crate::project::system::Connection;
 use crate::board::BoardMiniWidget;
-use crate::board::interface::Interface;
+use crate::board::pinout::Interface;
 use crate::app::icons::IconSet;
 
 use enum_iterator::all;
@@ -266,6 +266,52 @@ impl Project {
         
         let mut recs: Vec<(egui::Rect, egui::Rect)> = vec![(egui::Rect::NOTHING, egui::Rect::NOTHING); self.system.connections.len()];
         let mut board_to_remove = None;
+
+        // first show the main board
+        if let Some(mb) = self.system.main_board.clone() {
+            let window = egui::Window::new(mb.get_name())
+                .open(&mut true)
+                .title_bar(false)
+                .resizable(false)
+                .movable(true)
+                .show(ctx, |ui| {
+                    ui.add(BoardMiniWidget(mb.clone()));
+                    let mut connection_to_remove = None;
+                    self.system.connections.iter().enumerate().for_each(|(connection_idx, connection)| {
+                        // add the connection info to the Board Ui
+                        let resp = connection.display(ctx, ui);
+                        // remove it if it is clicked (TODO -- improve this)
+                        if resp.clicked() { connection_to_remove = Some(connection_idx) }
+                        // save the Rect that was drawn
+                        recs[connection_idx].0 = resp.rect;
+                    });
+                    if let Some(connection_to_remove) = connection_to_remove {
+                        self.system.connections.remove(connection_to_remove);
+                        recs.remove(connection_to_remove);
+                    }
+                }).unwrap().response;
+
+            // create a right-clickable menu to add a connection from the selected board
+            window.context_menu(|ui| {
+                ui.menu_button("add connection", |ui| {
+                    // for interface in all::<Interface>().collect::<Vec<_>>().iter() {
+                    for interface in mb.get_interfaces().iter() {
+                        let label = format!("{:?}", interface);
+                        if ui.button(label).clicked() {
+                            let connection = Connection::new(0, interface.clone());
+                            self.system.connections.push(connection);
+                            recs.push((egui::Rect::NOTHING, egui::Rect::NOTHING));
+                        }
+                    }
+                });
+                if ui.button("remove board from system").clicked() {
+                    // TODO -- also remove all connections that involved this board, to prevent a crash
+                    self.system.main_board = None;
+                }
+            });
+        }
+
+        // now show peripheral boards
         for (board_idx, board) in self.system.boards.iter().enumerate() {
             // show the board in a Window
             let window = egui::Window::new(board.get_name())
@@ -282,9 +328,7 @@ impl Project {
                         // remove it if it is clicked (TODO -- improve this)
                         if resp.clicked() { connection_to_remove = Some(connection_idx) }
                         // save the rect for future drawing
-                        if board_idx == connection.main_board_idx {
-                            recs[connection_idx].0 = resp.rect;
-                        } else if board_idx == connection.secondary_board_idx {
+                        if board_idx == connection.secondary_board_idx {
                             recs[connection_idx].1 = resp.rect;
                         }
                     });
@@ -294,19 +338,8 @@ impl Project {
                     }
                 }).unwrap().response;
 
-            // create a right-clickable menu to add a connection from the selected board
+                // create a right-clickable menu to add a connection from the selected board
             window.context_menu(|ui| {
-                ui.menu_button("add connection", |ui| {
-                    // for interface in all::<Interface>().collect::<Vec<_>>().iter() {
-                    for interface in board.get_interfaces().iter() {
-                        let label = format!("{:?}", interface);
-                        if ui.button(label).clicked() {
-                            let connection = Connection::new(board_idx, 0, interface.clone());
-                            self.system.connections.push(connection);
-                            recs.push((egui::Rect::NOTHING, egui::Rect::NOTHING));
-                        }
-                    }
-                });
                 if ui.button("remove board from system").clicked() {
                     // TODO -- also remove all connections that involved this board, to prevent a crash
                     board_to_remove = Some(board_idx);

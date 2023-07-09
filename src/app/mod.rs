@@ -28,6 +28,8 @@ use icons::{
 pub mod colorscheme;
 use colorscheme::ColorScheme;
 
+pub mod code_editor;
+
 /// The current GUI mode
 #[derive(serde::Deserialize, serde::Serialize)]
 enum Mode {
@@ -419,7 +421,7 @@ impl eframe::App for IronCoderApp {
                 });
                 // 3: show the CentralPanel with the boards and such.
                 egui::CentralPanel::default().show(ctx, |ui| {
-                    if self.project.borrow_boards().is_empty() {
+                    if self.project.borrow_boards().is_empty() && !self.project.has_main_board() {
                         ui.with_layout(Layout::top_down(Align::Center), |ui| {
                             let label = egui::widgets::Label::new("Welcome to Iron Coder! To get started on a project, select a main \
                                             board and a set of peripheral boards. Then, give your project a name. \

@@ -1,3 +1,5 @@
+//! This module describes an Iron Coder project.
+
 use log::{info, warn, debug};
 
 use std::io::BufRead;
@@ -14,7 +16,7 @@ use toml;
 use serde::{Serialize, Deserialize};
 
 use crate::board::Board;
-use crate::code_editor::CodeEditor;
+use crate::app::code_editor::CodeEditor;
 
 pub mod display;
 use display::ProjectViewType;
@@ -24,11 +26,11 @@ pub mod egui_helpers;
 mod system;
 use system::System;
 
-/// A Project represents the highest level of Iron Coder, which contains
-/// a set of development boards and the project/source code directory
-
 const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 
+/// A Project represents the highest level of Iron Coder, which contains
+/// a main, programmable development board, a set of peripheral development boards,
+/// and the project/source code directory
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
 pub struct Project {
@@ -90,6 +92,14 @@ impl Project {
         return &mut self.system.boards;
     }
 
+    pub fn has_main_board(&self) -> bool {
+        if let Some(_) = self.system.main_board {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     pub fn get_location(&self) -> String {
         if let Some(project_folder) = &self.location {
             // let s = project_folder.display().to_string();
@@ -100,13 +110,25 @@ impl Project {
     }
 
     pub fn add_board(&mut self, board: Board) {
-        // don't duplicate a board
-        if self.system.boards.contains(&board) {
-            info!("project <{}> already contains board <{:?}>", self.name, board);
-            self.terminal_buffer += "project already contains that board\n";
-            return;
-        }
-        self.system.boards.push(board);
+        match board.is_main_board() {
+            true => {
+                if let Some(_) = self.system.main_board {
+                    info!("project already contains a main board! aborting.");
+                } else {
+                    self.system.main_board = Some(board);
+                    return;
+                }
+            },
+            false => {
+                // don't duplicate a board
+                if self.system.boards.contains(&board) {
+                    info!("project <{}> already contains board <{:?}>", self.name, board);
+                    self.terminal_buffer += "project already contains that board\n";
+                    return;
+                }
+                self.system.boards.push(board);
+            }
+        }   
     }
 
     // this method will populate the project board list via the app-wide

@@ -2,6 +2,5 @@
 #![feature(io_error_other)]
 mod app;
 mod board;
-mod code_editor;
 mod project;
 pub use app::IronCoderApp;

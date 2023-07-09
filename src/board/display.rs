@@ -1,3 +1,5 @@
+//! This module contains code related to displaying Boards and related types in egui.
+
 use log::{info, debug};
 use crate::board::{
     Board,
@@ -18,10 +20,8 @@ use egui::text::{
 use egui::widgets::Widget;
 use egui_extras::RetainedImage;
 
-/// module board::display contains code related to displaying Boards
-/// and related types in egui
-
-// This function will construct a LayoutJob with a bold heading
+/// Construct a LayoutJob with a bold heading, followed by a colon,
+/// followed by some content, all with custom colors.
 fn make_field_widget_text(heading: &str,
                           hcolor: Color32,
                           content: &str,

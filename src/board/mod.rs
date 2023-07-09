@@ -24,17 +24,17 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
     if let Ok(entries) = fs::read_dir(boards_dir) {
         for entry in entries {
             let entry = entry.expect("error with entry");
-            // if the entry is a directory, recursively go get the files
             if entry.file_type().expect("error parsing file type").is_dir() {
+                // if the entry is a directory, recursively go get the files
                 // don't recurse into the examples
                 if entry.path().ends_with("examples") {
                     continue;
                 }
                 r.append(&mut get_boards(&entry.path()));
-            // otherwise, if the entry is a file ending in "toml" try to parse it
-            // as a board file. unwrap_or_default works well here as the default 
-            // ("") for &str will never match "toml"
             } else if entry.path().extension().unwrap_or_default() == "toml" {
+                // otherwise, if the entry is a file ending in "toml" try to parse it
+                // as a board file. unwrap_or_default works well here as the default 
+                // ("") for &str will never match "toml"
                 match Board::load_from_toml(&entry.path()) {
                     Ok(mut board) => {
                         let parent = entry.path().parent().unwrap().canonicalize().unwrap();
@@ -53,7 +53,13 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
                             board.bsp_dir = Some(bsp_dir.clone());
                             let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
                             let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
-                            info!("syntax tree is: \n{:?}", analysis.file_structure(fid));
+                            board.ra_values = analysis.file_structure(fid).unwrap();
+                            // info!("syntax tree is: \n{:?}", analysis.file_structure(fid));
+                            // for s in analysis.file_structure(fid).unwrap() {
+                            //     println!("{:?}: {:?}: {:?}", s.label, s.kind, s.parent);
+                            //     // let pos = ra_ap_ide::FilePosition { file_id: fid, offset: s.navigation_range.end() };
+                            //     // println!("  {:?}", analysis.signature_help(pos).unwrap());
+                            // }
                         } else {
                             debug!("no bsp directory found for board <{}>", board.name.clone());
                         }
@@ -109,6 +115,8 @@ pub struct Board {
     /// A list of the interfaces available on the board
     interfaces: Vec<pinout::Interface>,
     #[serde(skip)]
+    pub ra_values: Vec<ra_ap_ide::StructureNode>,
+    #[serde(skip)]
     examples: Vec<PathBuf>,
     #[serde(skip)]
     template_dir: Option<PathBuf>,
@@ -135,6 +143,7 @@ impl Default for Board {
             ram: None,
             flash: None,
             interfaces: i,
+            ra_values: Vec::new(),
             examples: Vec::new(),
             template_dir: None,
             bsp_dir: None,

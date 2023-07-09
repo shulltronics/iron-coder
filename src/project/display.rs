@@ -304,6 +304,13 @@ impl Project {
                         }
                     }
                 });
+                ui.menu_button("rust-analyser stuff", |ui| {
+                    for s in mb.ra_values.iter() {
+                        if ui.label(format!("{:?}", s.label)).clicked() {
+                            info!("{:?}", s);
+                        }
+                    }
+                });
                 if ui.button("remove board from system").clicked() {
                     // TODO -- also remove all connections that involved this board, to prevent a crash
                     self.system.main_board = None;
@@ -340,6 +347,13 @@ impl Project {
 
                 // create a right-clickable menu to add a connection from the selected board
             window.context_menu(|ui| {
+                ui.menu_button("rust-analyser stuff", |ui| {
+                    for s in board.ra_values.iter() {
+                        if ui.label(format!("{:?}", s.label)).clicked() {
+                            info!("{:?}", s);
+                        }
+                    }
+                });
                 if ui.button("remove board from system").clicked() {
                     // TODO -- also remove all connections that involved this board, to prevent a crash
                     board_to_remove = Some(board_idx);

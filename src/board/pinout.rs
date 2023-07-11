@@ -36,12 +36,34 @@ impl fmt::Display for Interface {
 }
 
 /// And InterfaceMapping is a map of an Interface to a set of pins on the Board.
+/// TODO: I think a "pin" should be able to be referenced by multiple different criteria,
+/// such as the "silkscreen labal", the physical pin number (i.e. counting around the board),
+/// the logical pin number, or possibly some other criteria.
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct InterfaceMapping {
-    interface: Interface,
-    pins: Vec<usize>,
+    pub interface: Interface,
+    pub pins: Vec<usize>,
 }
 
 /// A Pinout is a description of the available interfaces on a Board
-pub struct Pinout {
-    pinout: Vec<InterfaceMapping>,
-}
+// #[derive(Serialize, Deserialize, Clone, Debug)]
+// pub struct Pinout {
+//     pinout: Vec<InterfaceMapping>,
+// }
+
+pub type Pinout = Vec<InterfaceMapping>;
+
+// impl Default for Pinout {
+//     fn default() -> Self {
+//         Self {
+//             pinout: Vec::new(),
+//         }
+//     }
+// }
+
+// impl Iterator for Pinout {
+//     type Item = InterfaceMapping;
+//     fn next(&self) -> Option<Self::Item> {
+//         self.pinout.next();
+//     }
+// }

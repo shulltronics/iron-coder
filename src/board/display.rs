@@ -146,12 +146,11 @@ impl Widget for Board {
                 ui.separator();
                 // show the interfaces
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                    let label = egui::RichText::new("Interfaces").underline();
+                    let label = egui::RichText::new("Pinout").underline();
                     ui.label(label);
                 });
-                for i in self.interfaces {
-                    ui.label(i.to_string());
-                }
+                ui.label(format!("{:?}", self.pinout));
+
             }).response.interact(egui::Sense::click());
 
             if ui.rect_contains_pointer(response.rect) {

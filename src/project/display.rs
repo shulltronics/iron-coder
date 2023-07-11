@@ -295,12 +295,12 @@ impl Project {
             window.context_menu(|ui| {
                 ui.menu_button("add connection", |ui| {
                     // for interface in all::<Interface>().collect::<Vec<_>>().iter() {
-                    for interface in mb.get_interfaces().iter() {
+                    for interface in mb.get_pinout().iter() {
                         let label = format!("{:?}", interface);
                         if ui.button(label).clicked() {
-                            let connection = Connection::new(0, interface.clone());
-                            self.system.connections.push(connection);
-                            recs.push((egui::Rect::NOTHING, egui::Rect::NOTHING));
+                            // let connection = Connection::new(0, interface.clone());
+                            // self.system.connections.push(connection);
+                            // recs.push((egui::Rect::NOTHING, egui::Rect::NOTHING));
                         }
                     }
                 });

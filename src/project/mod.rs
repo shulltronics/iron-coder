@@ -1,5 +1,7 @@
 //! This module describes an Iron Coder project.
 
+use syn;
+
 use log::{info, warn, debug};
 
 use std::io::BufRead;
@@ -278,6 +280,11 @@ impl Project {
     }
 
     pub fn add_crates_to_project(&mut self, ctx: &egui::Context) {
+        // TESTING
+        for b in self.system.boards.clone().iter() {
+            do_stuff_with_pm2(b);
+        }
+
         if let Some(project_folder) = self.location.clone() {
             for b in self.system.boards.clone().iter() {
                 if let Some(rc) = b.required_crates() {
@@ -312,4 +319,23 @@ impl Project {
         Ok("".to_string())
     }
 
+}
+
+fn do_stuff_with_pm2(b: &Board) {
+    if let Some(bsp_dir) = b.bsp_dir.clone() {
+        let src = bsp_dir.join("src/lib.rs");
+        let src = fs::read_to_string(src.as_path()).unwrap();
+        let syntax = syn::parse_file(src.as_str()).unwrap();
+        // println!("{:#?}", syntax);
+        syntax.items.iter().enumerate().for_each(|(idx, item)| {
+            match item {
+                syn::Item::Struct(item_struct) => {
+                    println!("Item {}: {:#?}", idx, item_struct);
+                },
+                _ => {
+                    println!("Item {}: not a struct", idx);
+                },
+            }
+        });
+    }
 }

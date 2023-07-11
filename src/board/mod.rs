@@ -14,6 +14,7 @@ use serde::{Serialize, Deserialize};
 use ra_ap_ide;
 
 pub mod pinout;
+use pinout::Pinout;
 pub mod display;
 
 /// This function recursively reads the boards directory and returns a vector of boards.
@@ -113,7 +114,7 @@ pub struct Board {
     ram: Option<isize>,
     flash: Option<isize>,
     /// A list of the interfaces available on the board
-    interfaces: Vec<pinout::Interface>,
+    pub pinout: Pinout,
     #[serde(skip)]
     pub ra_values: Vec<ra_ap_ide::StructureNode>,
     #[serde(skip)]
@@ -121,7 +122,7 @@ pub struct Board {
     #[serde(skip)]
     template_dir: Option<PathBuf>,
     #[serde(skip)]
-    bsp_dir: Option<PathBuf>,
+    pub bsp_dir: Option<PathBuf>,
     #[serde(skip)]
     pic: Option<egui::ColorImage>,
     required_crates: Option<Vec<String>>,
@@ -142,7 +143,7 @@ impl Default for Board {
             cpu: None,
             ram: None,
             flash: None,
-            interfaces: i,
+            pinout: Pinout::default(),
             ra_values: Vec::new(),
             examples: Vec::new(),
             template_dir: None,
@@ -223,8 +224,8 @@ impl Board {
         self.name.as_str()
     }
 
-    pub fn get_interfaces(&self) -> Vec<pinout::Interface> {
-        self.interfaces.clone()
+    pub fn get_pinout(&self) -> Pinout {
+        self.pinout.clone()
     }
 
     pub fn required_crates(&self) -> Option<Vec<String>> {

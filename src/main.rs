@@ -2,7 +2,7 @@ use tracing;
 
 fn main() -> eframe::Result<()> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
-    tracing_subscriber::fmt().with_max_level(tracing::Level::DEBUG).init();
+    tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
 
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(

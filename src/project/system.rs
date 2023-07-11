@@ -10,15 +10,16 @@ use crate::board::pinout::Interface;
 /// This struct represents the development boards and their connecting interfaces
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct System {
-    pub main_board: Option<Board>,
+    /// The list of boards in this system. The first board in this list should always be a "main board"
     pub boards: Vec<Board>,
+    /// The list of connection between boards. This is what the template generator will use to create
+    /// the system module.
     pub connections: Vec<Connection>,
 }
 
 impl Default for System {
     fn default() -> Self {
         Self {
-            main_board: None,
             boards: Vec::new(),
             connections: Vec::new(),
         }

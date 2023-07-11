@@ -235,31 +235,6 @@ impl Project {
         });
     }
 
-    // Show the project editor page
-    pub fn display_project_editor(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
-        // compute outer margin based on how many widgets to show:
-        let width_per_board = 120.0;
-        let mut margin_val = 0.0;
-        let num_boards = self.system.boards.len();
-        if num_boards > 0 {
-            let w = ui.available_width();
-            let needed = num_boards as f32 * width_per_board;
-            margin_val = (w - needed) / 2.0;
-        }
-        egui::Frame::default().outer_margin(egui::Margin::symmetric(margin_val, 10.0)).show(ui, |ui| {
-            if num_boards > 0 {
-                ui.columns(num_boards, |columns| {
-                    for (i, b) in self.system.boards.clone().into_iter().enumerate() {
-                        let this_r = columns[i].add(BoardMiniWidget(b));
-                        // ui.painter().rect_stroke(this_r.rect, 0.0, (1.0, egui::Color32::WHITE));
-                        if this_r.clicked() {
-                            self.system.boards.remove(i);
-                        }
-                    }
-                });
-            }
-        });
-    }
 
     // Show the boards in egui "Area"s so we can move them around!
     pub fn display_system_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
@@ -267,59 +242,7 @@ impl Project {
         let mut recs: Vec<(egui::Rect, egui::Rect)> = vec![(egui::Rect::NOTHING, egui::Rect::NOTHING); self.system.connections.len()];
         let mut board_to_remove = None;
 
-        // first show the main board
-        if let Some(mb) = self.system.main_board.clone() {
-            let window = egui::Window::new(mb.get_name())
-                .open(&mut true)
-                .title_bar(false)
-                .resizable(false)
-                .movable(true)
-                .show(ctx, |ui| {
-                    ui.add(BoardMiniWidget(mb.clone()));
-                    let mut connection_to_remove = None;
-                    self.system.connections.iter().enumerate().for_each(|(connection_idx, connection)| {
-                        // add the connection info to the Board Ui
-                        let resp = connection.display(ctx, ui);
-                        // remove it if it is clicked (TODO -- improve this)
-                        if resp.clicked() { connection_to_remove = Some(connection_idx) }
-                        // save the Rect that was drawn
-                        recs[connection_idx].0 = resp.rect;
-                    });
-                    if let Some(connection_to_remove) = connection_to_remove {
-                        self.system.connections.remove(connection_to_remove);
-                        recs.remove(connection_to_remove);
-                    }
-                }).unwrap().response;
-
-            // create a right-clickable menu to add a connection from the selected board
-            window.context_menu(|ui| {
-                ui.menu_button("add connection", |ui| {
-                    // for interface in all::<Interface>().collect::<Vec<_>>().iter() {
-                    for interface in mb.get_pinout().iter() {
-                        let label = format!("{:?}", interface);
-                        if ui.button(label).clicked() {
-                            // let connection = Connection::new(0, interface.clone());
-                            // self.system.connections.push(connection);
-                            // recs.push((egui::Rect::NOTHING, egui::Rect::NOTHING));
-                        }
-                    }
-                });
-                ui.menu_button("rust-analyser stuff", |ui| {
-                    for s in mb.ra_values.iter() {
-                        if ui.label(format!("{:?}", s.label)).clicked() {
-                            info!("{:?}", s);
-                        }
-                    }
-                });
-                if ui.button("remove board from system").clicked() {
-                    // TODO -- also remove all connections that involved this board, to prevent a crash
-                    self.system.main_board = None;
-                }
-            });
-        }
-
-        // now show peripheral boards
-        for (board_idx, board) in self.system.boards.iter().enumerate() {
+        for (board_idx, board) in self.system.boards.iter_mut().enumerate() {
             // show the board in a Window
             let window = egui::Window::new(board.get_name())
                 .open(&mut true)
@@ -347,6 +270,16 @@ impl Project {
 
                 // create a right-clickable menu to add a connection from the selected board
             window.context_menu(|ui| {
+                ui.menu_button("add connection", |ui| {
+                    // for interface in all::<Interface>().collect::<Vec<_>>().iter() {
+                    for interface in board.get_pinout().iter() {
+
+                        let label = format!("{:?}", interface);
+                        if ui.button(label).clicked() {
+                            info!("todo");
+                        }
+                    }
+                });
                 ui.menu_button("rust-analyser stuff", |ui| {
                     for s in board.ra_values.iter() {
                         if ui.label(format!("{:?}", s.label)).clicked() {
@@ -354,6 +287,17 @@ impl Project {
                         }
                     }
                 });
+                
+                if ui.button("print syntax tree for BSP").clicked() {
+                    println!("{:#?}", board.log_syn_file_to_string());
+                }
+
+                if ui.button("update pinout with BSP info").clicked() {
+                    if let Err(e) = board.update_pinout_from_bsp() {
+                        warn!("{:?}", e);
+                    }
+                }
+
                 if ui.button("remove board from system").clicked() {
                     // TODO -- also remove all connections that involved this board, to prevent a crash
                     board_to_remove = Some(board_idx);

@@ -1,6 +1,7 @@
 //! This module provides functionality for development boards
 
 use log::{info, warn, debug};
+use syn;
 
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -175,7 +176,7 @@ impl fmt::Debug for Board {
     }
 }
 
-// Boards should be uniquely identified by their name, and thus comparable.
+/// Boards should be uniquely identified by their name, and thus comparable.
 impl cmp::PartialEq for Board {
     // Boards are equal if their names are equal
     fn eq(&self, other: &Self) -> bool {
@@ -183,6 +184,8 @@ impl cmp::PartialEq for Board {
     }
 }
 
+/// Basic implementation, including loading boards from the filesystem, and retrieving certain
+/// information about them.
 impl Board {
 
     /// Loads a board from its toml description
@@ -243,4 +246,92 @@ impl Board {
     pub fn get_template_dir(&self) -> Option<PathBuf> {
         return self.template_dir.clone();
     }
+
+}
+
+/// More complex implementations on Board, such as parsing the bsp using the syn crate
+impl Board {
+
+    /// Try to parse the Board's BSP and return a syn::File object
+    pub fn parse_bsp(&self) -> Option<syn::File> {
+        let mut syntax = None;
+        if let Some(bsp_dir) = self.bsp_dir.clone() {
+            let src = bsp_dir.join("src/lib.rs");
+            let src = fs::read_to_string(src.as_path()).unwrap();
+            syntax = match syn::parse_file(src.as_str()) {
+                Ok(syntax) => {
+                    Some(syntax)
+                },
+                Err(e) => {
+                    warn!("Couldn't parse BSP for board {:?} with syn: {:?}", self.get_name(), e);
+                    None
+                },
+            };
+        }
+        return syntax;
+    }
+
+    /// Parse the Board's BSP, and print info about it into a String
+    pub fn log_syn_file_to_string(&self) -> String {
+        let mut result = String::new();
+        if let Some(syntax) = self.parse_bsp() {
+            result = format!("{:?}", syntax);
+        }
+        return result;
+    }
+
+    /// Using the syn parsing of the BSP, update the pinout field of the Board to include
+    /// the bsp Board struct fields that correspond to that pinout
+    pub fn update_pinout_from_bsp(&mut self) -> Result<(), String> {
+        if let Some(syntax) = self.parse_bsp() {
+
+            // extract the Board struct
+            let mut board_struct = None;
+            for item in syntax.items.iter() {
+                board_struct = match item {
+                    syn::Item::Struct(item_struct) => {
+                        if item_struct.ident.to_string() == "Board" {
+                            Some(item_struct)
+                        } else {
+                            None
+                        }
+                    },
+                    _ => None,
+                };
+                if board_struct.is_some() {
+                    info!("found Board struct!");
+                    println!("{:#?}", board_struct.unwrap());
+                    break;
+                }
+            }
+            
+            if board_struct == None {
+                return Err(format!("couldn't find Board struct!"));
+            }
+            // iterate through the pinout (as supplied by the board manifest file), and look for
+            // matching fields in the Board struct.
+            for po in self.pinout.iter_mut() {
+                match po.interface {
+                    pinout::Interface::I2C(_) => {
+                        // search for a field in the Board struct that matches "i2c_bus"
+                        let i2c_bus = board_struct.unwrap().fields.iter().find(|field| {
+                            field.ident.as_ref().unwrap().to_string() == "i2c_bus"
+                        });
+                        if let Some(_i2c_bus) = i2c_bus {
+                            info!("found i2c bus field, mutating pinout (TODO)...");
+                            po.pins[0] += 1;
+                        }
+                    },
+                    _ => {
+                        info!("TODO: looking for another interface field in the Board struct...");
+                    },
+                }
+            }
+        } else {
+            return Err(format!("couldn't update pinout from bsp"));
+        }
+        return Ok(());
+    
+    }
+
 }

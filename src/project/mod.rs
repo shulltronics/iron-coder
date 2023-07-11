@@ -95,7 +95,7 @@ impl Project {
     }
 
     pub fn has_main_board(&self) -> bool {
-        if let Some(_) = self.system.main_board {
+        if self.system.boards.len() > 0 && self.system.boards[0].is_main_board() {
             return true;
         } else {
             return false;
@@ -114,10 +114,10 @@ impl Project {
     pub fn add_board(&mut self, board: Board) {
         match board.is_main_board() {
             true => {
-                if let Some(_) = self.system.main_board {
+                if self.has_main_board() {
                     info!("project already contains a main board! aborting.");
                 } else {
-                    self.system.main_board = Some(board);
+                    self.system.boards.push(board);
                     return;
                 }
             },
@@ -130,7 +130,7 @@ impl Project {
                 }
                 self.system.boards.push(board);
             }
-        }   
+        }
     }
 
     // this method will populate the project board list via the app-wide
@@ -282,7 +282,7 @@ impl Project {
     pub fn add_crates_to_project(&mut self, ctx: &egui::Context) {
         // TESTING
         for b in self.system.boards.clone().iter() {
-            do_stuff_with_pm2(b);
+            do_stuff_with_syn(b);
         }
 
         if let Some(project_folder) = self.location.clone() {
@@ -321,7 +321,7 @@ impl Project {
 
 }
 
-fn do_stuff_with_pm2(b: &Board) {
+fn do_stuff_with_syn(b: &Board) {
     if let Some(bsp_dir) = b.bsp_dir.clone() {
         let src = bsp_dir.join("src/lib.rs");
         let src = fs::read_to_string(src.as_path()).unwrap();

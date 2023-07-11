@@ -1,6 +1,8 @@
 /// This module defines interfaces that a development board has
 use enum_iterator::Sequence;
 
+use syn;
+
 use serde::{Serialize, Deserialize};
 use std::fmt;
 
@@ -18,6 +20,7 @@ impl fmt::Display for InterfaceDirection {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Sequence)]
 pub enum Interface {
+    NONE,
     GPIO,
     ADC,
     PWM,
@@ -40,9 +43,22 @@ impl fmt::Display for Interface {
 /// such as the "silkscreen labal", the physical pin number (i.e. counting around the board),
 /// the logical pin number, or possibly some other criteria.
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct InterfaceMapping {
     pub interface: Interface,
     pub pins: Vec<usize>,
+    #[serde(skip)]
+    pub bsp_field: Option<syn::Field>,
+}
+
+impl Default for InterfaceMapping {
+    fn default() -> Self {
+        Self {
+            interface: Interface::NONE,
+            pins: Vec::new(),
+            bsp_field: None,
+        }
+    }
 }
 
 /// A Pinout is a description of the available interfaces on a Board

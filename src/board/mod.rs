@@ -317,10 +317,8 @@ impl Board {
                         let i2c_bus = board_struct.unwrap().fields.iter().find(|field| {
                             field.ident.as_ref().unwrap().to_string() == "i2c_bus"
                         });
-                        if let Some(_i2c_bus) = i2c_bus {
-                            info!("found i2c bus field, mutating pinout (TODO)...");
-                            po.pins[0] += 1;
-                        }
+                        if i2c_bus.is_some() { info!("found field, adding to Pinout..."); }
+                        po.bsp_field = i2c_bus.cloned();
                     },
                     _ => {
                         info!("TODO: looking for another interface field in the Board struct...");

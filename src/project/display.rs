@@ -272,11 +272,11 @@ impl Project {
             window.context_menu(|ui| {
                 ui.menu_button("add connection", |ui| {
                     // for interface in all::<Interface>().collect::<Vec<_>>().iter() {
-                    for interface in board.get_pinout().iter() {
+                    for po in board.get_pinout().iter() {
 
-                        let label = format!("{:?}", interface);
+                        let label = format!("{:?}", po);
                         if ui.button(label).clicked() {
-                            info!("todo");
+                            self.system.connections.push(Connection { secondary_board_idx: 0, interface: po.clone().interface })
                         }
                     }
                 });
@@ -310,13 +310,13 @@ impl Project {
         }
 
         // iterate through connections and draw a line to represent each one
-        self.system.connections.iter().enumerate().for_each(|(idx, connection)| {
-            // the length of our recs vector needs to be equal to the number of connections
-            assert!(recs.len() == self.system.connections.len());
-            let start = recs[idx].0.max;
-            let end   = recs[idx].1.min;
-            ui.painter().line_segment([start, end], egui::Stroke::new(2.0, egui::Color32::GREEN));
-        });
+        // self.system.connections.iter().enumerate().for_each(|(idx, connection)| {
+        //     // the length of our recs vector needs to be equal to the number of connections
+        //     assert!(recs.len() == self.system.connections.len());
+        //     let start = recs[idx].0.max;
+        //     let end   = recs[idx].1.min;
+        //     ui.painter().line_segment([start, end], egui::Stroke::new(2.0, egui::Color32::GREEN));
+        // });
 
     }
 

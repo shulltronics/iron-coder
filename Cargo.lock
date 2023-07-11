@@ -1475,6 +1475,9 @@ dependencies = [
  "image",
  "iron_coder_proc_macro",
  "log",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
  "ra_ap_ide",
  "ra_ap_rust-analyzer",
  "rfd",
@@ -1492,7 +1495,7 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.25",
 ]
 
 [[package]]
@@ -2294,6 +2297,16 @@ dependencies = [
  "log",
  "pin-project-lite",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "prettyplease"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92139198957b410250d43fad93e630d956499a625c527eda65175c8680f83387"
+dependencies = [
+ "proc-macro2",
+ "syn 2.0.25",
 ]
 
 [[package]]

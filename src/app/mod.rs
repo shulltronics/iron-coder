@@ -410,10 +410,10 @@ impl eframe::App for IronCoderApp {
                 // 2: show the action buttons in a bottom panel.
                 egui::TopBottomPanel::bottom("new_project_bottom_panel").show(ctx, |ui| {
                     if ui.button("Start Development").clicked() {
-                        self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
-                        self.project.add_crates_to_project(ctx);
-                        // info!("{:?}", self.project.get_boards()[0]);
-                        self.mode = Mode::DevelopProject;
+                        self.project.generate_cargo_template();
+                        // self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
+                        // self.project.add_crates_to_project(ctx);
+                        // self.mode = Mode::DevelopProject;
                     }
                     if ui.button("Add a board").clicked() {
                         self.display_boards_window = true;

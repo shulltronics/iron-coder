@@ -279,6 +279,10 @@ impl Project {
         });
     }
 
+    pub fn generate_cargo_template(&self) {
+        self.system.generate_system_module();
+    }
+
     pub fn add_crates_to_project(&mut self, ctx: &egui::Context) {
         // TESTING
         for b in self.system.boards.clone().iter() {

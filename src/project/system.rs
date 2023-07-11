@@ -4,6 +4,12 @@
 use std::vec::Vec;
 use serde::{Deserialize, Serialize};
 
+use quote::quote;
+use syn;
+use prettyplease;
+use proc_macro2::TokenStream;
+use std::fs;
+
 use crate::board::{Board, BoardMiniWidget};
 use crate::board::pinout::Interface;
 
@@ -27,7 +33,28 @@ impl Default for System {
 }
 
 impl System {
+    /// Generate a module based on the system
+    pub fn generate_system_module(&self) -> std::io::Result<()> {
+        let num_boards = self.boards.len();
+        let output_tokens = quote! {
+            #![no_std]
+            pub struct System {
+                num_boards: u8,
+            }
 
+            impl System {
+                pub fn new() -> Self {
+                    Self {
+                        num_boards: #num_boards,
+                    }
+                }
+            }
+        };
+        let syn_code: syn::File = syn::parse2(output_tokens).unwrap();
+        let code = prettyplease::unparse(&syn_code);
+        fs::write("tmp/output.rs", code.as_str())?;
+        Ok(())
+    }
 }
 
 /// A Connection is a physical bus connecting two Boards (e.g. I2C, GPIO, SPI, etc).
@@ -56,12 +83,3 @@ impl Connection {
         ui.add(label)
     }
 }
-
-//   maybe there is no such thing as a "default" connection?
-// impl Default for Connection {
-//     fn default() -> Self {
-//         Self {
-
-//         }
-//     }
-// }

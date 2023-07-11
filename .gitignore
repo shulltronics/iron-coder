@@ -1,5 +1,6 @@
 .vscode
 .obsidian/
+tmp/
 
 # for now don't track these as they constantly have breaking changes
 boards/

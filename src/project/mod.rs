@@ -203,8 +203,7 @@ impl Project {
             //     }
             // }
         } else {
-            info!("project save aborted");
-            return Ok(());
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "project save aborted!"));
         }
         self.save()
     }

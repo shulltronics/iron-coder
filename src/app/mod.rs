@@ -426,10 +426,16 @@ impl eframe::App for IronCoderApp {
                     // });
                     if ui.button("Start Development").clicked() {
                         // self.modal.as_ref().unwrap().open();
-                        // self.project.generate_cargo_template();
-                        self.project.save().unwrap_or_else(|_| warn!("couldn't save project!"));
-                        // self.project.add_crates_to_project(ctx);
-                        self.mode = Mode::DevelopProject;
+                        match self.project.save() {
+                            Ok(()) => {
+                                // self.project.generate_cargo_template();
+                                // self.project.add_crates_to_project(ctx);
+                                self.mode = Mode::DevelopProject;
+                            },
+                            Err(e) => {
+                                warn!("couldn't save project: {:?}", e);
+                            },
+                        }
                     }
                     if ui.button("Add a board").clicked() {
                         self.display_boards_window = true;

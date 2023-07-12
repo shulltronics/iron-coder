@@ -6,12 +6,6 @@ use log::warn;
 use std::vec::Vec;
 use serde::{Deserialize, Serialize};
 
-use quote::quote;
-use syn;
-use prettyplease;
-use proc_macro2::TokenStream;
-use std::fs;
-
 use crate::board::{Board, BoardMiniWidget};
 use crate::board::pinout::Interface;
 
@@ -63,69 +57,5 @@ impl Default for System {
 }
 
 impl System {
-    /// Generate a module based on the system
-    pub fn generate_system_module(&self) -> std::io::Result<()> {
-
-        // Get relevant info about the system
-        let system_fields: Vec<proc_macro2::TokenStream> = 
-            self.boards.iter().map(|board| {
-                let bsp_name = quote::format_ident!("{}", "todo_get_bsp_name");
-                let name = board.get_name().replace(" ", "_").to_ascii_lowercase();
-                let board_name = quote::format_ident!("{}", name);
-                quote! {
-                    #board_name: #bsp_name
-                }
-            }).collect();
-        let num_boards = self.boards.len();
-        let connection_impls: Vec<proc_macro2::TokenStream> =
-            self.connections.iter().enumerate().map(|(idx, connection)| {
-                let ident = quote::format_ident!("connection_{}_todo", idx);
-                quote! {
-                    impl System {
-                        pub fn #ident() {
-
-                        }
-                    }
-                }
-            }).collect();
-
-        /************* MODULE CODE HERE *************/
-        let output_tokens = quote!
-        {
-            #![no_std]
-
-            // todo - include needed imports
-
-            pub struct System {
-                #(#system_fields),*,
-                num_boards: u8,
-            }
-
-            impl System {
-                pub fn new() -> Self {
-                    Self {
-                        num_boards: #num_boards,
-                    }
-                }
-            }
-
-            #(#connection_impls)*
-
-        };
-        /************* End Module Code *************/
-
-        // now output the module code to a file, passing through the prettyplease formatter
-        let syn_code: syn::File = match syn::parse2(output_tokens) {
-            Ok(syn_code) => syn_code,
-            Err(e) => {
-                warn!("couldn't parse output_tokens! {:?}", e);
-                syn::parse_str("// error generating module").unwrap()
-            }
-        };
-        let code = prettyplease::unparse(&syn_code);
-        fs::write("tmp/output.rs", code.as_str())?;
-        
-        Ok(())
-
-    }
+    
 }

@@ -26,8 +26,9 @@ pub enum ProjectViewType {
 // this block contains the display related
 // methods for showing the Project in egui.
 impl Project {
-    // A recursive directory display.
-    // <dir> is the starting location, <level> is the recursion depth
+    
+    /// Recursively display the project directory.
+    /// <dir> is the starting location, <level> is the recursion depth
     fn display_directory(&mut self, dir: &Path, level: usize, ctx: &egui::Context, ui: &mut egui::Ui) {
         let iconref: Arc<IconSet> = ctx.data_mut(|data| {
             data.get_temp("icons".into()).unwrap()
@@ -61,7 +62,7 @@ impl Project {
         }
     }
 
-    // show the terminal pane
+    /// show the terminal pane
     pub fn display_terminal(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
         // If there is an open channel, see if we can get some data from it
         if let Some(rx) = &self.receiver {
@@ -87,7 +88,7 @@ impl Project {
         });
     }
 
-    // show the project tree in a Ui
+    /// show the project tree in a Ui
     fn display_project_tree(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         let project_folder = match &self.location {
             None => {
@@ -100,14 +101,14 @@ impl Project {
         self.display_directory(dir, 0, ctx, ui);
     }
 
-    // show the project toolbar
+    /// Show the project toolbar, with buttons to perform various actions
     pub fn display_project_toolbar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         let iconref: Arc<IconSet> = ctx.data_mut(|data| {
             data.get_temp("icons".into()).expect("error loading shared icons!")
         });
         let icons = iconref.clone();
         ui.horizontal(|ui| {
-            // Buttons for various code actions, like compilation
+            // COMPILE CODE
             let button = egui::widgets::Button::image_and_text(
                 icons.get("build_icon").unwrap().texture_id(ctx),
                 egui::Vec2::new(9.0, 9.0),
@@ -118,7 +119,7 @@ impl Project {
             }
 
             ui.separator();
-
+            // LOAD CODE ONTO BOARD
             let button = egui::widgets::Button::image_and_text(
                 icons.get("load_icon").unwrap().texture_id(ctx),
                 egui::Vec2::new(9.0, 9.0),
@@ -127,9 +128,32 @@ impl Project {
             if ui.add(button).clicked() {
                 self.load_to_board(ctx);
             }
+
+            ui.separator();
+            // GENERATE PROJECT TEMPLATE
+            if ui.button("Gen Template").clicked() {
+                info!("generating project template");
+                // self.generate_cargo_template();
+            }
+
+            ui.separator();
+            // GENERATE SYSTEM MODULE
+            if ui.button("Gen Sys Mod").clicked() {
+                info!("generating system module...");
+                match self.generate_system_module() {
+                    Ok(()) => {
+                        info!("generate_system_module returned Ok(()).");
+                    },
+                    Err(e) => {
+                        warn!("generate_system_module returned error: {:?}", e);
+                    },
+                }
+            }
+
         });
     }
 
+    /// In the provided Ui, create a multi-column layout (tabs) that switches the current view state.
     fn display_sidebar_tabs(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         // show the tabs to switch between view modes
         ui.columns(2, |columns| {
@@ -152,6 +176,7 @@ impl Project {
         self.current_view = ProjectViewType::CrateView(crate_name);
     }
 
+    /// Show the project view
     pub fn display_project_sidebar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
 
         self.display_sidebar_tabs(ctx, ui);

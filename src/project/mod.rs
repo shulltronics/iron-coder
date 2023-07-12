@@ -1,15 +1,18 @@
 //! This module describes an Iron Coder project.
 
-use syn;
-
 use log::{info, warn, debug};
 
-use std::error::Error;
+// use std::error::Error;
 use std::io::BufRead;
 use std::io;
 use std::fs;
 use std::path::{Path, PathBuf};
-use fs_extra;
+// use fs_extra;
+
+use quote::quote;
+use syn;
+use prettyplease;
+// use proc_macro2::TokenStream;
 
 use std::vec::Vec;
 
@@ -286,7 +289,7 @@ impl Project {
     }
 
     pub fn generate_cargo_template(&self) {
-        self.system.generate_system_module();
+        info!("todo!");
     }
 
     pub fn add_crates_to_project(&mut self, ctx: &egui::Context) {
@@ -327,6 +330,73 @@ impl Project {
             warn!("couldn't load code snippets for crate {}", crate_name);
         }
         Ok("".to_string())
+    }
+
+    /// Generate a module based on the system. Lots to improve here. For now, this just saves
+    /// the module to the project root (i.e. doesn't account for the existance of a Cargo project).
+    pub fn generate_system_module(&self) -> std::io::Result<()> {
+
+        // Get relevant info about the system
+        let system_fields: Vec<proc_macro2::TokenStream> = 
+            self.system.boards.iter().map(|board| {
+                let bsp_name = quote::format_ident!("{}", "todo_get_bsp_name");
+                let name = board.get_name().replace(" ", "_").to_ascii_lowercase();
+                let board_name = quote::format_ident!("{}", name);
+                quote! {
+                    #board_name: #bsp_name
+                }
+            }).collect();
+        let num_boards = self.system.boards.len();
+        let connection_impls: Vec<proc_macro2::TokenStream> =
+            self.system.connections.iter().enumerate().map(|(idx, connection)| {
+                let ident = quote::format_ident!("connection_{}_todo", idx);
+                quote! {
+                    impl System {
+                        pub fn #ident() {
+
+                        }
+                    }
+                }
+            }).collect();
+
+        /************* MODULE CODE HERE *************/
+        let output_tokens = quote!
+        {
+            #![no_std]
+
+            // todo - include needed imports
+
+            pub struct System {
+                #(#system_fields),*,
+                num_boards: u8,
+            }
+
+            impl System {
+                pub fn new() -> Self {
+                    Self {
+                        num_boards: #num_boards,
+                    }
+                }
+            }
+
+            #(#connection_impls)*
+
+        };
+        /************* End Module Code *************/
+
+        // now output the module code to a file, passing through the prettyplease formatter
+        let syn_code: syn::File = match syn::parse2(output_tokens) {
+            Ok(syn_code) => syn_code,
+            Err(e) => {
+                warn!("couldn't parse output_tokens! {:?}", e);
+                syn::parse_str("// error generating module").unwrap()
+            }
+        };
+        let code = prettyplease::unparse(&syn_code);
+        fs::write(self.get_location() + "/sys_mod_output_testing.rs", code.as_str())?;
+        
+        Ok(())
+
     }
 
 }

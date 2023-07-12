@@ -235,7 +235,6 @@ impl Project {
         });
     }
 
-
     // Show the boards in egui "Area"s so we can move them around!
     pub fn display_system_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         

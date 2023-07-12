@@ -4,6 +4,7 @@ use syn;
 
 use log::{info, warn, debug};
 
+use std::error::Error;
 use std::io::BufRead;
 use std::io;
 use std::fs;
@@ -172,8 +173,14 @@ impl Project {
         Ok(())
     }
 
-    pub fn save_as(&mut self) -> io::Result<()> {
-        if let Some(project_folder) = FileDialog::new().pick_folder() {
+    /// Open a file dialog to select a project folder, and then call the save method
+    pub fn save_as(&mut self, create_containing_folder: bool) -> io::Result<()> {
+        if let Some(mut project_folder) = FileDialog::new().pick_folder() {
+            // if indicated, create a new folder for the project (with same name as project)
+            if create_containing_folder {
+                project_folder = project_folder.join(self.name.clone());
+                fs::create_dir(project_folder.as_path())?;
+            }
             // check if there is an existing .ironcoder.toml file that we might overwrite
             for entry in std::fs::read_dir(&project_folder).unwrap() {
                 if entry.unwrap().file_name().to_str().unwrap() == PROJECT_FILE_NAME {
@@ -184,17 +191,17 @@ impl Project {
                 }
             }
             self.location = Some(project_folder);
-            // TOD: find template directory based on "programmable board" (for now just use board 0)
-            if let Some(template_dir) = self.system.boards[0].get_template_dir() {
-                // copy_recursive(template_dir, project_dir)
-                let options = fs_extra::dir::CopyOptions::new();
-                for entry in std::fs::read_dir(template_dir).unwrap() {
-                    let entry = entry.unwrap().path();
-                    if let Err(e) = fs_extra::copy_items(&[entry.clone()], self.location.clone().unwrap(), &options) {
-                        warn!("couldn't copy template item {:?} to new project folder; {:?}", entry, e);
-                    }
-                }
-            }
+            // TODo: find template directory based on "programmable board" (for now just use board 0)
+            // if let Some(template_dir) = self.system.boards[0].get_template_dir() {
+            //     // copy_recursive(template_dir, project_dir)
+            //     let options = fs_extra::dir::CopyOptions::new();
+            //     for entry in std::fs::read_dir(template_dir).unwrap() {
+            //         let entry = entry.unwrap().path();
+            //         if let Err(e) = fs_extra::copy_items(&[entry.clone()], self.location.clone().unwrap(), &options) {
+            //             warn!("couldn't copy template item {:?} to new project folder; {:?}", entry, e);
+            //         }
+            //     }
+            // }
         } else {
             info!("project save aborted");
             return Ok(());
@@ -206,7 +213,7 @@ impl Project {
     pub fn save(&mut self) -> io::Result<()> {
         if self.location == None {
             info!("no project location, calling save_as...");
-            self.save_as()
+            self.save_as(true)
         } else {
             let project_folder = self.location.clone().unwrap();
             let project_file = project_folder.join(PROJECT_FILE_NAME);

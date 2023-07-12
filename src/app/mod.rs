@@ -15,6 +15,8 @@ use egui::{
     Color32,
 };
 
+use egui_modal::Modal;
+
 // Separate modules
 use crate::board;
 use crate::project::Project;
@@ -45,6 +47,8 @@ pub struct IronCoderApp {
     display_about: bool,
     display_settings: bool,
     display_boards_window: bool,
+    #[serde(skip)]
+    modal: Option<Modal>,
     mode: Mode,
     #[serde(skip)]
     boards: Vec<board::Board>,
@@ -61,6 +65,7 @@ impl Default for IronCoderApp {
             display_about: false,
             display_settings: false,
             display_boards_window: false,
+            modal: None,
             mode: Mode::EditProject,
             boards: boards,
             colorscheme: colorscheme::INDUSTRIAL_DARK,
@@ -84,6 +89,7 @@ impl IronCoderApp {
         //    // Now return a default IronCoderApp
         //    app = Default::default();
         //}
+        app.modal = Some(Modal::new(&cc.egui_ctx, "Iron Coder Modal"));
         app.set_colorscheme(&cc.egui_ctx);
         let kb = app.boards.clone();
         app.project.load_board_resources(kb);
@@ -140,7 +146,7 @@ impl IronCoderApp {
                             "save project as..."
                         );
                         if ui.add(ib).clicked() {
-                            project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
+                            project.save_as(true).unwrap_or_else(|_| warn!("couldn't save project!"));
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
@@ -401,19 +407,29 @@ impl eframe::App for IronCoderApp {
             Mode::EditProject => {
                 // 1: show the project title in a top panel.
                 egui::TopBottomPanel::top("board_selector_top_panel").show(ctx, |ui| {
-                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                        let label = RichText::new("Project Name").underline();
-                        ui.label(label);
-                        ui.text_edit_singleline(self.project.borrow_name());
-                    });
+                    let label = RichText::new("Project Name").underline();
+                    ui.label(label);
+                    ui.text_edit_singleline(self.project.borrow_name());
+
+                    let location_text = self.project.get_location();
+                    let label = RichText::new(format!("Project Folder: {}", location_text)).underline();
+                    ui.label(label);
+                    
                 });
                 // 2: show the action buttons in a bottom panel.
                 egui::TopBottomPanel::bottom("new_project_bottom_panel").show(ctx, |ui| {
+                    // self.modal.as_ref().unwrap().show(|ui| {
+                    //     ui.label("a test of the modal");
+                    //     if ui.button("close").clicked() {
+                    //         self.modal.as_ref().unwrap().close();
+                    //     }
+                    // });
                     if ui.button("Start Development").clicked() {
-                        self.project.generate_cargo_template();
-                        // self.project.save_as().unwrap_or_else(|_| warn!("couldn't save project!"));
+                        // self.modal.as_ref().unwrap().open();
+                        // self.project.generate_cargo_template();
+                        self.project.save().unwrap_or_else(|_| warn!("couldn't save project!"));
                         // self.project.add_crates_to_project(ctx);
-                        // self.mode = Mode::DevelopProject;
+                        self.mode = Mode::DevelopProject;
                     }
                     if ui.button("Add a board").clicked() {
                         self.display_boards_window = true;

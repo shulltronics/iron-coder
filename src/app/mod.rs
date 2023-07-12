@@ -15,7 +15,7 @@ use egui::{
     Color32,
 };
 
-use egui_modal::Modal;
+// use egui_modal::Modal;
 
 // Separate modules
 use crate::board;

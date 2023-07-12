@@ -262,11 +262,11 @@ impl Project {
         Ok(())
     }
 
-    // This method will run a series of command sequentially on a separate
-    // thread, sending their output through the channel to the project's terminal buffer
-    // TODO - fix bug that calling this command again before a former call's thread is 
-    //   complete will overwrite the rx channel in the Project object. Possible solution
-    //   might be to add a command to a queue to be evaluated.
+    /// This method will run a series of command sequentially on a separate
+    /// thread, sending their output through the channel to the project's terminal buffer
+    /// TODO - fix bug that calling this command again before a former call's thread is 
+    ///   complete will overwrite the rx channel in the Project object. Possible solution
+    ///   might be to add a command to a queue to be evaluated.
     fn run_background_commands(&mut self, cmds: &[duct::Expression], ctx: &egui::Context) {
         // create comms channel
         let context = ctx.clone();
@@ -288,8 +288,30 @@ impl Project {
         });
     }
 
-    pub fn generate_cargo_template(&self) {
-        info!("todo!");
+    /// Generate the Cargo project template based on the main board template (if it has one).
+    /// The template will be written to the project directory.
+    /// TODO - generally more useful error returns, i.e. if the cargo generate command returns a 
+    /// non-zero exit status, or if the project directory already contains a Cargo project.
+    pub fn generate_cargo_template(&mut self, ctx: &egui::Context) -> Result<(), String> {
+        info!("generating project template");
+        if self.system.boards.len() == 0 {
+            return Err(String::from("The system needs at least one board to get the template from!"));
+        }
+        if let Some(template_dir) = self.system.boards[0].get_template_dir() {
+            let cmd = duct::cmd!(
+                "cargo",
+                "generate",
+                "--path",
+                template_dir.as_path().to_str().unwrap(),
+                "--name",
+                self.name.clone(),
+                "--destination",
+                self.get_location(),
+                "--init",
+            );
+            self.run_background_commands(&[cmd], ctx);
+        }
+        Ok(())
     }
 
     pub fn add_crates_to_project(&mut self, ctx: &egui::Context) {
@@ -393,7 +415,7 @@ impl Project {
             }
         };
         let code = prettyplease::unparse(&syn_code);
-        fs::write(self.get_location() + "/sys_mod_output_testing.rs", code.as_str())?;
+        fs::write(self.get_location() + "/src/sys_mod_output_testing.rs", code.as_str())?;
         
         Ok(())
 

@@ -133,7 +133,14 @@ impl Project {
             // GENERATE PROJECT TEMPLATE
             if ui.button("Gen Template").clicked() {
                 info!("generating project template");
-                // self.generate_cargo_template();
+                match self.generate_cargo_template(ctx) {
+                    Ok(()) => {
+                        info!("generate_cargo_template returned Ok(()).");
+                    },
+                    Err(e) => {
+                        warn!("generate_cargo_template returned error: {:?}", e);
+                    },
+                }
             }
 
             ui.separator();

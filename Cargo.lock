@@ -1494,6 +1494,7 @@ dependencies = [
  "ra_ap_rust-analyzer",
  "rfd",
  "serde",
+ "slotmap",
  "syn 2.0.25",
  "syntect",
  "toml",

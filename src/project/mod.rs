@@ -44,7 +44,7 @@ const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 pub struct Project {
     name: String,
     location: Option<PathBuf>,
-    system: System,
+    pub system: System,
     #[serde(skip)]
     pub code_editor: CodeEditor,
     #[serde(skip)]
@@ -153,8 +153,7 @@ impl Project {
         self.graph_editor.node_order.push(new_node);
     }
 
-    // this method will populate the project board list via the app-wide
-    // 'known boards' list
+    /// Populate the project board list via the app-wide 'known boards' list
     pub fn load_board_resources(&mut self, known_boards: Vec<Board>) {
         for b in self.system.boards.iter_mut() {
             // returns true if the current, project board is equal to the current known_board

@@ -35,3 +35,4 @@ proc-macro2 = "1.0.64"
 prettyplease = "0.2.10"
 # egui_node_graph = { git = "https://github.com/setzer22/egui_node_graph.git", features = ["persistence"] }
 egui_node_graph = { path = "/home/carstentb/Projects/egui_node_graph/egui_node_graph", features = ["persistence"] }
+slotmap = "1.0.6"

@@ -289,7 +289,7 @@ impl Project {
                         // remove it if it is clicked (TODO -- improve this)
                         if resp.clicked() { connection_to_remove = Some(connection_idx) }
                         // save the rect for future drawing
-                        if board_idx == connection.secondary_board_idx {
+                        if *board == connection.end_board {
                             recs[connection_idx].1 = resp.rect;
                         }
                     });
@@ -307,7 +307,7 @@ impl Project {
 
                         let label = format!("{:?}", po);
                         if ui.button(label).clicked() {
-                            self.system.connections.push(Connection { secondary_board_idx: 0, interface: po.clone().interface })
+                            // self.system.connections.push(Connection { secondary_board_idx: 0, interface: po.clone().interface })
                         }
                     }
                 });

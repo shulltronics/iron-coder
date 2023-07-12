@@ -92,7 +92,8 @@ impl IronCoderApp {
         // app.modal = Some(Modal::new(&cc.egui_ctx, "Iron Coder Modal"));
         app.set_colorscheme(&cc.egui_ctx);
         let kb = app.boards.clone();
-        app.project.load_board_resources(kb);
+        app.project.load_board_resources(kb.clone());
+        app.project.sync_node_graph_with_project(kb);
         return app;
     }
 
@@ -159,6 +160,7 @@ impl IronCoderApp {
                                 println!("error opening project: {:?}", e);
                             } else {
                                 project.load_board_resources(self.boards.clone());
+                                project.sync_node_graph_with_project(self.boards.clone());
                                 *mode = Mode::DevelopProject;
                             }
                         }
@@ -445,6 +447,7 @@ impl eframe::App for IronCoderApp {
                     if ui.button("Add a board").clicked() {
                         self.display_boards_window = true;
                     }
+                    ui.label(format!("number of connection: {}", self.project.system.connections.len()));
                 });
                 // 3: show the CentralPanel with the boards and such.
                 egui::CentralPanel::default().show(ctx, |ui| {

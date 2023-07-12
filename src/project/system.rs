@@ -6,8 +6,11 @@ use log::warn;
 use std::vec::Vec;
 use serde::{Deserialize, Serialize};
 
-use crate::board::{Board, BoardMiniWidget};
-use crate::board::pinout::Interface;
+use crate::board::Board;
+use crate::board::pinout::{
+    Interface,
+    InterfaceType,
+};
 
 /// A Connection is a physical bus connecting two Boards (e.g. I2C, GPIO, SPI, etc).
 /// TODO - determine best way of representing a connection. Can it represent a bus connecting
@@ -15,18 +18,18 @@ use crate::board::pinout::Interface;
 /// network. 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Connection {
-    // pub main_board_idx: usize,
-    pub secondary_board_idx: usize,
-    pub interface: Interface,
+    pub start_board: Board,
+    pub end_board: Board,
+    pub interface: InterfaceType,
 }
 
 impl Connection {
 
-    pub fn new(secondary_idx: usize, interface: Interface) -> Self {
+    pub fn new(start_board: Board, end_board: Board, iface_type: InterfaceType) -> Self {
         Self {
-            // main_board_idx: main_idx,
-            secondary_board_idx: secondary_idx,
-            interface: interface,
+            start_board: start_board,
+            end_board: end_board,
+            interface: iface_type,
         }
     }
 

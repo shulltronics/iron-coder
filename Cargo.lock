@@ -792,6 +792,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_node_graph"
+version = "0.4.0"
+source = "git+https://github.com/setzer22/egui_node_graph.git#3068b8cd9bad3a419682af273c01cd700bda2739"
+dependencies = [
+ "egui",
+ "slotmap",
+ "smallvec",
+ "thiserror",
+]
+
+[[package]]
 name = "either"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1470,6 +1481,7 @@ dependencies = [
  "eframe",
  "egui",
  "egui_extras",
+ "egui_node_graph",
  "enum-iterator",
  "fs_extra",
  "image",

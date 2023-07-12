@@ -6,7 +6,7 @@ use syn;
 use serde::{Serialize, Deserialize};
 use std::fmt;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Sequence)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Sequence)]
 pub enum InterfaceDirection {
     Controller,
     Peripheral,
@@ -18,7 +18,7 @@ impl fmt::Display for InterfaceDirection {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Sequence)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Sequence)]
 pub enum Interface {
     NONE,
     GPIO,
@@ -38,11 +38,17 @@ impl fmt::Display for Interface {
     }
 }
 
+impl Default for Interface {
+    fn default() -> Self {
+        Interface::NONE
+    }
+}
+
 /// And InterfaceMapping is a map of an Interface to a set of pins on the Board.
 /// TODO: I think a "pin" should be able to be referenced by multiple different criteria,
 /// such as the "silkscreen labal", the physical pin number (i.e. counting around the board),
 /// the logical pin number, or possibly some other criteria.
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(default)]
 pub struct InterfaceMapping {
     pub interface: Interface,

@@ -28,6 +28,8 @@ pub mod display;
 use display::ProjectViewType;
 
 pub mod egui_helpers;
+pub mod node_graph;
+use node_graph::SystemEditorState;
 
 mod system;
 use system::System;
@@ -48,6 +50,8 @@ pub struct Project {
     #[serde(skip)]
     terminal_buffer: String,
     #[serde(skip)]
+    graph_editor: SystemEditorState,
+    #[serde(skip)]
     receiver: Option<std::sync::mpsc::Receiver<String>>,
     current_view: ProjectViewType,
 }
@@ -60,6 +64,7 @@ impl Default for Project {
             system: System::default(),
             code_editor: CodeEditor::default(),
             terminal_buffer: String::new(),
+            graph_editor: SystemEditorState::default(),
             receiver: None,
             current_view: ProjectViewType::BoardsView,
         }
@@ -74,6 +79,7 @@ impl Clone for Project {
             system: self.system.clone(),
             code_editor: CodeEditor::default(),
             terminal_buffer: self.terminal_buffer.clone(),
+            graph_editor: self.graph_editor.clone(),
             receiver: None,
             current_view: self.current_view.clone(),
         }

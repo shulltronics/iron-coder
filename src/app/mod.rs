@@ -100,7 +100,7 @@ impl IronCoderApp {
         colorscheme::set_colorscheme(ctx, self.colorscheme.clone());
     }
 
-    // Show the menu and app title
+    /// Show the menu and app title
     pub fn display_title_and_menu(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let Self {
             display_about,
@@ -215,7 +215,12 @@ impl IronCoderApp {
         });
     }
 
-    // Display the list of available boards in a window, and return one if it was clicked
+    /// Returns a copy of the list of available boards.
+    pub fn get_boards(&self) -> Vec<board::Board> {
+        self.boards.clone()
+    }
+
+    /// Display the list of available boards in a window, and return one if it was clicked
     pub fn display_available_boards(&mut self, ctx: &egui::Context) -> Option<board::Board> {
         let Self {
             display_boards_window,
@@ -254,7 +259,7 @@ impl IronCoderApp {
         return board;
     }
 
-    // Show the main view when we're developing a project
+    /// Show the main view when we're developing a project
     pub fn display_project_developer(&mut self, ctx: &egui::Context) {
         let Self {
             project,
@@ -287,7 +292,7 @@ impl IronCoderApp {
         });
     }
 
-    // show/hide the settings window and update the appropriate app state.
+    /// show/hide the settings window and update the appropriate app state.
     pub fn display_settings_window(&mut self, ctx: &egui::Context) {
         let Self {
             display_settings,
@@ -346,7 +351,7 @@ impl IronCoderApp {
         
     }
 
-    // This method will show or hide the "about" window
+    /// This method will show or hide the "about" window
     pub fn display_about_window(&mut self, ctx: &egui::Context) {
         let Self {
             display_about,
@@ -454,7 +459,8 @@ impl eframe::App for IronCoderApp {
                             ui.add_sized([x, 0.0], label);
                         });
                     } else {
-                        self.project.display_system_editor(ctx, ui);
+                        // self.project.display_system_editor(ctx, ui);
+                        self.project.display_system_node_graph(ctx, ui, self.get_boards());
                     }
                 });
                 // 4: (possibly) show the available boards window

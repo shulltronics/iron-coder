@@ -48,7 +48,7 @@ pub struct IronCoderApp {
     display_settings: bool,
     display_boards_window: bool,
     #[serde(skip)]
-    modal: Option<Modal>,
+    // modal: Option<Modal>,
     mode: Mode,
     #[serde(skip)]
     boards: Vec<board::Board>,
@@ -65,7 +65,7 @@ impl Default for IronCoderApp {
             display_about: false,
             display_settings: false,
             display_boards_window: false,
-            modal: None,
+            // modal: None,
             mode: Mode::EditProject,
             boards: boards,
             colorscheme: colorscheme::INDUSTRIAL_DARK,
@@ -89,7 +89,7 @@ impl IronCoderApp {
         //    // Now return a default IronCoderApp
         //    app = Default::default();
         //}
-        app.modal = Some(Modal::new(&cc.egui_ctx, "Iron Coder Modal"));
+        // app.modal = Some(Modal::new(&cc.egui_ctx, "Iron Coder Modal"));
         app.set_colorscheme(&cc.egui_ctx);
         let kb = app.boards.clone();
         app.project.load_board_resources(kb);

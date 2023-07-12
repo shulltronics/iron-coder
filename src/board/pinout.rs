@@ -7,9 +7,12 @@ use serde::{Serialize, Deserialize};
 use std::fmt;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Sequence)]
+#[non_exhaustive]
 pub enum InterfaceDirection {
-    Controller,
-    Peripheral,
+    Unknown,
+    Input,
+    Output,
+    Bidirectional,
 }
 
 impl fmt::Display for InterfaceDirection {
@@ -19,17 +22,31 @@ impl fmt::Display for InterfaceDirection {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Sequence)]
-pub enum Interface {
+#[non_exhaustive]
+/// The various types of electrical interfaces we use with dev boards
+pub enum InterfaceType {
     NONE,
     GPIO,
     ADC,
     PWM,
     UART,
-    I2C(InterfaceDirection),
-    SPI(InterfaceDirection),
+    I2C,
+    SPI,
     PIO,
-    I2S(InterfaceDirection),
-    USB(InterfaceDirection),
+    I2S,
+    USB,
+}
+
+impl fmt::Display for InterfaceType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Sequence)]
+pub struct Interface {
+    pub iface_type: InterfaceType,
+    pub direction: InterfaceDirection,
 }
 
 impl fmt::Display for Interface {
@@ -40,7 +57,10 @@ impl fmt::Display for Interface {
 
 impl Default for Interface {
     fn default() -> Self {
-        Interface::NONE
+        Self {
+            iface_type: InterfaceType::NONE,
+            direction: InterfaceDirection::Unknown,
+        }
     }
 }
 
@@ -60,7 +80,7 @@ pub struct InterfaceMapping {
 impl Default for InterfaceMapping {
     fn default() -> Self {
         Self {
-            interface: Interface::NONE,
+            interface: Interface::default(),
             pins: Vec::new(),
             bsp_field: None,
         }

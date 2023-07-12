@@ -49,7 +49,6 @@ pub struct Project {
     pub code_editor: CodeEditor,
     #[serde(skip)]
     terminal_buffer: String,
-    #[serde(skip)]
     graph_editor: SystemEditorState,
     #[serde(skip)]
     receiver: Option<std::sync::mpsc::Receiver<String>>,
@@ -86,6 +85,7 @@ impl Clone for Project {
     }
 }
 
+use egui_node_graph::NodeTemplateTrait;
 // backend functionality for Project struct
 impl Project {
     
@@ -126,8 +126,6 @@ impl Project {
             true => {
                 if self.has_main_board() {
                     info!("project already contains a main board! aborting.");
-                } else {
-                    self.system.boards.push(board);
                     return;
                 }
             },
@@ -138,9 +136,21 @@ impl Project {
                     self.terminal_buffer += "project already contains that board\n";
                     return;
                 }
-                self.system.boards.push(board);
             }
         }
+        self.system.boards.push(board.clone());
+        let node_kind = board.clone();
+        let user_state = &mut self.system;
+        let new_node = self.graph_editor.graph.add_node(
+            node_kind.node_graph_label(user_state),
+            node_kind.user_data(user_state),
+            |graph, node_id| node_kind.build_node(graph, user_state, node_id),
+        );
+        self.graph_editor.node_positions.insert(
+            new_node,
+            egui::Pos2::ZERO,
+        );
+        self.graph_editor.node_order.push(new_node);
     }
 
     // this method will populate the project board list via the app-wide
@@ -226,8 +236,15 @@ impl Project {
             let project_folder = self.location.clone().unwrap();
             let project_file = project_folder.join(PROJECT_FILE_NAME);
             info!("saving project file to {}", project_file.display().to_string());
-            let contents: String = toml::to_string(self).unwrap();
-            fs::write(project_file, contents)?;
+            
+            match toml::to_string(self) {
+                Ok(contents) => {
+                    fs::write(project_file, contents)?;
+                },
+                Err(e) => {
+                    warn!("couldn't save project to toml file!! {:?}", e);
+                }
+            }
             Ok(())
         }
     }

@@ -132,10 +132,6 @@ pub struct Board {
 
 impl Default for Board {
     fn default() -> Self {
-        let mut i = Vec::new();
-        i.push(pinout::Interface::I2C(pinout::InterfaceDirection::Controller));
-        i.push(pinout::Interface::I2C(pinout::InterfaceDirection::Peripheral));
-        i.push(pinout::Interface::ADC);
         Self {
             name: "".to_string(),
             manufacturer: "".to_string(),
@@ -311,8 +307,8 @@ impl Board {
             // iterate through the pinout (as supplied by the board manifest file), and look for
             // matching fields in the Board struct.
             for po in self.pinout.iter_mut() {
-                match po.interface {
-                    pinout::Interface::I2C(_) => {
+                match po.interface.iface_type {
+                    pinout::InterfaceType::I2C => {
                         // search for a field in the Board struct that matches "i2c_bus"
                         let i2c_bus = board_struct.unwrap().fields.iter().find(|field| {
                             field.ident.as_ref().unwrap().to_string() == "i2c_bus"

@@ -1,3 +1,6 @@
 [submodule "iron-coder-boards"]
 	path = iron-coder-boards
 	url = https://github.com/shulltronics/iron-coder-boards.git
+[submodule "iron-coder-projects"]
+	path = iron-coder-projects
+	url = https://github.com/shulltronics/iron-coder-projects.git

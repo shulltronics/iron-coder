@@ -58,7 +58,7 @@ pub struct IronCoderApp {
 impl Default for IronCoderApp {
     fn default() -> Self {
         // Populate the boards
-        let boards_dir = Path::new("./boards");
+        let boards_dir = Path::new("./iron-coder-boards");
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
         Self {
             project: Project::default(),

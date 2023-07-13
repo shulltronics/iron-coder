@@ -52,7 +52,7 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
                         let bsp_dir = parent.join("bsp");
                         if let Ok(true) = bsp_dir.try_exists() {
                             info!("found local bsp crate for board {}", board.name.clone());
-                            board.bsp_dir = Some(bsp_dir.clone());
+                            board.bsp_path = Some(bsp_dir.clone());
                             let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
                             let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
                             board.ra_values = analysis.file_structure(fid).unwrap();
@@ -78,6 +78,7 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
 }
 
 /// These are the various standard development board form factors
+#[non_exhaustive]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum BoardStandards {
     Feather,
@@ -122,8 +123,9 @@ pub struct Board {
     examples: Vec<PathBuf>,
     #[serde(skip)]
     template_dir: Option<PathBuf>,
+    pub bsp: Option<String>,
     #[serde(skip)]
-    pub bsp_dir: Option<PathBuf>,
+    pub bsp_path: Option<PathBuf>,
     #[serde(skip)]
     pic: Option<egui::ColorImage>,
     required_crates: Option<Vec<String>>,
@@ -144,7 +146,8 @@ impl Default for Board {
             ra_values: Vec::new(),
             examples: Vec::new(),
             template_dir: None,
-            bsp_dir: None,
+            bsp: None,
+            bsp_path: None,
             pic: None,
             required_crates: None,
             related_crates: None,
@@ -166,8 +169,9 @@ impl fmt::Debug for Board {
         write!(f, "  num required crates: {}\n", self.required_crates.clone().unwrap_or_default().len())?;
         write!(f, "  num related crates: {}\n", self.related_crates.clone().unwrap_or_default().len())?;
         write!(f, "  has pic: {}\n", self.pic.is_some())?;
-        write!(f, "  has template: {}", self.template_dir.is_some())?;
-        write!(f, "  has local bsp: {}", self.bsp_dir.is_some())?;
+        write!(f, "  has template: {}\n", self.template_dir.is_some())?;
+        write!(f, "  bsp crate name: {:?}\n", self.bsp)?;
+        write!(f, "  has local bsp: {:?}\n", self.bsp_path)?;
         Ok(())
     }
 }
@@ -248,10 +252,11 @@ impl Board {
 /// More complex implementations on Board, such as parsing the bsp using the syn crate
 impl Board {
 
-    /// Try to parse the Board's BSP and return a syn::File object
+    /// Try to parse the Board's BSP and return a syn::File object. For now only supporting
+    /// local BSPs.
     pub fn parse_bsp(&self) -> Option<syn::File> {
         let mut syntax = None;
-        if let Some(bsp_dir) = self.bsp_dir.clone() {
+        if let Some(bsp_dir) = self.bsp_path.clone() {
             let src = bsp_dir.join("src/lib.rs");
             let src = fs::read_to_string(src.as_path()).unwrap();
             syntax = match syn::parse_file(src.as_str()) {

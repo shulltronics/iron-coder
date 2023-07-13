@@ -28,7 +28,7 @@ duct = "0.13.6"
 enum-iterator = "1.4.1"
 ra_ap_rust-analyzer = "0.0.160"
 ra_ap_ide = "0.0.160"
-syn = { version = "2.0.25", features = ["full", "extra-traits", "parsing"] }
+syn = { version = "2.0.25", features = ["full", "extra-traits", "parsing", "visit"] }
 quote = "1.0.29"
 proc-macro2 = "1.0.64"
 prettyplease = "0.2.10"

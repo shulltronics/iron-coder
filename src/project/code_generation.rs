@@ -1,11 +1,16 @@
 //! Implementation of metaprogramming tasks (i.e. code generation)
 
-use log::warn;
+use log::{info, warn};
 use std::fs;
 use quote::quote;
-use syn;
 use prettyplease;
+use syn::{
+    self,
+    visit::Visit,
+};
+
 use crate::project::Project;
+use crate::board::pinout;
 
 /// This struct contains all the needed info for adding fields to the System module.
 #[derive(Default)]
@@ -15,19 +20,37 @@ struct SystemBoardTokens {
     pub field_constructor_token_streams: Vec<proc_macro2::TokenStream>,
 }
 
+/// Use the `syn::visit::Visit` trait to explore the syntax tree of the BSP
+impl<'ast> Visit<'ast> for SystemBoardTokens {
+    fn visit_item_struct(&mut self, item_struct: &'ast syn::ItemStruct) {
+        if item_struct.ident.to_string() == "Board" {
+            info!("found Board struct");
+            self.visit_generics(&item_struct.generics);
+        }
+    }
+
+    // fn visit_item(&mut self, item: &'ast syn::Item) {
+    //     info!("visit_item called");
+    // }
+
+    fn visit_generics(&mut self, generics: &'ast syn::Generics) {
+        // info!("iterating generics: {:#?}", generics);
+        for g in generics.params.iter() {
+            info!("found generic param {:?}", g);
+        }
+    }
+}
+
 impl Project {
 
     /// For each board in our system, generate the TokenStream for it's field
     /// in the System struct. Return these in a Vec.
-    fn gather_board_fields(&self) -> SystemBoardTokens {
+    fn gather_board_fields(&mut self) -> SystemBoardTokens {
 
-        let SystemBoardTokens {
-            mut use_statements,
-            mut field_type_token_streams,
-            mut field_constructor_token_streams,
-        } = SystemBoardTokens::default();
+        let mut sbt = SystemBoardTokens::default();
 
-        for board in self.system.boards.iter() {
+        for board in self.system.boards.iter_mut() {
+            // firstly, get the BSP crate names to generate the `use` statements and struct field names.
             let bsp = board.bsp.clone().unwrap_or_else(|| String::from("todo_get_bsp_name")).replace("-", "_").replace("(", "").replace(")", "");
             let bsp_name = quote::format_ident!(
                 "{}",
@@ -43,26 +66,41 @@ impl Project {
             let struct_field = quote! {
                 pub #board_name: #bsp_name::Board
             };
+            // push them onto the vecs
+            sbt.use_statements.push(use_statement);
+            sbt.field_type_token_streams.push(struct_field);
 
             let struct_constructor = quote! {
                 #board_name: #bsp_name::Board::new()
             };
+            sbt.field_constructor_token_streams.push(struct_constructor);
 
-            use_statements.push(use_statement);
-            field_type_token_streams.push(struct_field);
-            field_constructor_token_streams.push(struct_constructor);
+            // Parse the BSP to look at what's in it, determine if we need to resolve 
+            // any generic types, etc
+            info!("sending board {:?} through the syn visitor!", board.get_name());
+            if let Some(syntax) = board.parse_bsp() {
+                // iterate throught the AST, looking for a struct called "Board"
+                syntax.items.iter().for_each(|item| {
+                    match item {
+                        syn::Item::Struct(item_struct) => {
+                            sbt.visit_item_struct(item_struct);
+                        },
+                        _ => (),
+                    }
+                });
+            } else {
+                warn!("couldn't parse BSP syntax!");
+            }
 
         }
-        return SystemBoardTokens {
-            use_statements: use_statements,
-            field_type_token_streams: field_type_token_streams,
-            field_constructor_token_streams: field_constructor_token_streams,
-        };
+
+        return sbt;
+
     }
 
     /// Generate a module based on the system. Lots to improve here. For now, this just saves
     /// the module to the project root (i.e. doesn't account for the existance of a Cargo project).
-    pub fn generate_system_module(&self) -> std::io::Result<()> {
+    pub fn generate_system_module(&mut self) -> std::io::Result<()> {
 
         let SystemBoardTokens {
             use_statements,

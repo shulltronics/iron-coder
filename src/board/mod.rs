@@ -1,7 +1,6 @@
 //! This module provides functionality for development boards
 
 use log::{info, warn, debug};
-use syn;
 
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -13,6 +12,7 @@ use serde::{Serialize, Deserialize};
 
 // use ra_ap_rust_analyzer::cli::load_cargo::load_workspace_at;
 use ra_ap_ide;
+use syn;
 
 pub mod pinout;
 use pinout::Pinout;
@@ -117,18 +117,29 @@ pub struct Board {
     flash: Option<isize>,
     /// A list of the interfaces available on the board
     pub pinout: Pinout,
+    /// A list of the Syntax Nodes of the BSP calculated by Rust Analyzer
     #[serde(skip)]
     pub ra_values: Vec<ra_ap_ide::StructureNode>,
+    /// A list of examples
     #[serde(skip)]
     examples: Vec<PathBuf>,
+    /// An local path of a project template
     #[serde(skip)]
     template_dir: Option<PathBuf>,
+    /// The name of a BSP crate
     pub bsp: Option<String>,
+    /// An optional path to a local BSP (if None, means the BSP should be on crates.io)
     #[serde(skip)]
     pub bsp_path: Option<PathBuf>,
+    /// A syntax tree representation of the BSP
+    #[serde(skip)]
+    pub bsp_syntax: Option<syn::File>,
+    /// A loaded picture representing the board
     #[serde(skip)]
     pic: Option<egui::ColorImage>,
+    /// A list of required crates
     required_crates: Option<Vec<String>>,
+    /// A list of related, optional crates
     related_crates: Option<Vec<String>>,
 }
 
@@ -148,6 +159,7 @@ impl Default for Board {
             template_dir: None,
             bsp: None,
             bsp_path: None,
+            bsp_syntax: None,
             pic: None,
             required_crates: None,
             related_crates: None,
@@ -172,6 +184,7 @@ impl fmt::Debug for Board {
         write!(f, "  has template: {}\n", self.template_dir.is_some())?;
         write!(f, "  bsp crate name: {:?}\n", self.bsp)?;
         write!(f, "  has local bsp: {:?}\n", self.bsp_path)?;
+        write!(f, "  has some syntax loaded: {:?}\n", self.bsp_syntax.is_some())?;
         Ok(())
     }
 }
@@ -252,8 +265,7 @@ impl Board {
 /// More complex implementations on Board, such as parsing the bsp using the syn crate
 impl Board {
 
-    /// Try to parse the Board's BSP and return a syn::File object. For now only supporting
-    /// local BSPs.
+    /// Try to parse the Board's BSP, returning the result
     pub fn parse_bsp(&self) -> Option<syn::File> {
         let mut syntax = None;
         if let Some(bsp_dir) = self.bsp_path.clone() {
@@ -269,16 +281,73 @@ impl Board {
                 },
             };
         }
+        // self.bsp_syntax = syntax.clone();
         return syntax;
     }
 
     /// Parse the Board's BSP, and print info about it into a String
-    pub fn log_syn_file_to_string(&self) -> String {
+    pub fn log_syn_file_to_string(&mut self) -> String {
         let mut result = String::new();
         if let Some(syntax) = self.parse_bsp() {
             result = format!("{:?}", syntax);
         }
         return result;
+    }
+
+    /// Print out some info about the parsed BSP syntax
+    pub fn print_info_about_bsp(&self, syntax: syn::File) {
+        info!("parsing BSP for {:?}", self.get_name());
+        BoardVisitor.visit_file(&syntax);
+        // extract the Board struct
+        // let mut board_struct = None;
+        // for item in syntax.items.iter() {
+        //     board_struct = match item {
+        //         syn::Item::Struct(item_struct) => {
+        //             if item_struct.ident.to_string() == "Board" {
+        //                 Some(item_struct)
+        //             } else {
+        //                 None
+        //             }
+        //         },
+        //         _ => None,
+        //     };
+        //     if board_struct.is_some() {
+        //         info!("found Board struct!");
+        //         // let generics = &board_struct.unwrap().generics;
+        //         // if generics.params.len() > 0 {
+        //         //     info!("found some generics..");
+        //         //     generics.params.iter().for_each(|p| {
+        //         //         info!("  {:?}", p);
+        //         //     });
+        //         // }
+                
+        //         // println!("{:#?}", board_struct.unwrap());
+        //         break;
+        //     }
+        // }
+        
+        // if board_struct == None {
+        //     info!("no Board struct found, returning");
+        //     return;
+        // }
+        // // iterate through the pinout (as supplied by the board manifest file), and look for
+        // // matching fields in the Board struct.
+        // info!("iterating through board pinout, looking for relevant fields...");
+        // for po in self.pinout.iter() {
+        //     match po.interface.iface_type {
+        //         pinout::InterfaceType::I2C => {
+        //             // search for a field in the Board struct that matches "i2c_bus"
+        //             let i2c_bus = board_struct.unwrap().fields.iter().find(|field| {
+        //                 field.ident.as_ref().unwrap().to_string() == "i2c_bus"
+        //             });
+        //             if i2c_bus.is_some() { info!("found field!"); }
+        //             // po.bsp_field = i2c_bus.cloned();
+        //         },
+        //         ref p @ _ => {
+        //             info!("TODO: look for interface {:?} field in the Board struct.", p);
+        //         },
+        //     }
+        // }
     }
 
     /// Using the syn parsing of the BSP, update the pinout field of the Board to include
@@ -333,4 +402,22 @@ impl Board {
     
     }
 
+}
+
+use syn::visit::{self, Visit};
+struct BoardVisitor;
+impl<'ast> visit::Visit<'ast> for BoardVisitor {
+    /// What to do when visiting a Struct
+    fn visit_item_struct(&mut self, item_struct: &'ast syn::ItemStruct) {
+        if item_struct.ident.to_string() == "Board" {
+            info!("found Board struct");
+            // self.visit_generics(&item_struct.generics);
+        }
+    }
+
+    fn visit_generics(&mut self, generics: &'ast syn::Generics) {
+        for g in generics.params.iter() {
+            info!("  found generic: {:?}", g);
+        }
+    }
 }

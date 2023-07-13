@@ -4,3 +4,6 @@
 [submodule "iron-coder-projects"]
 	path = iron-coder-projects
 	url = https://github.com/shulltronics/iron-coder-projects.git
+[submodule "egui_node_graph"]
+	path = egui_node_graph
+	url = https://github.com/shulltronics/egui_node_graph.git

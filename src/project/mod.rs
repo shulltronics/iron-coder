@@ -248,7 +248,7 @@ impl Project {
         }
     }
 
-    // builds the code
+    /// Build the code with Cargo
     fn build(&mut self, ctx: &egui::Context) {
         // Make sure we have a valid path
         if let Some(path) = &self.location {
@@ -261,7 +261,7 @@ impl Project {
         }
     }
 
-    // loads the code (for now using 'cargo run')
+    /// Load the code (for now using 'cargo run')
     fn load_to_board(&mut self, ctx: &egui::Context) {
         if let Some(path) = &self.location {
             let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run");
@@ -361,7 +361,7 @@ impl Project {
         }
     }
 
-    // Attempt to load code snippets for the provided crate
+    /// Attempt to load code snippets for the provided crate
     fn load_snippets(&self, base_dir: &Path, crate_name: String) -> io::Result<String> {
         let snippets_dir = base_dir.join(crate_name.clone());
         if let Ok(true) = snippets_dir.try_exists() {
@@ -428,20 +428,6 @@ impl Project {
             field_type_token_streams,
             field_constructor_token_streams,
         } = self.gather_board_fields();
-        
-        // let num_boards = self.system.boards.len();
-        // // Iterate through the system connections and produce code for each one
-        // let connection_impls: Vec<proc_macro2::TokenStream> =
-        //     self.system.connections.iter().enumerate().map(|(idx, connection)| {
-        //         let ident = quote::format_ident!("connection_{}_todo", idx);
-        //         quote! {
-        //             impl System {
-        //                 pub fn #ident() {
-
-        //                 }
-        //             }
-        //         }
-        //     }).collect();
 
         /************* MODULE CODE HERE *************/
         let output_tokens = quote!

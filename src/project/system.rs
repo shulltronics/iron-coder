@@ -39,7 +39,6 @@ impl Connection {
     }
 }
 
-
 /// A system represents the development boards and their interconnections
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct System {

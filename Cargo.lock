@@ -1485,7 +1485,6 @@ dependencies = [
  "enum-iterator",
  "fs_extra",
  "image",
- "iron_coder_proc_macro",
  "log",
  "prettyplease",
  "proc-macro2",
@@ -1500,15 +1499,6 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "iron_coder_proc_macro"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.25",
 ]
 
 [[package]]

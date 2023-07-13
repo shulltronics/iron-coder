@@ -7,12 +7,8 @@ use egui::widget_text::RichText;
 use egui::widgets::Button;
 
 use crate::project::Project;
-use crate::project::system::Connection;
 use crate::board::BoardMiniWidget;
-use crate::board::pinout::Interface;
 use crate::app::icons::IconSet;
-
-use enum_iterator::all;
 
 use serde::{Serialize, Deserialize};
 
@@ -161,7 +157,7 @@ impl Project {
     }
 
     /// In the provided Ui, create a multi-column layout (tabs) that switches the current view state.
-    fn display_sidebar_tabs(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    fn display_sidebar_tabs(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
         // show the tabs to switch between view modes
         ui.columns(2, |columns| {
             let mut new_view: ProjectViewType;
@@ -268,7 +264,7 @@ impl Project {
     }
 
     // Show the boards in egui "Area"s so we can move them around!
-    pub fn display_system_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    pub fn display_system_editor(&mut self, ctx: &egui::Context, _ui: &mut egui::Ui) {
         
         let mut recs: Vec<(egui::Rect, egui::Rect)> = vec![(egui::Rect::NOTHING, egui::Rect::NOTHING); self.system.connections.len()];
         let mut board_to_remove = None;

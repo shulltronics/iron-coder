@@ -1,16 +1,11 @@
 //! This module represents a hardware system, i.e. a main board,
 //! a set of peripheral boards, and the connections between them.
 
-use log::warn;
-
 use std::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 use crate::board::Board;
-use crate::board::pinout::{
-    Interface,
-    InterfaceType,
-};
+use crate::board::pinout::InterfaceType;
 
 /// A Connection is a physical bus connecting two Boards (e.g. I2C, GPIO, SPI, etc).
 /// TODO - determine best way of representing a connection. Can it represent a bus connecting
@@ -33,7 +28,7 @@ impl Connection {
         }
     }
 
-    pub fn display(&self, ctx: &egui::Context, ui: &mut egui::Ui) -> egui::Response {
+    pub fn display(&self, _ctx: &egui::Context, ui: &mut egui::Ui) -> egui::Response {
         let label = egui::Label::new(format!("{:?}", self)).sense(egui::Sense::click());
         ui.add(label)
     }

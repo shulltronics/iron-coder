@@ -1,7 +1,7 @@
 use std::string::String;
 use std::fmt;
 
-use log::{info, debug};
+use log::info;
 
 use egui::Ui;
 use egui::containers::scroll_area::ScrollArea;
@@ -158,8 +158,6 @@ impl CodeEditor {
     fn highlight(&mut self, text: &str, language: &str) -> LayoutJob {
         // Destructure, and do the highlighting
         let CodeEditor {
-            tabs,
-            active_tab,
             ps,
             ts,
             ..

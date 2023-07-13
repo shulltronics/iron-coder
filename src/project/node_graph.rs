@@ -27,7 +27,7 @@ use super::system::Connection;
 
 impl eng::DataTypeTrait<System> for InterfaceType {
     
-    fn data_type_color(&self, user_state: &mut System) -> Color32 {
+    fn data_type_color(&self, _user_state: &mut System) -> Color32 {
         // TODO - do this based on colorscheme?
         match self {
             InterfaceType::I2C => egui::Color32::GREEN,
@@ -202,7 +202,7 @@ impl Project {
     }
 
     /// Display the node editor in the calling container.
-    pub fn display_system_node_graph(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, known_boards: Vec<Board>) {
+    pub fn display_system_node_graph(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui, known_boards: Vec<Board>) {
         let kb = BoardList(known_boards);
         let gr: eng::GraphResponse<NodeResponseType, Board> = self.graph_editor.draw_graph_editor(
             ui,
@@ -213,7 +213,7 @@ impl Project {
         // look through the reponses, and perform appropriate actions
         gr.node_responses.iter().for_each(|response| {
             match response {
-                eng::NodeResponse::DeleteNodeFull { node_id, node } => {
+                eng::NodeResponse::DeleteNodeFull { node_id: _, node } => {
                     info!("removing node from system...");
                     match self.system.boards.iter().position(|elem| *elem == node.user_data) {
                         Some(idx) => {
@@ -224,12 +224,12 @@ impl Project {
                         }
                     }
                 },
-                r @ eng::NodeResponse::ConnectEventEnded { output, input } => {
+                r @ eng::NodeResponse::ConnectEventEnded { output: _, input: _ } => {
                     info!("got ConnectEventEnded response! {:?}", r);
                     let conns = Project::convert_connections(self.graph_editor.graph.connections.clone(), self.graph_editor.graph.clone());
                     self.system.connections = conns;
                 },
-                r @ eng::NodeResponse::DisconnectEvent { output, input } => {
+                r @ eng::NodeResponse::DisconnectEvent { output: _, input: _ } => {
                     info!("got DisconnectEvent response! {:?}", r);
                     let conns = Project::convert_connections(self.graph_editor.graph.connections.clone(), self.graph_editor.graph.clone());
                     self.system.connections = conns;

@@ -143,7 +143,7 @@ impl Project {
             // GENERATE SYSTEM MODULE
             if ui.button("Gen Sys Mod").clicked() {
                 info!("generating system module...");
-                match self.generate_system_module() {
+                match self.generate_system_module(ctx) {
                     Ok(()) => {
                         info!("generate_system_module returned Ok(()).");
                     },

@@ -89,6 +89,7 @@ impl<'ast> Visit<'ast> for SystemBoardTokens {
 #[non_exhaustive]
 pub enum BspParseError {
     IdentError,
+    CargoError,
     OtherError,
 }
 
@@ -96,11 +97,19 @@ impl Project {
 
     /// For each board in our system, generate the TokenStream for it's field
     /// in the System struct. Return these in a Vec.
-    fn gather_board_fields(&mut self) -> Result<SystemBoardTokens, BspParseError> {
+    fn gather_board_fields(&mut self, ctx: &egui::Context) -> Result<SystemBoardTokens, BspParseError> {
 
         let mut tokens = SystemBoardTokens::default();
         // TYPE RESOLUTION PASS -- in this pass we go through the BSPs, looking for generic types
         // and trying to substitute them with concrete ones.
+        info!("adding system board crates to the project manifest.");
+        match self.add_bsp_crates_to_project(ctx) {
+            Ok(_) => (),
+            Err(msg) => {
+                warn!("Error adding crates to the manifest: {:?}", msg);
+                return Err(BspParseError::CargoError);
+            }
+        }
         for board in self.system.boards.iter_mut() {
 
             // Get the BSP crate names to construct the `use` statements and field type identifiers.
@@ -155,47 +164,20 @@ impl Project {
 
         info!("after parsing BSPs, the datastructure looks like: \n{:#?}", tokens);
 
-        // Now go through another round to generate the 
-        // for (idx, board) in self.system.boards.iter_mut().enumerate() {
-        //     // Get the BSP crate names to generate the `use` statements and struct field names.
-        //     let bsp = board.bsp.clone().unwrap_or_else(|| String::from("todo_get_bsp_name")).replace("-", "_").replace("(", "").replace(")", "");
-        //     let bsp_crate_ident = quote::format_ident!(
-        //         "{}",
-        //         bsp,
-        //     );
-            
-
-        //     let use_statement = quote! {
-        //         use #bsp_crate_ident;
-        //     };
-
-        //     let struct_field = quote! {
-        //         pub #board_name: #bsp_crate_ident::Board
-        //     };
-
-
-        //     let struct_constructor = quote! {
-        //         #board_name: #bsp_crate_ident::Board::new()
-        //     };
-
-        //     sbt.field_constructor_token_streams.push(struct_constructor);
-
-        // }
-
         return Ok(tokens);
 
     }
 
     /// Generate a module based on the system. Lots to improve here. For now, this just saves
     /// the module to the project root (i.e. doesn't account for the existance of a Cargo project).
-    pub fn generate_system_module(&mut self) -> Result<(), String> {
+    pub fn generate_system_module(&mut self, ctx: &egui::Context) -> Result<(), String> {
 
         let SystemBoardTokens {
             use_statements,
             field_type_token_streams,
             field_constructor_token_streams,
             ..
-        } = match self.gather_board_fields() {
+        } = match self.gather_board_fields(ctx) {
             Ok(sbt) => sbt,
             Err(e) => {
                 warn!("error in gather_board_fields method: {:?}", e);
@@ -239,7 +221,7 @@ impl Project {
             }
         };
         let code = prettyplease::unparse(&syn_code);
-        match fs::write(self.get_location() + "/src/sys_mod_output_testing.rs", code.as_str()) {
+        match fs::write(self.get_location() + "/src/system.rs", code.as_str()) {
             Ok(_) => Ok(()),
             Err(_) => return Err("error writing generated code to project src directory.".to_string()),
         }

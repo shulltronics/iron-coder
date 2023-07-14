@@ -312,11 +312,22 @@ impl Project {
     /// non-zero exit status, or if the project directory already contains a Cargo project.
     pub fn generate_cargo_template(&mut self, ctx: &egui::Context) -> Result<(), String> {
         info!("generating project template");
+        // make sure that the first board of the project is present and is a main board. This should be an
+        // app-wide invariant, but I haven't quite made sure of that yet.
         if self.system.boards.len() == 0 {
             return Err(String::from("The system needs a main board before generating the template!"));
         }
-        // TODO -- put this somewhere configurable, like in a CliOpts struct :)
-        let template_dir = Path::new("templates/basic/");
+        if !self.system.boards[0].is_main_board() {
+            return Err(String::from("Error: the first board isn't a main board!"));
+        }
+
+        let template_dir = match self.system.boards[0].get_template_dir() {
+            Some(td) => td,
+            None => {
+                return Err(format!("no template directory for board {}!", self.system.boards[0].get_name()));
+            }
+        };
+
         let cmd = duct::cmd!(
             "cargo",
             "generate",
@@ -332,29 +343,43 @@ impl Project {
         Ok(())
     }
 
-    pub fn add_crates_to_project(&mut self, ctx: &egui::Context) {
-        // TESTING
-        for _b in self.system.boards.clone().iter() {
-            // nothing for now
-        }
-
-        if let Some(project_folder) = self.location.clone() {
-            for b in self.system.boards.clone().iter() {
-                if let Some(rc) = b.required_crates() {
-                    info!("installing required crates for board {:?}", b);
-                    let mut cmds: Vec<duct::Expression> = rc.iter().map(|c| {
-                        duct::cmd!("cargo", "-Z", "unstable-options", "-C",
-                            project_folder.as_path().to_str().unwrap(), "add",
-                            c)
-                    }).collect();
-                    let init_cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C",
-                        project_folder.as_path().to_str().unwrap(), "init",
-                        "--name", self.name.as_str(), "--vcs", "none");
-                    cmds.insert(0, init_cmd);
-                    self.run_background_commands(cmds.as_slice(), ctx);
-                }
+    /// This method attempts to add the BSPs for each board in the project to the Cargo.toml
+    /// It might return Err if, for example, there is no manifest file.
+    pub fn add_bsp_crates_to_project(&mut self, ctx: &egui::Context) -> Result<(), String> {
+        let project_dir = match self.location.clone() {
+            Some(pd) => pd,
+            None => return Err("no project location!".to_string()),
+        };
+        let mut cmds: Vec<duct::Expression> = vec![];
+        for board in self.borrow_boards() {
+            if let Some(bsp_path) = board.bsp_path.clone() {
+                // If there is a local BSP, use that to add to the manifest
+                cmds.push(duct::cmd!(
+                    "cargo",
+                    "add",
+                    "--path",
+                    bsp_path.as_path().to_str().unwrap(),
+                    "--manifest-path",
+                    project_dir.join("Cargo.toml").as_path().to_str().unwrap(),
+                ));
+            } else {
+                // otherwise, just add it via it's name and let cargo fetch the source from crates.io
+                let bsp_crate_name = match &board.bsp {
+                    Some(cn) => cn,
+                    None => return Err(format!("board {} doesn't have a BSP name!", board.get_name())),
+                };
+                cmds.push(duct::cmd!(
+                    "cargo",
+                    "add",
+                    bsp_crate_name.as_str(),
+                    "--manifest-path",
+                    project_dir.join("Cargo.toml").as_path().to_str().unwrap(),
+                ));
             }
         }
+        // after accumulating all the commands, run them!
+        self.run_background_commands(&cmds, ctx);
+        Ok(())
     }
 
     /// Attempt to load code snippets for the provided crate

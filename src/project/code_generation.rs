@@ -88,7 +88,7 @@ impl<'ast> Visit<'ast> for SystemBoardTokens {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum BspParseError {
-    CrateNameError,
+    IdentError,
     OtherError,
 }
 
@@ -114,8 +114,21 @@ impl Project {
                 use #bsp_crate_ident;
             });
 
-            let board_field_name = board.get_name().replace(" ", "_").to_ascii_lowercase();
-            let board_field_ident = quote::format_ident!("{}", board_field_name);
+            let board_field_name = board.get_name()
+                .replace(" ", "_")
+                .replace("-", "_")
+                .replace("(", "")
+                .replace(")", "")
+                .to_ascii_lowercase();
+            let board_field_ident = match std::panic::catch_unwind(|| {
+                quote::format_ident!("{}", board_field_name)
+            }) {
+                Ok(r) => r,
+                Err(e) => {
+                    warn!("an error occured: {:?}", e);
+                    return Err(BspParseError::IdentError);
+                }
+            };
             tokens.board_field_identifiers.push(board_field_ident);
 
             // Parse the BSP to look at what's in it, determine if we need to resolve 

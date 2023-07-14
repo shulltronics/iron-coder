@@ -313,22 +313,22 @@ impl Project {
     pub fn generate_cargo_template(&mut self, ctx: &egui::Context) -> Result<(), String> {
         info!("generating project template");
         if self.system.boards.len() == 0 {
-            return Err(String::from("The system needs at least one board to get the template from!"));
+            return Err(String::from("The system needs a main board before generating the template!"));
         }
-        if let Some(template_dir) = self.system.boards[0].get_template_dir() {
-            let cmd = duct::cmd!(
-                "cargo",
-                "generate",
-                "--path",
-                template_dir.as_path().to_str().unwrap(),
-                "--name",
-                self.name.clone(),
-                "--destination",
-                self.get_location(),
-                "--init",
-            );
-            self.run_background_commands(&[cmd], ctx);
-        }
+        // TODO -- put this somewhere configurable, like in a CliOpts struct :)
+        let template_dir = Path::new("templates/basic/");
+        let cmd = duct::cmd!(
+            "cargo",
+            "generate",
+            "--path",
+            template_dir.to_str().unwrap(),
+            "--name",
+            self.name.clone(),
+            "--destination",
+            self.get_location(),
+            "--init",
+        );
+        self.run_background_commands(&[cmd], ctx);
         Ok(())
     }
 

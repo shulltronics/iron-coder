@@ -239,9 +239,10 @@ impl Project {
             }
         };
         let code = prettyplease::unparse(&syn_code);
-        fs::write(self.get_location() + "/src/sys_mod_output_testing.rs", code.as_str()).unwrap();
-        
-        Ok(())
+        match fs::write(self.get_location() + "/src/sys_mod_output_testing.rs", code.as_str()) {
+            Ok(_) => Ok(()),
+            Err(_) => return Err("error writing generated code to project src directory.".to_string()),
+        }
 
     }
 

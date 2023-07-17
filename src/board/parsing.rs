@@ -1,7 +1,7 @@
 //! This module contains data and operations pertaining to the parsing of a
 //! Board Support Package (BSP).
 
-use log::{info, warn};
+use log::{info, warn, debug};
 use std::vec::Vec;
 use std::string::String;
 use std::fs;
@@ -178,7 +178,7 @@ impl Board {
             return Err(BspParseError::OtherError);
         }
 
-        info!("after parsing BSPs, the datastructure looks like: \n{:#?}", bsp_parse_info);
+        debug!("after parsing BSPs, the datastructure looks like: \n{:#?}", bsp_parse_info);
         self.bsp_parse_info = Some(bsp_parse_info);
         Ok(())
     }

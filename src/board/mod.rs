@@ -244,55 +244,115 @@ impl Board {
 
 }
 
-/// Recursively read the boards directory and return a vector of boards. This includes
-/// searching for template directories, examples, and local BSPs for each board.
+// /// Recursively read the boards directory and return a vector of boards. This includes
+// /// searching for template directories, examples, and local BSPs for each board.
+// pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
+//     let mut r = Vec::new();
+//     if let Ok(entries) = fs::read_dir(boards_dir) {
+//         for entry in entries {
+//             let entry = entry.expect("error with entry");
+//             if entry.file_type().expect("error parsing file type").is_dir() {
+//                 // if the entry is a directory, recursively go get the files
+//                 // don't recurse into the examples
+//                 if entry.path().ends_with("examples") {
+//                     continue;
+//                 }
+//                 r.append(&mut get_boards(&entry.path()));
+//             } else if entry.path().extension().unwrap_or_default() == "toml" {
+//                 // otherwise, if the entry is a file ending in "toml" try to parse it
+//                 // as a board file. unwrap_or_default works well here as the default 
+//                 // ("") for &str will never match "toml"
+//                 match Board::load_from_toml(&entry.path()) {
+//                     Ok(mut board) => {
+//                         let parent = entry.path().parent().unwrap().canonicalize().unwrap();
+//                         // look for a template directory
+//                         let template_dir = parent.join("template");
+//                         if let Ok(true) = template_dir.try_exists() {
+//                             debug!("found template dir for board <{}> at {:?}", board.name.clone(), entry.path().parent().unwrap().canonicalize().unwrap().join("template"));
+//                             board.template_dir = Some(template_dir);
+//                         } else {
+//                             debug!("no template directory found for board <{}>", board.name.clone());
+//                         }
+//                         // look for a local BSP, and do things related to it if needed
+//                         let bsp_dir = parent.join("bsp");
+//                         if let Ok(true) = bsp_dir.try_exists() {
+//                             info!("found local bsp crate for board {}", board.name.clone());
+//                             board.bsp_path = Some(bsp_dir.clone());
+//                             let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
+//                             let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
+//                             board.ra_values = analysis.file_structure(fid).unwrap();
+//                             match board.load_bsp_info() {
+//                                 Ok(_) => (),
+//                                 Err(e) => warn!("error parsing BSP for board {}: {:?}", board.get_name(), e),
+//                             };
+//                         } else {
+//                             debug!("no bsp directory found for board <{}>", board.name.clone());
+//                         }
+//                         r.push(board);
+//                     },
+//                     Err(e) => {
+//                         warn!("error loading board from {}: {:?}", entry.path().display().to_string(), e);
+//                     },
+//                 }
+//             }
+//         }
+//     }
+//     return r;
+// }
+
+/// Iteratively gather the Boards from the filesystem.
 pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
     let mut r = Vec::new();
-    if let Ok(entries) = fs::read_dir(boards_dir) {
-        for entry in entries {
-            let entry = entry.expect("error with entry");
-            if entry.file_type().expect("error parsing file type").is_dir() {
-                // if the entry is a directory, recursively go get the files
-                // don't recurse into the examples
-                if entry.path().ends_with("examples") {
+    if let Ok(manufacturers) = fs::read_dir(boards_dir) {
+        // first tier of organization is by manufacturer
+        for manufacturer in manufacturers {
+            let manufacturer = manufacturer.expect("error with manufacturer directory");
+            if manufacturer.file_type().expect("error parsing file type").is_file() {
+                continue;
+            }
+            let boards = fs::read_dir(manufacturer.path()).expect("error iterating over files in manufacturer directory");
+            for board in boards {
+                let board = board.expect("error with Board directory");
+                if board.file_type().expect("error parsing file type within board dir").is_file() {
                     continue;
                 }
-                r.append(&mut get_boards(&entry.path()));
-            } else if entry.path().extension().unwrap_or_default() == "toml" {
-                // otherwise, if the entry is a file ending in "toml" try to parse it
-                // as a board file. unwrap_or_default works well here as the default 
-                // ("") for &str will never match "toml"
-                match Board::load_from_toml(&entry.path()) {
-                    Ok(mut board) => {
-                        let parent = entry.path().parent().unwrap().canonicalize().unwrap();
-                        // look for a template directory
-                        let template_dir = parent.join("template");
-                        if let Ok(true) = template_dir.try_exists() {
-                            debug!("found template dir for board <{}> at {:?}", board.name.clone(), entry.path().parent().unwrap().canonicalize().unwrap().join("template"));
-                            board.template_dir = Some(template_dir);
-                        } else {
-                            debug!("no template directory found for board <{}>", board.name.clone());
+                let files = fs::read_dir(board.path()).expect("error iterating over files in board directory");
+                for file in files {
+                    let file = file.expect("error reading file within board directory");
+                    if file.path().extension().unwrap_or_default() == "toml" {
+                        match Board::load_from_toml(&file.path()) {
+                            Ok(mut board) => {
+                                let parent = file.path().parent().unwrap().canonicalize().unwrap();
+                                // look for a template directory
+                                let template_dir = parent.join("template");
+                                if let Ok(true) = template_dir.try_exists() {
+                                    debug!("found template dir for board <{}> at {:?}", board.name.clone(), file.path().parent().unwrap().canonicalize().unwrap().join("template"));
+                                    board.template_dir = Some(template_dir);
+                                } else {
+                                    debug!("no template directory found for board <{}>", board.name.clone());
+                                }
+                                // look for a local BSP, and do things related to it if needed
+                                let bsp_dir = parent.join("bsp");
+                                if let Ok(true) = bsp_dir.try_exists() {
+                                    info!("found local bsp crate for board {}", board.name.clone());
+                                    board.bsp_path = Some(bsp_dir.clone());
+                                    let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
+                                    let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
+                                    board.ra_values = analysis.file_structure(fid).unwrap();
+                                    match board.load_bsp_info() {
+                                        Ok(_) => (),
+                                        Err(e) => warn!("error parsing BSP for board {}: {:?}", board.get_name(), e),
+                                    };
+                                } else {
+                                    debug!("no bsp directory found for board <{}>", board.name.clone());
+                                }
+                                r.push(board);
+                            },
+                            Err(e) => {
+                                warn!("error loading board from {}: {:?}", file.path().display().to_string(), e);
+                            },
                         }
-                        // look for a local BSP, and do things related to it if needed
-                        let bsp_dir = parent.join("bsp");
-                        if let Ok(true) = bsp_dir.try_exists() {
-                            info!("found local bsp crate for board {}", board.name.clone());
-                            board.bsp_path = Some(bsp_dir.clone());
-                            let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
-                            let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
-                            board.ra_values = analysis.file_structure(fid).unwrap();
-                            match board.load_bsp_info() {
-                                Ok(_) => (),
-                                Err(e) => warn!("error parsing BSP for board {}: {:?}", board.get_name(), e),
-                            };
-                        } else {
-                            debug!("no bsp directory found for board <{}>", board.name.clone());
-                        }
-                        r.push(board);
-                    },
-                    Err(e) => {
-                        warn!("error loading board from {}: {:?}", entry.path().display().to_string(), e);
-                    },
+                    }
                 }
             }
         }

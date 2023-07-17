@@ -30,6 +30,17 @@ use system::System;
 
 const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 
+pub type Result = core::result::Result<(), ProjectIOError>;
+
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum ProjectIOError {
+    FilePickerAborted,
+    NoMainBoard,
+    NoProjectTemplate,
+    UnknownError,
+}
+
 /// A Project represents the highest level of Iron Coder, which contains
 /// a main, programmable development board, a set of peripheral development boards,
 /// and the project/source code directory
@@ -149,6 +160,7 @@ impl Project {
 
     /// Populate the project board list via the app-wide 'known boards' list
     pub fn load_board_resources(&mut self, known_boards: Vec<Board>) {
+        info!("updating project boards from known boards list.");
         for b in self.system.get_all_boards().iter_mut() {
             // returns true if the current, project board is equal to the current known_board
             let predicate = |known_board: &&Board| {
@@ -163,10 +175,16 @@ impl Project {
         }
     }
 
-    pub fn open(&mut self) -> io::Result<()> {
+    pub fn open(&mut self) -> Result {
         if let Some(project_folder) = FileDialog::new().pick_folder() {
             let project_file = project_folder.join(PROJECT_FILE_NAME);
-            let toml_str = fs::read_to_string(project_file)?;
+            let toml_str = match fs::read_to_string(project_file) {
+                Ok(s) => s,
+                Err(e) => {
+                    warn!("error reading project file: {:?}", e);
+                    return Err(ProjectIOError::UnknownError);
+                },
+            };
             let p: Project = match toml::from_str(&toml_str) {
                 Ok(p) => {
                     p
@@ -179,10 +197,11 @@ impl Project {
             };
             *self = p;
             self.location = Some(project_folder);
+            Ok(())
         } else {
             info!("project open aborted");
+            Err(ProjectIOError::FilePickerAborted)
         }
-        Ok(())
     }
 
     /// Open a file dialog to select a project folder, and then call the save method
@@ -308,7 +327,7 @@ impl Project {
     /// The template will be written to the project directory.
     /// TODO - generally more useful error returns, i.e. if the cargo generate command returns a 
     /// non-zero exit status, or if the project directory already contains a Cargo project.
-    pub fn generate_cargo_template(&mut self, ctx: &egui::Context) -> Result<(), String> {
+    pub fn generate_cargo_template(&mut self, ctx: &egui::Context) -> Result {
         info!("generating project template");
         if let Some(mb) = self.system.main_board.clone() {
             if let Some(template_dir) = mb.get_template_dir() {
@@ -325,10 +344,10 @@ impl Project {
                 );
                 self.run_background_commands(&[cmd], ctx);
             } else {
-                return Err(String::from("The current main board has no template to generate from!"));
+                return Err(ProjectIOError::NoProjectTemplate);
             }
         } else {
-            return Err(String::from("The system needs at least one board to get the template from!"));
+            return Err(ProjectIOError::NoMainBoard);
         }
         Ok(())
     }

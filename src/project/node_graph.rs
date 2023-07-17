@@ -167,7 +167,7 @@ impl Project {
     /// Call this when loading projects. This is required to get the images for 
     /// the board widgets to render after deserializing project from .iron_coder.toml.
     pub fn sync_node_graph_with_project(&mut self, known_boards: Vec<Board>) {
-        assert!(self.graph_editor.graph.nodes.len() == self.system.boards.len());
+        assert!(self.graph_editor.graph.nodes.len() == self.system.get_all_boards().len());
         for (_, node_data) in self.graph_editor.graph.nodes.iter_mut() {
             let predicate = |known_board: &&Board| {
                 return known_board == &&node_data.user_data;
@@ -215,13 +215,10 @@ impl Project {
             match response {
                 eng::NodeResponse::DeleteNodeFull { node_id: _, node } => {
                     info!("removing node from system...");
-                    match self.system.boards.iter().position(|elem| *elem == node.user_data) {
-                        Some(idx) => {
-                            self.system.boards.remove(idx);
-                        },
-                        None => {
-                            warn!("deleting node: couldn't find board in system (this is probably a bug!");
-                        }
+                    match self.system.remove_board(node.user_data.clone()) {
+                        Ok(()) => (),
+                        Err(e) => warn!("error removing board from system.. this might indicate an \\
+                        inconsistency in the node editor and system state! {:?}", e),
                     }
                 },
                 r @ eng::NodeResponse::ConnectEventEnded { output: _, input: _ } => {

@@ -189,8 +189,9 @@ impl Project {
             // The sidebar will display information according to the current view
             match &self.current_view {
                 ProjectViewType::BoardsView => {
-                     // show the board widgets
-                    for b in self.system.boards.clone().iter() {
+                    let boards = self.system.get_all_boards();
+                    // Now, show the board widgets
+                    for b in boards.iter() {
                         ui.add(b.clone());
                         // show the required crates
                         ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
@@ -269,7 +270,7 @@ impl Project {
         let mut recs: Vec<(egui::Rect, egui::Rect)> = vec![(egui::Rect::NOTHING, egui::Rect::NOTHING); self.system.connections.len()];
         let mut board_to_remove = None;
 
-        for (board_idx, board) in self.system.boards.iter_mut().enumerate() {
+        for (board_idx, board) in self.system.get_all_boards().iter_mut().enumerate() {
             // show the board in a Window
             let window = egui::Window::new(board.get_name())
                 .open(&mut true)
@@ -333,7 +334,8 @@ impl Project {
         } // for each Board
 
         if let Some(board_idx) = board_to_remove {
-            self.system.boards.remove(board_idx);
+            // self.system.boards.remove(board_idx);
+            warn!("this is definitely broken!");
         }
 
         // iterate through connections and draw a line to represent each one

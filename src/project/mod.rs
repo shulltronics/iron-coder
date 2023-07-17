@@ -28,8 +28,6 @@ use node_graph::SystemEditorState;
 mod system;
 use system::System;
 
-pub mod code_generation;
-
 const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 
 /// A Project represents the highest level of Iron Coder, which contains
@@ -96,12 +94,8 @@ impl Project {
         return &mut self.name;
     }
 
-    pub fn borrow_boards(&mut self) -> &mut Vec<Board> {
-        return &mut self.system.boards;
-    }
-
     pub fn has_main_board(&self) -> bool {
-        if self.system.boards.len() > 0 && self.system.boards[0].is_main_board() {
+        if let Some(_) = self.system.main_board {
             return true;
         } else {
             return false;
@@ -123,18 +117,22 @@ impl Project {
                 if self.has_main_board() {
                     info!("project already contains a main board! aborting.");
                     return;
+                } else {
+                    self.system.main_board = Some(board.clone());
                 }
             },
             false => {
                 // don't duplicate a board
-                if self.system.boards.contains(&board) {
+                if self.system.peripheral_boards.contains(&board) {
                     info!("project <{}> already contains board <{:?}>", self.name, board);
                     self.terminal_buffer += "project already contains that board\n";
                     return;
+                } else {
+                    self.system.peripheral_boards.push(board.clone());
                 }
             }
         }
-        self.system.boards.push(board.clone());
+        // If we haven't returned, then display the board in the node graph
         let node_kind = board.clone();
         let user_state = &mut self.system;
         let new_node = self.graph_editor.graph.add_node(
@@ -151,7 +149,7 @@ impl Project {
 
     /// Populate the project board list via the app-wide 'known boards' list
     pub fn load_board_resources(&mut self, known_boards: Vec<Board>) {
-        for b in self.system.boards.iter_mut() {
+        for b in self.system.get_all_boards().iter_mut() {
             // returns true if the current, project board is equal to the current known_board
             let predicate = |known_board: &&Board| {
                 return known_board == &b;
@@ -312,49 +310,27 @@ impl Project {
     /// non-zero exit status, or if the project directory already contains a Cargo project.
     pub fn generate_cargo_template(&mut self, ctx: &egui::Context) -> Result<(), String> {
         info!("generating project template");
-        if self.system.boards.len() == 0 {
+        if let Some(mb) = self.system.main_board.clone() {
+            if let Some(template_dir) = mb.get_template_dir() {
+                let cmd = duct::cmd!(
+                    "cargo",
+                    "generate",
+                    "--path",
+                    template_dir.as_path().to_str().unwrap(),
+                    "--name",
+                    self.name.clone(),
+                    "--destination",
+                    self.get_location(),
+                    "--init",
+                );
+                self.run_background_commands(&[cmd], ctx);
+            } else {
+                return Err(String::from("The current main board has no template to generate from!"));
+            }
+        } else {
             return Err(String::from("The system needs at least one board to get the template from!"));
         }
-        if let Some(template_dir) = self.system.boards[0].get_template_dir() {
-            let cmd = duct::cmd!(
-                "cargo",
-                "generate",
-                "--path",
-                template_dir.as_path().to_str().unwrap(),
-                "--name",
-                self.name.clone(),
-                "--destination",
-                self.get_location(),
-                "--init",
-            );
-            self.run_background_commands(&[cmd], ctx);
-        }
         Ok(())
-    }
-
-    pub fn add_crates_to_project(&mut self, ctx: &egui::Context) {
-        // TESTING
-        for _b in self.system.boards.clone().iter() {
-            // nothing for now
-        }
-
-        if let Some(project_folder) = self.location.clone() {
-            for b in self.system.boards.clone().iter() {
-                if let Some(rc) = b.required_crates() {
-                    info!("installing required crates for board {:?}", b);
-                    let mut cmds: Vec<duct::Expression> = rc.iter().map(|c| {
-                        duct::cmd!("cargo", "-Z", "unstable-options", "-C",
-                            project_folder.as_path().to_str().unwrap(), "add",
-                            c)
-                    }).collect();
-                    let init_cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C",
-                        project_folder.as_path().to_str().unwrap(), "init",
-                        "--name", self.name.as_str(), "--vcs", "none");
-                    cmds.insert(0, init_cmd);
-                    self.run_background_commands(cmds.as_slice(), ctx);
-                }
-            }
-        }
     }
 
     /// Attempt to load code snippets for the provided crate

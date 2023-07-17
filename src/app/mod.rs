@@ -82,13 +82,13 @@ impl IronCoderApp {
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
         let mut app = IronCoderApp::default();
-        if let Some(storage) = cc.storage {
-           info!("loading former app state from storage...");
-           app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        } else {
-           // Now return a default IronCoderApp
-           app = Default::default();
-        }
+        // if let Some(storage) = cc.storage {
+        //    info!("loading former app state from storage...");
+        //    app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        // } else {
+        //    // Now return a default IronCoderApp
+        //    app = Default::default();
+        // }
         // app.modal = Some(Modal::new(&cc.egui_ctx, "Iron Coder Modal"));
         app.set_colorscheme(&cc.egui_ctx);
         let kb = app.boards.clone();
@@ -447,11 +447,12 @@ impl eframe::App for IronCoderApp {
                     if ui.button("Add a board").clicked() {
                         self.display_boards_window = true;
                     }
-                    ui.label(format!("number of connection: {}", self.project.system.connections.len()));
+                    ui.label(format!("number of connections: {}", self.project.system.connections.len()));
+                    ui.label(format!("number of boards: {}", self.project.system.get_all_boards().len()));
                 });
                 // 3: show the CentralPanel with the boards and such.
                 egui::CentralPanel::default().show(ctx, |ui| {
-                    if self.project.borrow_boards().is_empty() && !self.project.has_main_board() {
+                    if self.project.system.get_all_boards().is_empty() {
                         ui.with_layout(Layout::top_down(Align::Center), |ui| {
                             let label = egui::widgets::Label::new("Welcome to Iron Coder! To get started on a project, select a main \
                                             board and a set of peripheral boards. Then, give your project a name. \

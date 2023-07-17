@@ -7,6 +7,15 @@ use serde::{Deserialize, Serialize};
 use crate::board::Board;
 use crate::board::pinout::InterfaceType;
 
+pub type Result = core::result::Result<(), SystemError>;
+
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum SystemError {
+    BoardNotInSystem,
+    UnknownError,
+}
+
 /// A Connection is a physical bus connecting two Boards (e.g. I2C, GPIO, SPI, etc).
 /// TODO - determine best way of representing a connection. Can it represent a bus connecting
 /// more than one board? i.e. one I2C main device talking to multiple peripherals, or a CAN
@@ -35,25 +44,46 @@ impl Connection {
 }
 
 /// A system represents the development boards and their interconnections
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct System {
-    /// The list of boards in this system. The first board in this list should always be a "main board"
-    pub boards: Vec<Board>,
+    /// The main, programmable board in the system.
+    pub main_board: Option<Board>,
+    /// The list of peripheral boards in the system.
+    pub peripheral_boards: Vec<Board>,
     /// The list of connections between boards. This is what the template generator will use to create
     /// the system module.
     pub connections: Vec<Connection>,
 }
 
-impl Default for System {
-    fn default() -> Self {
-        Self {
-            boards: Vec::new(),
-            connections: Vec::new(),
-        }
-    }
-}
-
 impl System {
+
+    /// Return a vector of all the system boards. If there is no main board, this returns an
+    /// empty vector.
+    pub fn get_all_boards(&self) -> Vec<Board> {
+        let mut boards = Vec::new();
+        if let Some(mb) = self.main_board.clone() {
+            boards.push(mb);
+        }
+        boards.append(&mut self.peripheral_boards.clone());
+        return boards;
+    }
+
+    /// Try to remove the provided Board from the system. If everything is good, return Ok(()),
+    /// otherwise return an error indicating what went wrong.
+    pub fn remove_board(&mut self, board: Board) -> Result {
+        if let Some(ref mb) = self.main_board {
+            if *mb == board {
+                self.main_board = None;
+                return Ok(())
+            }
+        }
+        if let Some(idx) = self.peripheral_boards.iter().position(|elem| *elem == board) {
+            self.peripheral_boards.remove(idx);
+            return Ok(());
+        }
+        return Err(SystemError::BoardNotInSystem);
+    }
+
     // Generate a module based on the system. Lots to improve here. For now, this just saves
     // the module to the project root (i.e. doesn't account for the existance of a Cargo project).
     // pub fn generate_system_module(&mut self) -> Result<(), String> {

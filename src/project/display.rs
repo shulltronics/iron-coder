@@ -12,10 +12,11 @@ use crate::app::icons::IconSet;
 
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub enum ProjectViewType {
-    FileTree,
+    #[default]
     BoardsView,
+    FileTree,
     CrateView(String),
 }
 

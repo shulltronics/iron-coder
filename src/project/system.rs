@@ -68,6 +68,17 @@ impl System {
         return boards;
     }
 
+    pub fn get_all_boards_mut(&mut self) -> Vec<&mut Board> {
+        let mut boards = Vec::new();
+        if let Some(ref mut mb) = self.main_board {
+            boards.push(mb);
+        }
+        self.peripheral_boards.iter_mut().for_each(|board| {
+            boards.push(board);
+        });
+        return boards;
+    }
+
     /// Try to remove the provided Board from the system. If everything is good, return Ok(()),
     /// otherwise return an error indicating what went wrong.
     pub fn remove_board(&mut self, board: Board) -> Result {

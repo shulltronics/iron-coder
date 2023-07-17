@@ -18,6 +18,8 @@ use serde::{Serialize, Deserialize};
 use crate::board::Board;
 use crate::app::code_editor::CodeEditor;
 
+use egui_node_graph::NodeTemplateTrait;
+
 pub mod display;
 use display::ProjectViewType;
 
@@ -38,13 +40,16 @@ pub enum ProjectIOError {
     FilePickerAborted,
     NoMainBoard,
     NoProjectTemplate,
+    NoProjectDirectory,
+    FilesystemError,
+    LoadToTomlError,
     UnknownError,
 }
 
 /// A Project represents the highest level of Iron Coder, which contains
 /// a main, programmable development board, a set of peripheral development boards,
 /// and the project/source code directory
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct Project {
     name: String,
@@ -58,39 +63,10 @@ pub struct Project {
     #[serde(skip)]
     receiver: Option<std::sync::mpsc::Receiver<String>>,
     current_view: ProjectViewType,
+    #[serde(skip)]
+    pub known_boards: Vec<Board>,
 }
 
-impl Default for Project {
-    fn default() -> Self {
-        Self {
-            name: "".to_string(),
-            location: None,
-            system: System::default(),
-            code_editor: CodeEditor::default(),
-            terminal_buffer: String::new(),
-            graph_editor: SystemEditorState::default(),
-            receiver: None,
-            current_view: ProjectViewType::BoardsView,
-        }
-    }
-}
-
-impl Clone for Project {
-    fn clone(&self) -> Self {
-        Self {
-            name: self.name.clone(),
-            location: self.location.clone(),
-            system: self.system.clone(),
-            code_editor: CodeEditor::default(),
-            terminal_buffer: self.terminal_buffer.clone(),
-            graph_editor: self.graph_editor.clone(),
-            receiver: None,
-            current_view: self.current_view.clone(),
-        }
-    }
-}
-
-use egui_node_graph::NodeTemplateTrait;
 // backend functionality for Project struct
 impl Project {
     
@@ -159,15 +135,15 @@ impl Project {
     }
 
     /// Populate the project board list via the app-wide 'known boards' list
-    pub fn load_board_resources(&mut self, known_boards: Vec<Board>) {
+    fn load_board_resources(&mut self) {
         info!("updating project boards from known boards list.");
-        for b in self.system.get_all_boards().iter_mut() {
+        for b in self.system.get_all_boards_mut().iter_mut() {
             // returns true if the current, project board is equal to the current known_board
             let predicate = |known_board: &&Board| {
-                return known_board == &b;
+                return known_board == b;
             };
-            if let Some(known_board) = known_boards.iter().find(predicate) {
-                *b = known_board.clone();
+            if let Some(known_board) = self.known_boards.iter().find(predicate) {
+                **b = known_board.clone();
             } else {
                 warn!("Could not find the project board in the known boards list. Was the project manifest \
                        generated with an older version of Iron Coder?")
@@ -175,29 +151,50 @@ impl Project {
         }
     }
 
+    /// This method will reload the project based on the current project location
+    pub fn reload(&mut self) -> Result {
+        if let Some(location) = self.location.clone() {
+            self.load_from(&location)
+        } else {
+            Err(ProjectIOError::NoProjectDirectory)
+        }
+    }
+
+    /// Load a project from a specified directory, and sync the board assets.
+    fn load_from(&mut self, project_directory: &Path) -> Result {
+        let project_file = project_directory.join(PROJECT_FILE_NAME);
+        let toml_str = match fs::read_to_string(project_file) {
+            Ok(s) => s,
+            Err(e) => {
+                warn!("error reading project file: {:?}", e);
+                return Err(ProjectIOError::FilesystemError);
+            },
+        };
+        let p: Project = match toml::from_str(&toml_str) {
+            Ok(p) => {
+                p
+            },
+            Err(e) => {
+                return Err(ProjectIOError::LoadToTomlError)
+            }
+        };
+        // Now load in certain fields without overwriting others:
+        self.name = p.name;
+        self.location = Some(project_directory.to_path_buf());
+        self.system = p.system;
+        self.graph_editor = p.graph_editor;
+        self.current_view = p.current_view;
+        // sync the assets with the global ones
+        info!("known_boards length: {:?}", self.known_boards.len());
+        self.load_board_resources();
+        self.sync_node_graph_with_project();
+        Ok(())
+    }
+
+    /// Prompt the user to select project directory to open
     pub fn open(&mut self) -> Result {
-        if let Some(project_folder) = FileDialog::new().pick_folder() {
-            let project_file = project_folder.join(PROJECT_FILE_NAME);
-            let toml_str = match fs::read_to_string(project_file) {
-                Ok(s) => s,
-                Err(e) => {
-                    warn!("error reading project file: {:?}", e);
-                    return Err(ProjectIOError::UnknownError);
-                },
-            };
-            let p: Project = match toml::from_str(&toml_str) {
-                Ok(p) => {
-                    p
-                },
-                Err(e) => {
-                    warn!("error opening project. perhaps the file is misformatted? Err: {:?}", e);
-                    self.info_logger("error opening project");
-                    return Ok(());
-                }
-            };
-            *self = p;
-            self.location = Some(project_folder);
-            Ok(())
+        if let Some(project_directory) = FileDialog::new().pick_folder() {
+            self.load_from(&project_directory)
         } else {
             info!("project open aborted");
             Err(ProjectIOError::FilePickerAborted)

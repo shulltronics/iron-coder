@@ -166,13 +166,13 @@ impl Project {
     /// This function will sync the node graph's user_data with the project.
     /// Call this when loading projects. This is required to get the images for 
     /// the board widgets to render after deserializing project from .iron_coder.toml.
-    pub fn sync_node_graph_with_project(&mut self, known_boards: Vec<Board>) {
+    pub fn sync_node_graph_with_project(&mut self) {
         assert!(self.graph_editor.graph.nodes.len() == self.system.get_all_boards().len());
         for (_, node_data) in self.graph_editor.graph.nodes.iter_mut() {
             let predicate = |known_board: &&Board| {
                 return known_board == &&node_data.user_data;
             };
-            if let Some(known_board) = known_boards.iter().find(predicate) {
+            if let Some(known_board) = self.known_boards.iter().find(predicate) {
                 node_data.user_data = known_board.clone();
             } else {
                 warn!("Could not find the project board in the known boards list. Was the project manifest \

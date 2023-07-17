@@ -47,7 +47,7 @@ pub struct IronCoderApp {
     display_about: bool,
     display_settings: bool,
     display_boards_window: bool,
-    #[serde(skip)]
+    // #[serde(skip)]
     // modal: Option<Modal>,
     mode: Mode,
     #[serde(skip)]
@@ -60,6 +60,9 @@ impl Default for IronCoderApp {
         // Populate the boards
         let boards_dir = Path::new("./iron-coder-boards");
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
+        boards.iter().enumerate().for_each(|(i, b)| {
+            println!("board {:?}: \n{:?}", i, b);
+        });
         Self {
             project: Project::default(),
             display_about: false,
@@ -83,17 +86,20 @@ impl IronCoderApp {
         // Note that you must enable the `persistence` feature for this to work.
         let mut app = IronCoderApp::default();
         if let Some(storage) = cc.storage {
-           info!("loading former app state from storage...");
-           app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+            info!("loading former app state from storage...");
+            app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
         } else {
            // Now return a default IronCoderApp
            app = Default::default();
         }
-        // app.modal = Some(Modal::new(&cc.egui_ctx, "Iron Coder Modal"));
+        info!("Reloading current project and assets...");
         app.set_colorscheme(&cc.egui_ctx);
-        let kb = app.boards.clone();
-        app.project.load_board_resources(kb.clone());
-        app.project.sync_node_graph_with_project(kb);
+        app.project.known_boards = app.boards.clone();
+        match app.project.reload() {
+            Ok(_) => (),
+            Err(e) => warn!("error reloading project from disk! {:?}", e),
+        }
+
         return app;
     }
 
@@ -156,12 +162,13 @@ impl IronCoderApp {
                             "open"
                         ).shortcut_text("ctrl+o");
                         if ui.add(ib).clicked() {
-                            if let Err(e) = project.open() {
-                                println!("error opening project: {:?}", e);
-                            } else {
-                                project.load_board_resources(self.boards.clone());
-                                project.sync_node_graph_with_project(self.boards.clone());
-                                *mode = Mode::DevelopProject;
+                            match project.open() {
+                                Ok(_) => {
+                                    *mode = Mode::DevelopProject;
+                                },
+                                Err(e) => {
+                                    println!("error opening project: {:?}", e);
+                                },
                             }
                         }
                         
@@ -178,6 +185,7 @@ impl IronCoderApp {
                                     // wants to leave the current project, and probably save
                                     // the project in it's current state.
                                     *project = Project::default();
+                                    project.known_boards = self.boards.clone();
                                     *mode = Mode::EditProject;
                                 },
                             }

@@ -143,15 +143,22 @@ impl Project {
             ui.separator();
             // GENERATE SYSTEM MODULE
             if ui.button("Gen Sys Mod").clicked() {
-                info!("generating system module...");
-                // match self.system.generate_system_module() {
-                //     Ok(()) => {
-                //         info!("generate_system_module returned Ok(()).");
-                //     },
-                //     Err(e) => {
-                //         warn!("generate_system_module returned error: {:?}", e);
-                //     },
-                // }
+                info!("attempting to generate system module...");
+                let src_location = match &self.location {
+                    Some(l) => l.join("src/system.rs"),
+                    None => {
+                        info!("can't generate module without a project location.");
+                        return;
+                    },
+                };
+                match self.system.generate_system_module(&src_location) {
+                    Ok(()) => {
+                        info!("generate_system_module returned Ok(()).");
+                    },
+                    Err(e) => {
+                        warn!("generate_system_module returned error: {:?}", e);
+                    },
+                }
             }
 
         });

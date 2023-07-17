@@ -1,16 +1,20 @@
 //! This module represents a hardware system, i.e. a main board,
 //! a set of peripheral boards, and the connections between them.
 
-use log::{warn};
+use log::{info, warn};
 
 use std::vec::Vec;
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
-use quote::quote;
+
+use syn::Ident;
+use quote::{quote, format_ident};
+use proc_macro2::TokenStream;
 
 use crate::board::Board;
-use crate::board::pinout::InterfaceType;
+use crate::board::pinout::InterfaceMapping;
 
 pub type Result = core::result::Result<(), SystemError>;
 
@@ -29,16 +33,16 @@ pub enum SystemError {
 pub struct Connection {
     pub start_board: Board,
     pub end_board: Board,
-    pub interface: InterfaceType,
+    pub interface_mapping: InterfaceMapping,
 }
 
 impl Connection {
 
-    pub fn new(start_board: Board, end_board: Board, iface_type: InterfaceType) -> Self {
+    pub fn new(start_board: Board, end_board: Board, iface_mapping: InterfaceMapping) -> Self {
         Self {
             start_board: start_board,
             end_board: end_board,
-            interface: iface_type,
+            interface_mapping: iface_mapping,
         }
     }
 
@@ -58,6 +62,17 @@ pub struct System {
     /// The list of connections between boards. This is what the template generator will use to create
     /// the system module.
     pub connections: Vec<Connection>,
+}
+
+/// A datastructure that will hold all of the information we need to populate the System module.
+#[derive(Default)]
+struct TokenStreamAccumulator {
+    /// A set of crate Idents that need to be included in the source module.
+    required_bsp_crates: HashSet<Ident>,
+    /// A vector of <field>: <type> to include in the System struct declaration.
+    struct_field_and_type_list: Vec<TokenStream>,
+    /// A vector of <field>: <constructor> to include in the System struct constructor.
+    struct_field_and_constructor_list: Vec<TokenStream>,
 }
 
 impl System {
@@ -106,36 +121,60 @@ impl System {
     /// the module to the project root (i.e. doesn't account for the existance of a Cargo project).
     pub fn generate_system_module(&mut self, save_to: &Path) -> Result {
 
-        // let SystemBoardTokens {
-        //     use_statements,
-        //     field_type_token_streams,
-        //     field_constructor_token_streams,
-        //     ..
-        // } = match self.gather_board_fields() {
-        //     Ok(sbt) => sbt,
-        //     Err(e) => {
-        //         warn!("error in gather_board_fields method: {:?}", e);
-        //         return Err("error gathering board fields".to_string());
-        //     }
-        // };
+        // Fold through the list of connections, and capture the required information
+        let TokenStreamAccumulator {
+            required_bsp_crates,
+            struct_field_and_type_list,
+            struct_field_and_constructor_list,
+        } = self.connections.iter().fold(TokenStreamAccumulator::default(), |mut acc, elem| {
 
+            let Connection {
+                start_board,
+                end_board,
+                interface_mapping,
+                ..
+            } = elem;
+
+            // info!("folding a connection... start_board is \n{}\n end board is\n {}", &start_board.get_name(), &end_board.get_name());
+
+            // get starting board info
+            if let Some(start_board_bsp_info) = &start_board.bsp_parse_info {
+                info!("  found some bsp info");
+                if let Some(start_board_crate_ident) = &start_board_bsp_info.bsp_crate_identifier {
+                    info!("    found a crate ident");
+                    acc.required_bsp_crates.insert(start_board_crate_ident.clone());
+                }
+            }
+
+            // get ending board info
+            if let Some(end_board_bsp_info) = &end_board.bsp_parse_info {
+                if let Some(end_board_crate_ident) = &end_board_bsp_info.bsp_crate_identifier {
+                    acc.required_bsp_crates.insert(end_board_crate_ident.clone());
+                }
+            }
+
+            return acc;
+        });
+
+        info!("after folding, num required crates is {}", required_bsp_crates.len());
+
+        let r = required_bsp_crates.iter();
 
         /************* MODULE CODE HERE *************/
         let output_tokens = quote!
         {
-            // #(#use_statements)*
-            // #(use #crate_identifiers);*
+            #(use #r;)*
 
             // todo - include needed imports
 
             pub struct System {
-                // #(#field_type_token_streams),*
+                // #(#struct_field_and_type_list),*
             }
 
             impl System {
                 pub fn new() -> Self {
                     Self {
-                        // #(#field_constructor_token_streams),*
+                        // #(#struct_field_and_constructor_list),*
                     }
                 }
             }
@@ -154,7 +193,12 @@ impl System {
             }
         };
         let code = prettyplease::unparse(&syn_code);
-        fs::write(save_to, code.as_str()).unwrap();
+        match fs::write(save_to, code.as_str()) {
+            Ok(_) => (),
+            Err(e) => {
+                warn!("error writing code to {:?}: {:?}", save_to.display(), e);
+            }
+        }
         
         Ok(())
 

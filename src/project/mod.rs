@@ -20,8 +20,6 @@ use crate::app::code_editor::CodeEditor;
 
 use egui_node_graph::NodeTemplateTrait;
 
-use quote::quote;
-
 pub mod display;
 use display::ProjectViewType;
 
@@ -45,8 +43,6 @@ pub enum ProjectIOError {
     NoProjectDirectory,
     FilesystemError,
     LoadToTomlError,
-    CodeGenError,
-    UnknownError,
 }
 
 /// A Project represents the highest level of Iron Coder, which contains
@@ -188,9 +184,9 @@ impl Project {
         self.graph_editor = p.graph_editor;
         self.current_view = p.current_view;
         // sync the assets with the global ones
-        info!("known_boards length: {:?}", self.known_boards.len());
         self.load_board_resources();
         self.sync_node_graph_with_project();
+        self.sync_connections();
         Ok(())
     }
 

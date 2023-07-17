@@ -20,10 +20,9 @@ use crate::board::{
 use crate::board::pinout::{
     InterfaceType,
     InterfaceDirection,
-    Interface
+    Interface,
+    InterfaceMapping,
 };
-
-use super::system::Connection;
 
 impl eng::DataTypeTrait<System> for InterfaceType {
     
@@ -60,7 +59,7 @@ impl eng::NodeDataTrait for Board {
     type DataType = InterfaceType;
     type Response = NodeResponseType; // not using this for now
     type UserState = System;
-    type ValueType = Interface;
+    type ValueType = InterfaceMapping;
 
     fn bottom_ui(
             &self,
@@ -84,7 +83,7 @@ impl eng::NodeTemplateTrait for Board {
     type DataType = InterfaceType;
     type NodeData = Board;
     type UserState = System;
-    type ValueType = Interface;
+    type ValueType = InterfaceMapping;
     type CategoryType = &'static str;
 
     fn node_finder_label(&self, _user_state: &mut Self::UserState) -> std::borrow::Cow<str> {
@@ -119,7 +118,7 @@ impl eng::NodeTemplateTrait for Board {
                 },
                 InterfaceDirection::Input => {
                     let name = format!("{} : {}", po.interface.iface_type.to_string(), po.interface.direction.to_string());
-                    graph.add_input_param(node_id, name, po.interface.iface_type.clone(), po.interface.clone(), eng::InputParamKind::ConnectionOnly, true);
+                    graph.add_input_param(node_id, name, po.interface.iface_type.clone(), po.clone(), eng::InputParamKind::ConnectionOnly, true);
                 },
                 _ => {
                     // graph.add_output_param(node_id, po.interface.clone().to_string(), po.interface.clone());
@@ -138,7 +137,7 @@ impl eng::UserResponseTrait for NodeResponseType {}
 
 /// This trait specifies what *value* to draw in the Ui for each Interface in a Node.
 /// For inputs this will be displayed after a connection is made.
-impl eng::WidgetValueTrait for Interface {
+impl eng::WidgetValueTrait for InterfaceMapping {
     type Response = NodeResponseType;
     type NodeData = Board;
     type UserState = System;
@@ -151,15 +150,15 @@ impl eng::WidgetValueTrait for Interface {
             _node_data: &Self::NodeData,
         ) -> Vec<Self::Response>
     {
-        let name = format!("{} : {}", self.iface_type.to_string(), self.direction.to_string());
+        let name = format!("{} : {}", self.interface.iface_type.to_string(), self.interface.direction.to_string());
         ui.label(name);
         vec![]
     }
 }
 
-type SystemGraph = eng::Graph<Board, InterfaceType, Interface>;
+type SystemGraph = eng::Graph<Board, InterfaceType, InterfaceMapping>;
 pub type SystemEditorState =
-    eng::GraphEditorState<Board, InterfaceType, Interface, Board, System>;
+    eng::GraphEditorState<Board, InterfaceType, InterfaceMapping, Board, System>;
 
 impl Project {
 
@@ -184,21 +183,33 @@ impl Project {
     /// This function converts between egui_node_graph connection representation,
     /// and Iron Coder's Vec<Connection> datastructure.
     // type NodeGraphConnections = SecondaryMap<eng::OutputId, eng::InputId>;
-    fn convert_connections(eng_connections: SecondaryMap<eng::InputId, eng::OutputId>, graph: SystemGraph) -> Vec<Connection> {
-        let mut res: Vec<Connection> = Vec::new();
+    pub fn sync_connections(&mut self) {
+        let mut res = vec![];
+        let eng_connections: SecondaryMap<eng::InputId, eng::OutputId> = self.graph_editor.graph.connections.clone();
+        let graph: SystemGraph = self.graph_editor.graph.clone();
         for connection in eng_connections.iter() {
             let output_node = graph.try_get_output(*connection.1).unwrap().node;
             let input_node  = graph.try_get_input(connection.0).unwrap().node;
 
+            let system_boards = self.system.get_all_boards();
+
+            let start_board = system_boards.iter().find(|elem| {
+                **elem == graph.nodes.get(output_node).unwrap().user_data
+            }).unwrap();
+                
+            let end_board = system_boards.iter().find(|elem| {
+                **elem == graph.nodes.get(input_node).unwrap().user_data
+            }).unwrap(); 
+
             let c = system::Connection::new(
-                graph.nodes.get(output_node).unwrap().user_data.clone(),
-                graph.nodes.get(input_node).unwrap().user_data.clone(),
-                graph.get_output(*connection.1).typ.clone(),
+                start_board.clone(),
+                end_board.clone(),
+                graph.get_input(connection.0).value.clone(),
             );
-            info!("got connections: {:?}", c);
+            
             res.push(c);
         }
-        return res;
+        self.system.connections = res;
     }
 
     /// Display the node editor in the calling container.
@@ -223,13 +234,13 @@ impl Project {
                 },
                 r @ eng::NodeResponse::ConnectEventEnded { output: _, input: _ } => {
                     info!("got ConnectEventEnded response! {:?}", r);
-                    let conns = Project::convert_connections(self.graph_editor.graph.connections.clone(), self.graph_editor.graph.clone());
-                    self.system.connections = conns;
+                    self.sync_connections();
+                    info!("system connections: {:?}", self.system.connections);
                 },
                 r @ eng::NodeResponse::DisconnectEvent { output: _, input: _ } => {
                     info!("got DisconnectEvent response! {:?}", r);
-                    let conns = Project::convert_connections(self.graph_editor.graph.connections.clone(), self.graph_editor.graph.clone());
-                    self.system.connections = conns;
+                    self.sync_connections();
+                    info!("system connections: {:?}", self.system.connections);
                 },
                 _ => {
                     ()

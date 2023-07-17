@@ -60,9 +60,9 @@ impl Default for IronCoderApp {
         // Populate the boards
         let boards_dir = Path::new("./iron-coder-boards");
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
-        boards.iter().enumerate().for_each(|(i, b)| {
-            println!("board {:?}: \n{:?}", i, b);
-        });
+        // boards.iter().enumerate().for_each(|(i, b)| {
+        //     println!("board {:?}: \n{:?}", i, b);
+        // });
         Self {
             project: Project::default(),
             display_about: false,

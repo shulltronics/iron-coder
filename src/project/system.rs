@@ -1,8 +1,13 @@
 //! This module represents a hardware system, i.e. a main board,
 //! a set of peripheral boards, and the connections between them.
 
+use log::{warn};
+
 use std::vec::Vec;
+use std::fs;
+use std::path::Path;
 use serde::{Deserialize, Serialize};
+use quote::quote;
 
 use crate::board::Board;
 use crate::board::pinout::InterfaceType;
@@ -12,7 +17,7 @@ pub type Result = core::result::Result<(), SystemError>;
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum SystemError {
-    BoardNotInSystem,
+    BoardNotInSystemError,
     UnknownError,
 }
 
@@ -68,6 +73,8 @@ impl System {
         return boards;
     }
 
+    /// Return a vector of mutable references to each board. This is used for reloading board
+    /// resources on startup, or when opening a project from the filesystem.
     pub fn get_all_boards_mut(&mut self) -> Vec<&mut Board> {
         let mut boards = Vec::new();
         if let Some(ref mut mb) = self.main_board {
@@ -92,66 +99,66 @@ impl System {
             self.peripheral_boards.remove(idx);
             return Ok(());
         }
-        return Err(SystemError::BoardNotInSystem);
+        return Err(SystemError::BoardNotInSystemError);
     }
 
-    // Generate a module based on the system. Lots to improve here. For now, this just saves
-    // the module to the project root (i.e. doesn't account for the existance of a Cargo project).
-    // pub fn generate_system_module(&mut self) -> Result<(), String> {
+    /// Generate a module based on the system. Lots to improve here. For now, this just saves
+    /// the module to the project root (i.e. doesn't account for the existance of a Cargo project).
+    pub fn generate_system_module(&mut self, save_to: &Path) -> Result {
 
-    //     let SystemBoardTokens {
-    //         use_statements,
-    //         field_type_token_streams,
-    //         field_constructor_token_streams,
-    //         ..
-    //     } = match self.gather_board_fields() {
-    //         Ok(sbt) => sbt,
-    //         Err(e) => {
-    //             warn!("error in gather_board_fields method: {:?}", e);
-    //             return Err("error gathering board fields".to_string());
-    //         }
-    //     }
+        // let SystemBoardTokens {
+        //     use_statements,
+        //     field_type_token_streams,
+        //     field_constructor_token_streams,
+        //     ..
+        // } = match self.gather_board_fields() {
+        //     Ok(sbt) => sbt,
+        //     Err(e) => {
+        //         warn!("error in gather_board_fields method: {:?}", e);
+        //         return Err("error gathering board fields".to_string());
+        //     }
+        // };
+
+
+        /************* MODULE CODE HERE *************/
+        let output_tokens = quote!
+        {
+            // #(#use_statements)*
+            // #(use #crate_identifiers);*
+
+            // todo - include needed imports
+
+            pub struct System {
+                // #(#field_type_token_streams),*
+            }
+
+            impl System {
+                pub fn new() -> Self {
+                    Self {
+                        // #(#field_constructor_token_streams),*
+                    }
+                }
+            }
+
+            // #(#connection_impls)*
+
+        };
+        /************* End Module Code *************/
+
+        // now output the module code to a file, passing through the prettyplease formatter
+        let syn_code: syn::File = match syn::parse2(output_tokens) {
+            Ok(syn_code) => syn_code,
+            Err(e) => {
+                warn!("couldn't parse output_tokens! {:?}", e);
+                syn::parse_str("// error generating module").unwrap()
+            }
+        };
+        let code = prettyplease::unparse(&syn_code);
+        fs::write(save_to, code.as_str()).unwrap();
         
-    //     ;
+        Ok(())
 
-    //     /************* MODULE CODE HERE *************/
-    //     let output_tokens = quote!
-    //     {
-    //         #(#use_statements)*
-    //         // #(use #crate_identifiers);*
+    }
 
-    //         // todo - include needed imports
-
-    //         pub struct System {
-    //             #(#field_type_token_streams),*
-    //         }
-
-    //         impl System {
-    //             pub fn new() -> Self {
-    //                 Self {
-    //                     #(#field_constructor_token_streams),*
-    //                 }
-    //             }
-    //         }
-
-    //         // #(#connection_impls)*
-
-    //     };
-    //     /************* End Module Code *************/
-
-    //     // now output the module code to a file, passing through the prettyplease formatter
-    //     let syn_code: syn::File = match syn::parse2(output_tokens) {
-    //         Ok(syn_code) => syn_code,
-    //         Err(e) => {
-    //             warn!("couldn't parse output_tokens! {:?}", e);
-    //             syn::parse_str("// error generating module").unwrap()
-    //         }
-    //     };
-    //     let code = prettyplease::unparse(&syn_code);
-    //     fs::write(self.get_location() + "/src/sys_mod_output_testing.rs", code.as_str()).unwrap();
-        
-    //     Ok(())
-
-    // }
 
 }

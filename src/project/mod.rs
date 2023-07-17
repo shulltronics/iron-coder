@@ -20,6 +20,8 @@ use crate::app::code_editor::CodeEditor;
 
 use egui_node_graph::NodeTemplateTrait;
 
+use quote::quote;
+
 pub mod display;
 use display::ProjectViewType;
 
@@ -43,6 +45,7 @@ pub enum ProjectIOError {
     NoProjectDirectory,
     FilesystemError,
     LoadToTomlError,
+    CodeGenError,
     UnknownError,
 }
 

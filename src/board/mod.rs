@@ -244,62 +244,6 @@ impl Board {
 
 }
 
-// /// Recursively read the boards directory and return a vector of boards. This includes
-// /// searching for template directories, examples, and local BSPs for each board.
-// pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
-//     let mut r = Vec::new();
-//     if let Ok(entries) = fs::read_dir(boards_dir) {
-//         for entry in entries {
-//             let entry = entry.expect("error with entry");
-//             if entry.file_type().expect("error parsing file type").is_dir() {
-//                 // if the entry is a directory, recursively go get the files
-//                 // don't recurse into the examples
-//                 if entry.path().ends_with("examples") {
-//                     continue;
-//                 }
-//                 r.append(&mut get_boards(&entry.path()));
-//             } else if entry.path().extension().unwrap_or_default() == "toml" {
-//                 // otherwise, if the entry is a file ending in "toml" try to parse it
-//                 // as a board file. unwrap_or_default works well here as the default 
-//                 // ("") for &str will never match "toml"
-//                 match Board::load_from_toml(&entry.path()) {
-//                     Ok(mut board) => {
-//                         let parent = entry.path().parent().unwrap().canonicalize().unwrap();
-//                         // look for a template directory
-//                         let template_dir = parent.join("template");
-//                         if let Ok(true) = template_dir.try_exists() {
-//                             debug!("found template dir for board <{}> at {:?}", board.name.clone(), entry.path().parent().unwrap().canonicalize().unwrap().join("template"));
-//                             board.template_dir = Some(template_dir);
-//                         } else {
-//                             debug!("no template directory found for board <{}>", board.name.clone());
-//                         }
-//                         // look for a local BSP, and do things related to it if needed
-//                         let bsp_dir = parent.join("bsp");
-//                         if let Ok(true) = bsp_dir.try_exists() {
-//                             info!("found local bsp crate for board {}", board.name.clone());
-//                             board.bsp_path = Some(bsp_dir.clone());
-//                             let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
-//                             let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
-//                             board.ra_values = analysis.file_structure(fid).unwrap();
-//                             match board.load_bsp_info() {
-//                                 Ok(_) => (),
-//                                 Err(e) => warn!("error parsing BSP for board {}: {:?}", board.get_name(), e),
-//                             };
-//                         } else {
-//                             debug!("no bsp directory found for board <{}>", board.name.clone());
-//                         }
-//                         r.push(board);
-//                     },
-//                     Err(e) => {
-//                         warn!("error loading board from {}: {:?}", entry.path().display().to_string(), e);
-//                     },
-//                 }
-//             }
-//         }
-//     }
-//     return r;
-// }
-
 /// Iteratively gather the Boards from the filesystem.
 pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
     let mut r = Vec::new();
@@ -336,9 +280,9 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
                                 if let Ok(true) = bsp_dir.try_exists() {
                                     info!("found local bsp crate for board {}", board.name.clone());
                                     board.bsp_path = Some(bsp_dir.clone());
-                                    let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
-                                    let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
-                                    board.ra_values = analysis.file_structure(fid).unwrap();
+                                    // let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
+                                    // let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
+                                    // board.ra_values = analysis.file_structure(fid).unwrap();
                                     match board.load_bsp_info() {
                                         Ok(_) => (),
                                         Err(e) => warn!("error parsing BSP for board {}: {:?}", board.get_name(), e),

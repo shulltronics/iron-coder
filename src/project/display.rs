@@ -7,7 +7,7 @@ use egui::widget_text::RichText;
 use egui::widgets::Button;
 
 use crate::project::Project;
-use crate::board::BoardMiniWidget;
+use crate::board::display::BoardMiniWidget;
 use crate::app::icons::IconSet;
 
 use serde::{Serialize, Deserialize};
@@ -143,14 +143,14 @@ impl Project {
             // GENERATE SYSTEM MODULE
             if ui.button("Gen Sys Mod").clicked() {
                 info!("generating system module...");
-                match self.generate_system_module() {
-                    Ok(()) => {
-                        info!("generate_system_module returned Ok(()).");
-                    },
-                    Err(e) => {
-                        warn!("generate_system_module returned error: {:?}", e);
-                    },
-                }
+                // match self.system.generate_system_module() {
+                //     Ok(()) => {
+                //         info!("generate_system_module returned Ok(()).");
+                //     },
+                //     Err(e) => {
+                //         warn!("generate_system_module returned error: {:?}", e);
+                //     },
+                // }
             }
 
         });
@@ -315,15 +315,15 @@ impl Project {
                     }
                 });
                 
-                if ui.button("print syntax tree for BSP").clicked() {
-                    println!("{:#?}", board.log_syn_file_to_string());
-                }
+                // if ui.button("print syntax tree for BSP").clicked() {
+                //     println!("{:#?}", board.log_syn_file_to_string());
+                // }
 
-                if ui.button("update pinout with BSP info").clicked() {
-                    if let Err(e) = board.update_pinout_from_bsp() {
-                        warn!("{:?}", e);
-                    }
-                }
+                // if ui.button("update pinout with BSP info").clicked() {
+                //     if let Err(e) = board.update_pinout_from_bsp() {
+                //         warn!("{:?}", e);
+                //     }
+                // }
 
                 if ui.button("remove board from system").clicked() {
                     // TODO -- also remove all connections that involved this board, to prevent a crash

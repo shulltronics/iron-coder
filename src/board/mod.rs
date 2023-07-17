@@ -10,72 +10,17 @@ use std::cmp;
 
 use serde::{Serialize, Deserialize};
 
-// use ra_ap_rust_analyzer::cli::load_cargo::load_workspace_at;
 use ra_ap_ide;
 use syn;
+use syn::visit::{self, Visit};
+
+pub mod display;
 
 pub mod pinout;
 use pinout::Pinout;
-pub mod display;
 
-/// This function recursively reads the boards directory and returns a vector of boards.
-/// This includes searching for template directories, examples, and local BSPs for each
-/// board.
-pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
-    let mut r = Vec::new();
-    if let Ok(entries) = fs::read_dir(boards_dir) {
-        for entry in entries {
-            let entry = entry.expect("error with entry");
-            if entry.file_type().expect("error parsing file type").is_dir() {
-                // if the entry is a directory, recursively go get the files
-                // don't recurse into the examples
-                if entry.path().ends_with("examples") {
-                    continue;
-                }
-                r.append(&mut get_boards(&entry.path()));
-            } else if entry.path().extension().unwrap_or_default() == "toml" {
-                // otherwise, if the entry is a file ending in "toml" try to parse it
-                // as a board file. unwrap_or_default works well here as the default 
-                // ("") for &str will never match "toml"
-                match Board::load_from_toml(&entry.path()) {
-                    Ok(mut board) => {
-                        let parent = entry.path().parent().unwrap().canonicalize().unwrap();
-                        // look for a template directory
-                        let template_dir = parent.join("template");
-                        if let Ok(true) = template_dir.try_exists() {
-                            debug!("found template dir for board <{}> at {:?}", board.name.clone(), entry.path().parent().unwrap().canonicalize().unwrap().join("template"));
-                            board.template_dir = Some(template_dir);
-                        } else {
-                            debug!("no template directory found for board <{}>", board.name.clone());
-                        }
-                        // look for a local BSP
-                        let bsp_dir = parent.join("bsp");
-                        if let Ok(true) = bsp_dir.try_exists() {
-                            info!("found local bsp crate for board {}", board.name.clone());
-                            board.bsp_path = Some(bsp_dir.clone());
-                            let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
-                            let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
-                            board.ra_values = analysis.file_structure(fid).unwrap();
-                            // info!("syntax tree is: \n{:?}", analysis.file_structure(fid));
-                            // for s in analysis.file_structure(fid).unwrap() {
-                            //     println!("{:?}: {:?}: {:?}", s.label, s.kind, s.parent);
-                            //     // let pos = ra_ap_ide::FilePosition { file_id: fid, offset: s.navigation_range.end() };
-                            //     // println!("  {:?}", analysis.signature_help(pos).unwrap());
-                            // }
-                        } else {
-                            debug!("no bsp directory found for board <{}>", board.name.clone());
-                        }
-                        r.push(board);
-                    },
-                    Err(e) => {
-                        warn!("error loading board from {}: {:?}", entry.path().display().to_string(), e);
-                    },
-                }
-            }
-        }
-    }
-    return r;
-}
+pub mod parsing;
+use parsing::BspParseInfo;
 
 /// These are the various standard development board form factors
 #[non_exhaustive]
@@ -96,12 +41,13 @@ impl fmt::Display for BoardStandards {
             BoardStandards::RaspberryPi => write!(f, "RaspberryPi"),
             BoardStandards::ThingPlus => write!(f, "ThingPlus"),
             BoardStandards::MicroMod => write!(f, "MicroMod"),
+            // _ => write!(f, "Unknown Dev Board Standard"),
         }
     }
 }
 
 /// The board struct defines a board type
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
 pub struct Board {
     /// The name of the board
@@ -133,7 +79,7 @@ pub struct Board {
     pub bsp_path: Option<PathBuf>,
     /// A syntax tree representation of the BSP
     #[serde(skip)]
-    pub bsp_syntax: Option<syn::File>,
+    pub bsp_parse_info: Option<BspParseInfo>,
     /// A loaded picture representing the board
     #[serde(skip)]
     pic: Option<egui::ColorImage>,
@@ -142,36 +88,6 @@ pub struct Board {
     /// A list of related, optional crates
     related_crates: Option<Vec<String>>,
 }
-
-impl Default for Board {
-    fn default() -> Self {
-        Self {
-            name: "".to_string(),
-            manufacturer: "".to_string(),
-            is_main_board: false,
-            standard: None,
-            cpu: None,
-            ram: None,
-            flash: None,
-            pinout: Pinout::default(),
-            ra_values: Vec::new(),
-            examples: Vec::new(),
-            template_dir: None,
-            bsp: None,
-            bsp_path: None,
-            bsp_syntax: None,
-            pic: None,
-            required_crates: None,
-            related_crates: None,
-        }
-    }
-}
-// Define some thin wrappers around Board so we can display a Board with the
-//   Widget trait in multiple ways
-//   see https://doc.rust-lang.org/book/ch19-03-advanced-traits.html#using-the-newtype-pattern-to-implement-external-traits-on-external-types
-//   for the Newtype pattern
-pub struct BoardSelectorWidget(pub Board);
-pub struct BoardMiniWidget(pub Board);
 
 impl fmt::Debug for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -184,7 +100,7 @@ impl fmt::Debug for Board {
         write!(f, "  has template: {}\n", self.template_dir.is_some())?;
         write!(f, "  bsp crate name: {:?}\n", self.bsp)?;
         write!(f, "  has local bsp: {:?}\n", self.bsp_path)?;
-        write!(f, "  has some syntax loaded: {:?}\n", self.bsp_syntax.is_some())?;
+        write!(f, "  has some syntax loaded: {:?}\n", self.bsp_parse_info.is_some())?;
         Ok(())
     }
 }
@@ -265,159 +181,121 @@ impl Board {
 /// More complex implementations on Board, such as parsing the bsp using the syn crate
 impl Board {
 
-    /// Try to parse the Board's BSP, returning the result
-    pub fn parse_bsp(&self) -> Option<syn::File> {
-        let mut syntax = None;
-        if let Some(bsp_dir) = self.bsp_path.clone() {
-            let src = bsp_dir.join("src/lib.rs");
-            let src = fs::read_to_string(src.as_path()).unwrap();
-            syntax = match syn::parse_file(src.as_str()) {
-                Ok(syntax) => {
-                    Some(syntax)
-                },
-                Err(e) => {
-                    warn!("Couldn't parse BSP for board {:?} with syn: {:?}", self.get_name(), e);
-                    None
-                },
-            };
-        }
-        // self.bsp_syntax = syntax.clone();
-        return syntax;
-    }
+    // Parse the Board's BSP, and print info about it into a String
+    // pub fn log_syn_file_to_string(&mut self) -> String {
+    //     let mut result = String::new();
+    //     if let Some(syntax) = self.parse_bsp() {
+    //         result = format!("{:?}", syntax);
+    //     }
+    //     return result;
+    // }
 
-    /// Parse the Board's BSP, and print info about it into a String
-    pub fn log_syn_file_to_string(&mut self) -> String {
-        let mut result = String::new();
-        if let Some(syntax) = self.parse_bsp() {
-            result = format!("{:?}", syntax);
-        }
-        return result;
-    }
+    // Using the syn parsing of the BSP, update the pinout field of the Board to include
+    // the bsp Board struct fields that correspond to that pinout
+    // pub fn update_pinout_from_bsp(&mut self) -> Result<(), String> {
+    //     if let Some(syntax) = self.parse_bsp() {
 
-    /// Print out some info about the parsed BSP syntax
-    pub fn print_info_about_bsp(&self, syntax: syn::File) {
-        info!("parsing BSP for {:?}", self.get_name());
-        BoardVisitor.visit_file(&syntax);
-        // extract the Board struct
-        // let mut board_struct = None;
-        // for item in syntax.items.iter() {
-        //     board_struct = match item {
-        //         syn::Item::Struct(item_struct) => {
-        //             if item_struct.ident.to_string() == "Board" {
-        //                 Some(item_struct)
-        //             } else {
-        //                 None
-        //             }
-        //         },
-        //         _ => None,
-        //     };
-        //     if board_struct.is_some() {
-        //         info!("found Board struct!");
-        //         // let generics = &board_struct.unwrap().generics;
-        //         // if generics.params.len() > 0 {
-        //         //     info!("found some generics..");
-        //         //     generics.params.iter().for_each(|p| {
-        //         //         info!("  {:?}", p);
-        //         //     });
-        //         // }
-                
-        //         // println!("{:#?}", board_struct.unwrap());
-        //         break;
-        //     }
-        // }
-        
-        // if board_struct == None {
-        //     info!("no Board struct found, returning");
-        //     return;
-        // }
-        // // iterate through the pinout (as supplied by the board manifest file), and look for
-        // // matching fields in the Board struct.
-        // info!("iterating through board pinout, looking for relevant fields...");
-        // for po in self.pinout.iter() {
-        //     match po.interface.iface_type {
-        //         pinout::InterfaceType::I2C => {
-        //             // search for a field in the Board struct that matches "i2c_bus"
-        //             let i2c_bus = board_struct.unwrap().fields.iter().find(|field| {
-        //                 field.ident.as_ref().unwrap().to_string() == "i2c_bus"
-        //             });
-        //             if i2c_bus.is_some() { info!("found field!"); }
-        //             // po.bsp_field = i2c_bus.cloned();
-        //         },
-        //         ref p @ _ => {
-        //             info!("TODO: look for interface {:?} field in the Board struct.", p);
-        //         },
-        //     }
-        // }
-    }
-
-    /// Using the syn parsing of the BSP, update the pinout field of the Board to include
-    /// the bsp Board struct fields that correspond to that pinout
-    pub fn update_pinout_from_bsp(&mut self) -> Result<(), String> {
-        if let Some(syntax) = self.parse_bsp() {
-
-            // extract the Board struct
-            let mut board_struct = None;
-            for item in syntax.items.iter() {
-                board_struct = match item {
-                    syn::Item::Struct(item_struct) => {
-                        if item_struct.ident.to_string() == "Board" {
-                            Some(item_struct)
-                        } else {
-                            None
-                        }
-                    },
-                    _ => None,
-                };
-                if board_struct.is_some() {
-                    info!("found Board struct!");
-                    println!("{:#?}", board_struct.unwrap());
-                    break;
-                }
-            }
+    //         // extract the Board struct
+    //         let mut board_struct = None;
+    //         for item in syntax.items.iter() {
+    //             board_struct = match item {
+    //                 syn::Item::Struct(item_struct) => {
+    //                     if item_struct.ident.to_string() == "Board" {
+    //                         Some(item_struct)
+    //                     } else {
+    //                         None
+    //                     }
+    //                 },
+    //                 _ => None,
+    //             };
+    //             if board_struct.is_some() {
+    //                 info!("found Board struct!");
+    //                 println!("{:#?}", board_struct.unwrap());
+    //                 break;
+    //             }
+    //         }
             
-            if board_struct == None {
-                return Err(format!("couldn't find Board struct!"));
-            }
-            // iterate through the pinout (as supplied by the board manifest file), and look for
-            // matching fields in the Board struct.
-            for po in self.pinout.iter_mut() {
-                match po.interface.iface_type {
-                    pinout::InterfaceType::I2C => {
-                        // search for a field in the Board struct that matches "i2c_bus"
-                        let i2c_bus = board_struct.unwrap().fields.iter().find(|field| {
-                            field.ident.as_ref().unwrap().to_string() == "i2c_bus"
-                        });
-                        if i2c_bus.is_some() { info!("found field, adding to Pinout..."); }
-                        po.bsp_field = i2c_bus.cloned();
-                    },
-                    _ => {
-                        info!("TODO: looking for another interface field in the Board struct...");
-                    },
-                }
-            }
-        } else {
-            return Err(format!("couldn't update pinout from bsp"));
-        }
-        return Ok(());
+    //         if board_struct == None {
+    //             return Err(format!("couldn't find Board struct!"));
+    //         }
+    //         // iterate through the pinout (as supplied by the board manifest file), and look for
+    //         // matching fields in the Board struct.
+    //         for po in self.pinout.iter_mut() {
+    //             match po.interface.iface_type {
+    //                 pinout::InterfaceType::I2C => {
+    //                     // search for a field in the Board struct that matches "i2c_bus"
+    //                     let i2c_bus = board_struct.unwrap().fields.iter().find(|field| {
+    //                         field.ident.as_ref().unwrap().to_string() == "i2c_bus"
+    //                     });
+    //                     if i2c_bus.is_some() { info!("found field, adding to Pinout..."); }
+    //                     po.bsp_field = i2c_bus.cloned();
+    //                 },
+    //                 _ => {
+    //                     info!("TODO: looking for another interface field in the Board struct...");
+    //                 },
+    //             }
+    //         }
+    //     } else {
+    //         return Err(format!("couldn't update pinout from bsp"));
+    //     }
+    //     return Ok(());
     
-    }
+    // }
 
 }
 
-use syn::visit::{self, Visit};
-struct BoardVisitor;
-impl<'ast> visit::Visit<'ast> for BoardVisitor {
-    /// What to do when visiting a Struct
-    fn visit_item_struct(&mut self, item_struct: &'ast syn::ItemStruct) {
-        if item_struct.ident.to_string() == "Board" {
-            info!("found Board struct");
-            // self.visit_generics(&item_struct.generics);
+/// Recursively read the boards directory and return a vector of boards. This includes
+/// searching for template directories, examples, and local BSPs for each board.
+pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
+    let mut r = Vec::new();
+    if let Ok(entries) = fs::read_dir(boards_dir) {
+        for entry in entries {
+            let entry = entry.expect("error with entry");
+            if entry.file_type().expect("error parsing file type").is_dir() {
+                // if the entry is a directory, recursively go get the files
+                // don't recurse into the examples
+                if entry.path().ends_with("examples") {
+                    continue;
+                }
+                r.append(&mut get_boards(&entry.path()));
+            } else if entry.path().extension().unwrap_or_default() == "toml" {
+                // otherwise, if the entry is a file ending in "toml" try to parse it
+                // as a board file. unwrap_or_default works well here as the default 
+                // ("") for &str will never match "toml"
+                match Board::load_from_toml(&entry.path()) {
+                    Ok(mut board) => {
+                        let parent = entry.path().parent().unwrap().canonicalize().unwrap();
+                        // look for a template directory
+                        let template_dir = parent.join("template");
+                        if let Ok(true) = template_dir.try_exists() {
+                            debug!("found template dir for board <{}> at {:?}", board.name.clone(), entry.path().parent().unwrap().canonicalize().unwrap().join("template"));
+                            board.template_dir = Some(template_dir);
+                        } else {
+                            debug!("no template directory found for board <{}>", board.name.clone());
+                        }
+                        // look for a local BSP, and do things related to it if needed
+                        let bsp_dir = parent.join("bsp");
+                        if let Ok(true) = bsp_dir.try_exists() {
+                            info!("found local bsp crate for board {}", board.name.clone());
+                            board.bsp_path = Some(bsp_dir.clone());
+                            let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
+                            let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
+                            board.ra_values = analysis.file_structure(fid).unwrap();
+                            match board.load_bsp_info() {
+                                Ok(_) => (),
+                                Err(e) => warn!("error parsing BSP for board {}: {:?}", board.get_name(), e),
+                            };
+                        } else {
+                            debug!("no bsp directory found for board <{}>", board.name.clone());
+                        }
+                        r.push(board);
+                    },
+                    Err(e) => {
+                        warn!("error loading board from {}: {:?}", entry.path().display().to_string(), e);
+                    },
+                }
+            }
         }
     }
-
-    fn visit_generics(&mut self, generics: &'ast syn::Generics) {
-        for g in generics.params.iter() {
-            info!("  found generic: {:?}", g);
-        }
-    }
+    return r;
 }

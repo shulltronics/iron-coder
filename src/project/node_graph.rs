@@ -14,7 +14,7 @@ use crate::project::{
 
 use crate::board::{
     Board,
-    BoardMiniWidget,
+    display::BoardMiniWidget,
 };
 
 use crate::board::pinout::{

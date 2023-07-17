@@ -1,11 +1,7 @@
 //! This module contains code related to displaying Boards and related types in egui.
 
 use log::{info, debug};
-use crate::board::{
-    Board,
-    BoardMiniWidget,
-    BoardSelectorWidget,
-};
+use crate::board::Board;
 use egui::{
     Color32,
     Ui,
@@ -48,6 +44,7 @@ fn make_field_widget_text(heading: &str,
     return job;
 }
 
+/// Normal view for the board widget
 impl Widget for Board {
     // How to display a board as a widget
     fn ui(self, ui: &mut Ui) -> Response {
@@ -174,6 +171,8 @@ impl Widget for Board {
 
 }
 
+/// Display the board for use in the Board selector window
+pub struct BoardSelectorWidget(pub Board);
 impl Widget for BoardSelectorWidget {
     fn ui(self, ui: &mut Ui) -> Response {
         let this_board = self.0;
@@ -229,6 +228,8 @@ impl Widget for BoardSelectorWidget {
     }
 }
 
+/// Display the Board as a "mini widget"
+pub struct BoardMiniWidget(pub Board);
 impl Widget for BoardMiniWidget {
     fn ui(self, ui: &mut Ui) -> Response {
         let this_board = self.0;

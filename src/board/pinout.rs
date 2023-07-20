@@ -72,7 +72,7 @@ impl Default for Interface {
 #[serde(default)]
 pub struct InterfaceMapping {
     pub interface: Interface,
-    pub pins: Vec<usize>,
+    pub pins: Vec<String>,
     #[serde(skip)]
     pub bsp_field: Option<syn::Field>,
 }

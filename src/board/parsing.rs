@@ -141,7 +141,7 @@ impl Board {
 
         // Get the BSP crate names to construct the `use` statements and field type identifiers.
         let bsp = match self.bsp.clone() {
-            Some(bsp) => bsp.replace("-", "_").replace("(", "").replace(")", ""),
+            Some(bsp) => bsp.replace("-", "_").replace("(", "").replace(")", "").replace(".", ""),
             None => return Err(BspParseError::BspMissingError),
         };
         let bsp_crate_ident = quote::format_ident!(
@@ -153,7 +153,13 @@ impl Board {
             use #bsp_crate_ident;
         };
 
-        let board_field_name = self.get_name().replace(" ", "_").replace("-", "_").replace("(", "").replace(")", "").to_ascii_lowercase();
+        let board_field_name = self.get_name()
+            .replace(" ", "_")
+            .replace("-", "_")
+            .replace("(", "")
+            .replace(")", "")
+            .replace(".", "")
+            .to_ascii_lowercase();
         let board_field_ident = quote::format_ident!("{}", board_field_name);
         bsp_parse_info.board_field_identifiers.push(board_field_ident);
 

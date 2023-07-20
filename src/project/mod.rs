@@ -325,7 +325,8 @@ impl Project {
     /// non-zero exit status, or if the project directory already contains a Cargo project.
     pub fn generate_cargo_template(&mut self, ctx: &egui::Context) -> Result {
         info!("generating project template");
-        if let Some(mb) = self.system.main_board.clone() {
+        let mut cmds: Vec<duct::Expression> = vec![];
+        if let Some(mb) = &self.system.main_board {
             if let Some(template_dir) = mb.get_template_dir() {
                 let cmd = duct::cmd!(
                     "cargo",
@@ -338,10 +339,27 @@ impl Project {
                     self.get_location(),
                     "--init",
                 );
-                self.run_background_commands(&[cmd], ctx);
+                cmds.push(cmd);
             } else {
                 return Err(ProjectIOError::NoProjectTemplate);
             }
+            // iterate through BSP paths and add the crates to the project
+            for b in self.system.get_all_boards() {
+                if let Some(local_bsp) = b.bsp_path {
+                    let cmd = duct::cmd!(
+                        "cargo",
+                        "-Z",
+                        "unstable-options",
+                        "-C",
+                        self.location.clone().unwrap(),
+                        "add",
+                        "--path",
+                        local_bsp,
+                    );
+                    cmds.push(cmd);
+                }
+            }
+            self.run_background_commands(&cmds, ctx);
         } else {
             return Err(ProjectIOError::NoMainBoard);
         }

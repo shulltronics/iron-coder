@@ -30,9 +30,11 @@ impl eng::DataTypeTrait<System> for InterfaceType {
         // TODO - do this based on colorscheme?
         match self {
             InterfaceType::I2C => egui::Color32::GREEN,
+            InterfaceType::SPI => egui::Color32::RED,
+            InterfaceType::UART => egui::Color32::GOLD,
             InterfaceType::GPIO => egui::Color32::WHITE,
             InterfaceType::ADC => egui::Color32::BLUE,
-            _ => egui::Color32::RED,
+            _ => egui::Color32::BLACK,
         }
     }
 
@@ -120,9 +122,14 @@ impl eng::NodeTemplateTrait for Board {
                     let name = format!("{} : {}", po.interface.iface_type.to_string(), po.interface.direction.to_string());
                     graph.add_input_param(node_id, name, po.interface.iface_type.clone(), po.clone(), eng::InputParamKind::ConnectionOnly, true);
                 },
+                InterfaceDirection::Bidirectional => {
+                    // let name = format!("{} : {}", po.interface.iface_type.to_string(), po.interface.direction.to_string());
+                    // graph.add_output_param(node_id, name, po.interface.iface_type.clone());
+                    warn!("bidirectional interface not implemented in node editor!");
+                },
                 _ => {
                     // graph.add_output_param(node_id, po.interface.clone().to_string(), po.interface.clone());
-                    info!("found pinout interface that isn't implemented in the graph editor!")
+                    warn!("found pinout interface that isn't implemented in the graph editor!")
                 },
             }
         }

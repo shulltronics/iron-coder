@@ -14,6 +14,9 @@ use ra_ap_ide;
 use syn;
 use syn::visit::{self, Visit};
 
+use svg_to_egui::iron_coder_svg_decode;
+use svg_to_egui::SvgBoardInfo;
+
 pub mod display;
 
 pub mod pinout;
@@ -80,12 +83,9 @@ pub struct Board {
     /// A syntax tree representation of the BSP
     #[serde(skip)]
     pub bsp_parse_info: Option<BspParseInfo>,
-    /// A loaded picture representing the board
+    /// Possible image loaded from an SVG file, along with size info and pin locations
     #[serde(skip)]
-    pic: Option<egui::ColorImage>,
-    /// A vector of locations where the pins are, for use in display
-    #[serde(skip)]
-    pin_nodes: Vec<egui::Rect>,
+    pub svg_board_info: Option<SvgBoardInfo>,
     /// A list of required crates
     required_crates: Option<Vec<String>>,
     /// A list of related, optional crates
@@ -99,7 +99,7 @@ impl fmt::Debug for Board {
         write!(f, "  num examples: {}\n", self.examples.len())?;
         write!(f, "  num required crates: {}\n", self.required_crates.clone().unwrap_or_default().len())?;
         write!(f, "  num related crates: {}\n", self.related_crates.clone().unwrap_or_default().len())?;
-        write!(f, "  has pic: {}\n", self.pic.is_some())?;
+        write!(f, "  has svg info: {}\n", self.svg_board_info.is_some())?;
         write!(f, "  has template: {}\n", self.template_dir.is_some())?;
         write!(f, "  bsp crate name: {:?}\n", self.bsp)?;
         write!(f, "  has local bsp: {:?}\n", self.bsp_path)?;
@@ -116,7 +116,6 @@ impl cmp::PartialEq for Board {
     }
 }
 
-use svg_to_egui::svg_path_to_colorimage;
 /// Basic implementation, including loading boards from the filesystem, and retrieving certain
 /// information about them.
 impl Board {
@@ -135,10 +134,10 @@ impl Board {
         // See if there is an image
         if let Ok(pic_path) = path.with_extension("svg").canonicalize() {
             // BASED ON SVG WORK
-            match svg_path_to_colorimage(&pic_path) {
-                Ok((img, pin_nodes)) => {
-                    b.pic = Some(img);
-                    b.pin_nodes = pin_nodes;
+            match iron_coder_svg_decode(&pic_path) {
+                Ok(svg_board_info) => {
+                    info!("board has physical size: {:?}", svg_board_info.physical_size);
+                    b.svg_board_info = Some(svg_board_info);
                 },
                 Err(e) => println!("error with svg! {:?}", e),
             };

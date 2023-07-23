@@ -49,7 +49,7 @@ impl Widget for Board {
     // How to display a board as a widget
     fn ui(self, ui: &mut Ui) -> Response {
         let response: egui::Response;
-        if let Some(color_image) = self.pic {
+        if let Some(svg_board_info) = self.svg_board_info {
             // Use a frame to display multiple widgets within our widget,
             // with an inner margin
             response = egui::Frame::none()
@@ -67,7 +67,7 @@ impl Widget for Board {
                     // ui.label(label);
                     let retained_image = RetainedImage::from_color_image(
                         "pic",
-                        color_image,
+                        svg_board_info.image,
                     );
                     retained_image.show_max_size(ui, egui::vec2(150.0, 150.0));
                 });
@@ -177,7 +177,7 @@ impl Widget for BoardSelectorWidget {
     fn ui(self, ui: &mut Ui) -> Response {
         let this_board = self.0;
         let response: egui::Response;
-        if let Some(color_image) = this_board.clone().pic {
+        if let Some(svg_board_info) = this_board.clone().svg_board_info {
             // Use a frame to display multiple widgets within our widget,
             // with an inner margin
             response = egui::Frame::none()
@@ -194,9 +194,13 @@ impl Widget for BoardSelectorWidget {
                     // ui.label(label);
                     let retained_image = RetainedImage::from_color_image(
                         "pic",
-                        color_image,
+                        svg_board_info.image,
                     );
-                    retained_image.show_max_size(ui, egui::vec2(150.0, 150.0));
+                    let response = retained_image.show_max_size(ui, egui::vec2(150.0, 150.0)).interact(egui::Sense::click());
+                    // info!("retained image response: {:?}", response);
+                    // if response.clicked() {
+                    //     info!("fuck!");
+                    // };
 
                 });
                 ui.horizontal(|ui| {
@@ -230,49 +234,6 @@ impl Widget for BoardSelectorWidget {
     }
 }
 
-/// Display to Board as an image with pin overlays that respond to hover events
-pub struct BoardEditorWidget(pub Board);
-impl Widget for BoardEditorWidget {
-
-    fn ui(self, ui: &mut Ui) -> Response {
-
-        let this_board = self.0;
-        let response: egui::Response;
-        let scale: f32 = 0.5;
-        if let Some(color_image) = this_board.clone().pic {
-            let retained_image = RetainedImage::from_color_image(
-                "pic",
-                color_image,
-            );
-            response = retained_image.show_scaled(ui, scale).interact(egui::Sense::click());
-
-            // iterate through the pin_nodes of the board, and check if their rects (properly scaled and translated) contain the pointer.
-            // if so, actually draw the stuff there.
-            for mut pin_rect in this_board.pin_nodes {
-                // scale the rects the same amount that the board image was scaled
-                pin_rect.min.x *= scale;
-                pin_rect.min.y *= scale;
-                pin_rect.max.x *= scale;
-                pin_rect.max.y *= scale;
-                // translate the rects so they are in absolute coordinates
-                pin_rect = pin_rect.translate(response.rect.left_top().to_vec2());
-                let r = ui.allocate_rect(pin_rect, egui::Sense::hover());
-                r.clone().on_hover_text("test");
-                if r.hovered() { 
-                    ui.painter().circle_filled(r.rect.center(), r.rect.height()/2.0, Color32::GREEN);
-                }
-            }
-        } else {
-            // if there is no image, show an empty box (TODO there probably should be some default image)
-            response = ui.allocate_response(egui::vec2(128.0, 128.0), egui::Sense::click());
-        }
-
-        return response; 
-
-    }
-
-}
-
 
 /// Display the Board as a "mini widget"
 pub struct BoardMiniWidget(pub Board);
@@ -280,7 +241,7 @@ impl Widget for BoardMiniWidget {
     fn ui(self, ui: &mut Ui) -> Response {
         let this_board = self.0;
         let response: egui::Response;
-        if let Some(color_image) = this_board.clone().pic {
+        if let Some(svg_board_info) = this_board.clone().svg_board_info {
             // Use a frame to display multiple widgets within our widget,
             // with an inner margin
             response = egui::Frame::none()
@@ -290,7 +251,7 @@ impl Widget for BoardMiniWidget {
                     ui.label(this_board.clone().name);
                     let retained_image = RetainedImage::from_color_image(
                         "pic",
-                        color_image,
+                        svg_board_info.image,
                     );
                     retained_image.show_max_size(ui, egui::vec2(96.0, 96.0));
                 });

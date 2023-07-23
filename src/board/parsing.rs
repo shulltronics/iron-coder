@@ -184,7 +184,7 @@ impl Board {
             return Err(BspParseError::OtherError);
         }
 
-        debug!("after parsing BSPs, the datastructure looks like: \n{:#?}", bsp_parse_info);
+        // debug!("after parsing BSPs, the datastructure looks like: \n{:#?}", bsp_parse_info);
         self.bsp_parse_info = Some(bsp_parse_info);
         Ok(())
     }

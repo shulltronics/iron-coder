@@ -1,3 +1,4 @@
+use egui_extras::RetainedImage;
 use log::{info, warn};
 
 use std::path::Path;
@@ -6,8 +7,7 @@ use std::sync::Arc;
 use egui::widget_text::RichText;
 use egui::widgets::Button;
 
-use crate::project::Project;
-use crate::board::display::BoardEditorWidget;
+use crate::{project::Project, board};
 use crate::app::icons::IconSet;
 
 use serde::{Serialize, Deserialize};
@@ -273,22 +273,60 @@ impl Project {
     }
 
     // Show the boards in egui "Area"s so we can move them around!
-    pub fn display_system_editor(&mut self, ctx: &egui::Context, _ui: &mut egui::Ui) {
+    pub fn display_system_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         
         let mut recs: Vec<(egui::Rect, egui::Rect)> = vec![(egui::Rect::NOTHING, egui::Rect::NOTHING); self.system.connections.len()];
 
         for (board_idx, board) in self.system.get_all_boards().iter_mut().enumerate() {
-            // show the board in a Window
-            let window = egui::Window::new(board.get_name())
-                .open(&mut true)
-                .title_bar(false)
-                .resizable(false)
-                .movable(true)
-                .show(ctx, |ui| {
-                    ui.add(BoardEditorWidget(board.clone()));
-                }).unwrap().response;
 
-                // create a right-clickable menu to add a connection from the selected board
+            let response = egui::Area::new(board_idx.to_string()).show(ctx, |ui| {
+
+                let mut pin_clicked: Option<String> = None;
+                let scale = 7.0;
+                if let Some(svg_board_info) = board.clone().svg_board_info {
+                    let retained_image = RetainedImage::from_color_image(
+                        "pic",
+                        svg_board_info.image,
+                    );
+                
+                    let display_size = svg_board_info.physical_size * scale;
+                    
+                    let image_rect = retained_image.show_max_size(ui, display_size).rect;
+                    
+                    // info!("retained_image response: {:#?}", image_response);
+                        
+                    // iterate through the pin_nodes of the board, and check if their rects (properly scaled and translated)
+                    // contain the pointer. If so, actually draw the stuff there.
+                    for (pin_name, mut pin_rect) in board.clone().svg_board_info.unwrap().pin_rects {
+                        // scale the rects the same amount that the board image was scaled
+                        pin_rect.min.x *= scale;
+                        pin_rect.min.y *= scale;
+                        pin_rect.max.x *= scale;
+                        pin_rect.max.y *= scale;
+                        // translate the rects so they are in absolute coordinates
+                        pin_rect = pin_rect.translate(image_rect.left_top().to_vec2());
+                        let r = ui.allocate_rect(pin_rect, egui::Sense::click());
+                        if r.clicked() {
+                            info!("clicked pin {}!", &pin_name);
+                            pin_clicked = Some(pin_name.clone());
+                        }
+                        if r.hovered() {
+                            ui.painter().circle_filled(r.rect.center(), r.rect.height()/2.0, egui::Color32::GREEN);
+                        }
+                        r.clone().on_hover_text(String::from(board.get_name()) + ":" + &pin_name);
+                        r.context_menu(|ui| {
+                            ui.label("a pin-level menu option");
+                        });
+                    }
+                    
+                }
+        
+                return pin_clicked;
+                
+            });
+
+            // Actions for board-level stuff
+            let window = response.response;
             window.context_menu(|ui| {
                 ui.menu_button("pinout info", |ui| {
                     for po in board.get_pinout().iter() {
@@ -305,13 +343,18 @@ impl Project {
                         }
                     }
                 });
-                
                 if ui.button("remove board from system").clicked() {
                     self.system.remove_board(board.clone()).unwrap_or_else(|_| {
                         warn!("error removing board from system.");
                     });
                 }
             });
+
+            // Actions for pin-level stuff
+            if let Some(pin) = response.inner {
+                info!("pin {} clicked!", pin);
+            }
+            
         } // for each Board
 
     }

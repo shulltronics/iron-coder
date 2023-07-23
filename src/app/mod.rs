@@ -85,13 +85,13 @@ impl IronCoderApp {
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
         let mut app = IronCoderApp::default();
-        if let Some(storage) = cc.storage {
-            info!("loading former app state from storage...");
-            app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        } else {
-           // Now return a default IronCoderApp
-           app = Default::default();
-        }
+        //if let Some(storage) = cc.storage {
+        //    info!("loading former app state from storage...");
+        //    app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+        //} else {
+        //   // Now return a default IronCoderApp
+        //   app = Default::default();
+        //}
         info!("Reloading current project and assets...");
         app.set_colorscheme(&cc.egui_ctx);
         app.project.known_boards = app.boards.clone();
@@ -406,7 +406,7 @@ impl eframe::App for IronCoderApp {
     // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         info!("saving program state.");
-        eframe::set_value(storage, eframe::APP_KEY, self);
+        //eframe::set_value(storage, eframe::APP_KEY, self);
     }
 
     // Called each time the UI needs repainting, which may be many times per second.
@@ -471,8 +471,8 @@ impl eframe::App for IronCoderApp {
                             ui.add_sized([x, 0.0], label);
                         });
                     } else {
-                        // self.project.display_system_editor(ctx, ui);
-                        self.project.display_system_node_graph(ctx, ui, self.get_boards());
+                        self.project.display_system_editor(ctx, ui);
+                        // self.project.display_system_node_graph(ctx, ui, self.get_boards());
                     }
                 });
                 // 4: (possibly) show the available boards window

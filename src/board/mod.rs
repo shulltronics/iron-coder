@@ -83,6 +83,9 @@ pub struct Board {
     /// A loaded picture representing the board
     #[serde(skip)]
     pic: Option<egui::ColorImage>,
+    /// A vector of locations where the pins are, for use in display
+    #[serde(skip)]
+    pin_nodes: Vec<egui::Rect>,
     /// A list of required crates
     required_crates: Option<Vec<String>>,
     /// A list of related, optional crates
@@ -113,6 +116,7 @@ impl cmp::PartialEq for Board {
     }
 }
 
+use svg_to_egui::svg_path_to_colorimage;
 /// Basic implementation, including loading boards from the filesystem, and retrieving certain
 /// information about them.
 impl Board {
@@ -129,17 +133,29 @@ impl Board {
         };
 
         // See if there is an image
-        if let Ok(pic_path) = path.with_extension("png").canonicalize() {
-            let image = image::io::Reader::open(pic_path).unwrap().decode().unwrap();
-            let size = [image.width() as _, image.height() as _];
-            let image_buffer = image.to_rgba8();
-            let pixels = image_buffer.as_flat_samples();
-            let color_image = egui::ColorImage::from_rgba_unmultiplied(
-                size,
-                pixels.as_slice(),
-            );
-            b.pic = Some(color_image);
+        if let Ok(pic_path) = path.with_extension("svg").canonicalize() {
+            // BASED ON SVG WORK
+            match svg_path_to_colorimage(&pic_path) {
+                Ok((img, pin_nodes)) => {
+                    b.pic = Some(img);
+                    b.pin_nodes = pin_nodes;
+                },
+                Err(e) => println!("error with svg! {:?}", e),
+            };
+        } else {
+            println!("no svg file for board {}", b.get_name());
         }
+        //if let Ok(pic_path) = path.with_extension("png").canonicalize() {
+        //    let image = image::io::Reader::open(pic_path).unwrap().decode().unwrap();
+        //    let size = [image.width() as _, image.height() as _];
+        //    let image_buffer = image.to_rgba8();
+        //    let pixels = image_buffer.as_flat_samples();
+        //    let color_image = egui::ColorImage::from_rgba_unmultiplied(
+        //        size,
+        //        pixels.as_slice(),
+        //    );
+        //    b.pic = Some(color_image);
+        //}
 
         // See if there are any examples
         if let Ok(examples_path) = path.parent().unwrap().join("examples").canonicalize() {

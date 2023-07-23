@@ -197,6 +197,7 @@ impl Widget for BoardSelectorWidget {
                         color_image,
                     );
                     retained_image.show_max_size(ui, egui::vec2(150.0, 150.0));
+
                 });
                 ui.horizontal(|ui| {
                     ui.label(make_field_widget_text(
@@ -216,8 +217,9 @@ impl Widget for BoardSelectorWidget {
                 });
             }).response.interact(egui::Sense::click());
 
+            
+            // draw a bounding box for main boards
             if this_board.clone().is_main_board() {
-                // draw a bounding box
                 ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
             }
 
@@ -227,6 +229,51 @@ impl Widget for BoardSelectorWidget {
         return response;
     }
 }
+
+/// Display to Board as an image with pin overlays that respond to hover events
+pub struct BoardEditorWidget(pub Board);
+impl Widget for BoardEditorWidget {
+
+    fn ui(self, ui: &mut Ui) -> Response {
+
+        let this_board = self.0;
+        let response: egui::Response;
+        let scale: f32 = 0.5;
+        if let Some(color_image) = this_board.clone().pic {
+            let retained_image = RetainedImage::from_color_image(
+                "pic",
+                color_image,
+            );
+            response = retained_image.show_scaled(ui, scale).interact(egui::Sense::click());
+            // draw a bounding box
+            ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
+            // iterate through the pin_nodes of the board, and check if their rects (properly scaled and translated) contain the pointer.
+            // if so, actually draw the stuff there.
+            for mut pin_rect in this_board.pin_nodes {
+                // scale the rects the same amount that the board image was scaled
+                pin_rect.min.x *= scale;
+                pin_rect.min.y *= scale;
+                pin_rect.max.x *= scale;
+                pin_rect.max.y *= scale;
+                // translate the rects so they are in absolute coordinates
+                pin_rect = pin_rect.translate(response.rect.left_top().to_vec2());
+                let r = ui.allocate_rect(pin_rect, egui::Sense::hover());
+                r.clone().on_hover_text("test");
+                if r.hovered() { 
+                    ui.painter().circle_filled(r.rect.center(), r.rect.height()/2.0, Color32::GREEN);
+                }
+            }
+        } else {
+            // if there is no image, show an empty box (TODO there probably should be some default image)
+            response = ui.allocate_response(egui::vec2(128.0, 128.0), egui::Sense::click());
+        }
+
+        return response; 
+
+    }
+
+}
+
 
 /// Display the Board as a "mini widget"
 pub struct BoardMiniWidget(pub Board);

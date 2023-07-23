@@ -7,7 +7,7 @@ use egui::widget_text::RichText;
 use egui::widgets::Button;
 
 use crate::project::Project;
-use crate::board::display::BoardMiniWidget;
+use crate::board::display::BoardEditorWidget;
 use crate::app::icons::IconSet;
 
 use serde::{Serialize, Deserialize};
@@ -276,7 +276,7 @@ impl Project {
     pub fn display_system_editor(&mut self, ctx: &egui::Context, _ui: &mut egui::Ui) {
         
         let mut recs: Vec<(egui::Rect, egui::Rect)> = vec![(egui::Rect::NOTHING, egui::Rect::NOTHING); self.system.connections.len()];
-        let mut board_to_remove = None;
+        let mut board_to_remove: Option<usize> = None;
 
         for (board_idx, board) in self.system.get_all_boards().iter_mut().enumerate() {
             // show the board in a Window
@@ -286,7 +286,7 @@ impl Project {
                 .resizable(false)
                 .movable(true)
                 .show(ctx, |ui| {
-                    ui.add(BoardMiniWidget(board.clone()));
+                    ui.add(BoardEditorWidget(board.clone()));
                     let mut connection_to_remove = None;
                     self.system.connections.iter().enumerate().for_each(|(connection_idx, connection)| {
                         // add the connection info to the Board Ui
@@ -336,7 +336,8 @@ impl Project {
 
                 if ui.button("remove board from system").clicked() {
                     // TODO -- also remove all connections that involved this board, to prevent a crash
-                    board_to_remove = Some(board_idx);
+                    //board_to_remove = Some(board_idx);
+                    self.system.remove_board(board.clone());
                 }
             });
         } // for each Board

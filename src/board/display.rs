@@ -245,8 +245,7 @@ impl Widget for BoardEditorWidget {
                 color_image,
             );
             response = retained_image.show_scaled(ui, scale).interact(egui::Sense::click());
-            // draw a bounding box
-            ui.painter().rect_stroke(response.rect, 0.0, (1.0, egui::Color32::WHITE));
+
             // iterate through the pin_nodes of the board, and check if their rects (properly scaled and translated) contain the pointer.
             // if so, actually draw the stuff there.
             for mut pin_rect in this_board.pin_nodes {

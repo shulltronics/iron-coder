@@ -276,7 +276,6 @@ impl Project {
     pub fn display_system_editor(&mut self, ctx: &egui::Context, _ui: &mut egui::Ui) {
         
         let mut recs: Vec<(egui::Rect, egui::Rect)> = vec![(egui::Rect::NOTHING, egui::Rect::NOTHING); self.system.connections.len()];
-        let mut board_to_remove: Option<usize> = None;
 
         for (board_idx, board) in self.system.get_all_boards().iter_mut().enumerate() {
             // show the board in a Window
@@ -287,32 +286,15 @@ impl Project {
                 .movable(true)
                 .show(ctx, |ui| {
                     ui.add(BoardEditorWidget(board.clone()));
-                    let mut connection_to_remove = None;
-                    self.system.connections.iter().enumerate().for_each(|(connection_idx, connection)| {
-                        // add the connection info to the Board Ui
-                        let resp = connection.display(ctx, ui);
-                        // remove it if it is clicked (TODO -- improve this)
-                        if resp.clicked() { connection_to_remove = Some(connection_idx) }
-                        // save the rect for future drawing
-                        if *board == connection.end_board {
-                            recs[connection_idx].1 = resp.rect;
-                        }
-                    });
-                    if let Some(connection_to_remove) = connection_to_remove {
-                        self.system.connections.remove(connection_to_remove);
-                        recs.remove(connection_to_remove);
-                    }
                 }).unwrap().response;
 
                 // create a right-clickable menu to add a connection from the selected board
             window.context_menu(|ui| {
-                ui.menu_button("add connection", |ui| {
-                    // for interface in all::<Interface>().collect::<Vec<_>>().iter() {
+                ui.menu_button("pinout info", |ui| {
                     for po in board.get_pinout().iter() {
-
                         let label = format!("{:?}", po);
                         if ui.button(label).clicked() {
-                            // self.system.connections.push(Connection { secondary_board_idx: 0, interface: po.clone().interface })
+                            info!("No action coded for this yet.");
                         }
                     }
                 });
@@ -324,37 +306,13 @@ impl Project {
                     }
                 });
                 
-                // if ui.button("print syntax tree for BSP").clicked() {
-                //     println!("{:#?}", board.log_syn_file_to_string());
-                // }
-
-                // if ui.button("update pinout with BSP info").clicked() {
-                //     if let Err(e) = board.update_pinout_from_bsp() {
-                //         warn!("{:?}", e);
-                //     }
-                // }
-
                 if ui.button("remove board from system").clicked() {
-                    // TODO -- also remove all connections that involved this board, to prevent a crash
-                    //board_to_remove = Some(board_idx);
-                    self.system.remove_board(board.clone());
+                    self.system.remove_board(board.clone()).unwrap_or_else(|_| {
+                        warn!("error removing board from system.");
+                    });
                 }
             });
         } // for each Board
-
-        if let Some(board_idx) = board_to_remove {
-            // self.system.boards.remove(board_idx);
-            warn!("this is definitely broken!");
-        }
-
-        // iterate through connections and draw a line to represent each one
-        // self.system.connections.iter().enumerate().for_each(|(idx, connection)| {
-        //     // the length of our recs vector needs to be equal to the number of connections
-        //     assert!(recs.len() == self.system.connections.len());
-        //     let start = recs[idx].0.max;
-        //     let end   = recs[idx].1.min;
-        //     ui.painter().line_segment([start, end], egui::Stroke::new(2.0, egui::Color32::GREEN));
-        // });
 
     }
 

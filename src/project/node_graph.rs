@@ -20,7 +20,6 @@ use crate::board::{
 use crate::board::pinout::{
     InterfaceType,
     InterfaceDirection,
-    Interface,
     InterfaceMapping,
 };
 

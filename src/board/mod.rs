@@ -11,8 +11,6 @@ use std::cmp;
 use serde::{Serialize, Deserialize};
 
 use ra_ap_ide;
-use syn;
-use syn::visit::{self, Visit};
 
 pub mod display;
 

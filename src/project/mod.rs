@@ -173,7 +173,7 @@ impl Project {
             Ok(p) => {
                 p
             },
-            Err(e) => {
+            Err(_e) => {
                 return Err(ProjectIOError::LoadToTomlError)
             }
         };

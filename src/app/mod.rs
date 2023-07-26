@@ -1,9 +1,11 @@
-//! Iron Coder is an app for developing embedded firmware in Rust
+//! Iron Coder is an app for developing embedded firmware in Rust.
 
 use log::{info, warn};
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
+
+use clap::Parser;
 
 use egui::{
     Align,
@@ -32,7 +34,22 @@ use colorscheme::ColorScheme;
 
 pub mod code_editor;
 
+/// Some CLI configurable options for the app.
+#[derive(Parser, Debug, Clone, Default)]
+pub struct IronCoderOptions {
+    /// The log level, one of INFO, WARN, DEBUG, TRACE. Default if INFO.
+    #[arg(short, long)]
+    pub verbosity: Option<String>,
+    /// An alternative path to look for the Boards directory.
+    #[arg(short, long)]
+    pub boards_directory: Option<PathBuf>,
+    /// Turn app persistence off.
+    #[arg(long="no-reload")]
+    pub persistence: Option<bool>,
+}
+
 /// The current GUI mode
+#[non_exhaustive]
 #[derive(serde::Deserialize, serde::Serialize)]
 enum Mode {
     EditProject,
@@ -50,9 +67,11 @@ pub struct IronCoderApp {
     // #[serde(skip)]
     // modal: Option<Modal>,
     mode: Mode,
+    colorscheme: ColorScheme,
     #[serde(skip)]
     boards: Vec<board::Board>,
-    colorscheme: ColorScheme,
+    #[serde(skip)]
+    options: IronCoderOptions,
 }
 
 impl Default for IronCoderApp {
@@ -60,9 +79,6 @@ impl Default for IronCoderApp {
         // Populate the boards
         let boards_dir = Path::new("./iron-coder-boards");
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
-        // boards.iter().enumerate().for_each(|(i, b)| {
-        //     println!("board {:?}: \n{:?}", i, b);
-        // });
         Self {
             project: Project::default(),
             display_about: false,
@@ -72,26 +88,26 @@ impl Default for IronCoderApp {
             mode: Mode::EditProject,
             boards: boards,
             colorscheme: colorscheme::INDUSTRIAL_DARK,
+            options: IronCoderOptions::default(),
         }
     }
 }
 
 impl IronCoderApp {
     /// Called once before the first frame.
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn with_options(cc: &eframe::CreationContext<'_>, options: IronCoderOptions) -> Self {
         info!("welcome to Iron Coder! setting up initial app state...");
         // we mutate cc.egui_ctx (the context) to set the overall app style
         setup_fonts_and_style(&cc.egui_ctx);
-        // Load previous app state (if any).
-        // Note that you must enable the `persistence` feature for this to work.
+        // Load previous app state if it exists and is specified.
         let mut app = IronCoderApp::default();
-        //if let Some(storage) = cc.storage {
-        //    info!("loading former app state from storage...");
-        //    app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        //} else {
-        //   // Now return a default IronCoderApp
-        //   app = Default::default();
-        //}
+        if options.persistence.is_some() {
+            if let Some(storage) = cc.storage {
+                info!("loading former app state from storage...");
+                app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+            }
+        }
+        app.options = options;
         info!("Reloading current project and assets...");
         app.set_colorscheme(&cc.egui_ctx);
         app.project.known_boards = app.boards.clone();
@@ -405,8 +421,10 @@ impl eframe::App for IronCoderApp {
 
     // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        info!("saving program state.");
-        //eframe::set_value(storage, eframe::APP_KEY, self);
+        if self.options.persistence.is_some() {
+            info!("saving program state.");
+            eframe::set_value(storage, eframe::APP_KEY, self);
+        }
     }
 
     // Called each time the UI needs repainting, which may be many times per second.

@@ -11,7 +11,7 @@ egui = { version = "0.22.0", features = ["serde"] }
 eframe = { version = "0.22.0", default-features = false, features = [
     "default_fonts", # Embed the default egui fonts.
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
-    # "persistence",   # Enable restoring app state when restarting the app.
+    "persistence",   # Enable restoring app state when restarting the app.
 ] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3"
@@ -34,3 +34,4 @@ proc-macro2 = "1.0.64"
 prettyplease = "0.2.10"
 slotmap = "1.0.6"
 svg-to-egui = { version = "0.1.0", path = "../usvg-testing" }
+clap = { version = "4.3.19", features = ["derive"] }

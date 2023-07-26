@@ -1,7 +1,7 @@
 //! This module contains data and operations pertaining to the parsing of a
 //! Board Support Package (BSP).
 
-use log::{info, warn, debug};
+use log::{info, warn};
 use std::vec::Vec;
 use std::string::String;
 use std::fs;

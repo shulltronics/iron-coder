@@ -12,8 +12,6 @@ use std::hash::{Hash, Hasher};
 use serde::{Serialize, Deserialize};
 
 use ra_ap_ide;
-use syn;
-use syn::visit::{self, Visit};
 
 use svg_to_egui::iron_coder_svg_decode;
 use svg_to_egui::SvgBoardInfo;

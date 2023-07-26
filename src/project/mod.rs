@@ -24,8 +24,6 @@ pub mod display;
 use display::ProjectViewType;
 
 pub mod egui_helpers;
-pub mod node_graph;
-use node_graph::SystemEditorState;
 
 mod system;
 use system::System;
@@ -58,7 +56,6 @@ pub struct Project {
     pub code_editor: CodeEditor,
     #[serde(skip)]
     terminal_buffer: String,
-    graph_editor: SystemEditorState,
     #[serde(skip)]
     receiver: Option<std::sync::mpsc::Receiver<String>>,
     current_view: ProjectViewType,
@@ -118,19 +115,6 @@ impl Project {
                 }
             }
         }
-        // If we haven't returned, then display the board in the node graph
-        let node_kind = board.clone();
-        let user_state = &mut self.system;
-        let new_node = self.graph_editor.graph.add_node(
-            node_kind.node_graph_label(user_state),
-            node_kind.user_data(user_state),
-            |graph, node_id| node_kind.build_node(graph, user_state, node_id),
-        );
-        self.graph_editor.node_positions.insert(
-            new_node,
-            egui::Pos2::ZERO,
-        );
-        self.graph_editor.node_order.push(new_node);
     }
 
     /// Populate the project board list via the app-wide 'known boards' list
@@ -181,12 +165,9 @@ impl Project {
         self.name = p.name;
         self.location = Some(project_directory.to_path_buf());
         self.system = p.system;
-        self.graph_editor = p.graph_editor;
         self.current_view = p.current_view;
         // sync the assets with the global ones
         self.load_board_resources();
-        self.sync_node_graph_with_project();
-        self.sync_connections();
         Ok(())
     }
 

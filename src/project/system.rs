@@ -10,8 +10,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use syn::Ident;
-use quote::{quote, format_ident};
-use proc_macro2::TokenStream;
+use quote::quote;
 
 use crate::board::Board;
 use crate::board::pinout::InterfaceMapping;
@@ -22,7 +21,6 @@ pub type Result = core::result::Result<(), SystemError>;
 #[derive(Debug)]
 pub enum SystemError {
     BoardNotInSystemError,
-    UnknownError,
 }
 
 /// A Connection is a physical bus connecting two Boards (e.g. I2C, GPIO, SPI, etc).
@@ -36,24 +34,6 @@ pub struct Connection {
     pub end_board: Board,
     pub end_pin: String,
     pub interface_mapping: InterfaceMapping,
-}
-
-impl Connection {
-
-    pub fn new(start_board: Board, end_board: Board, iface_mapping: InterfaceMapping) -> Self {
-        Self {
-            start_board: start_board,
-            start_pin: String::new(),
-            end_board: end_board,
-            end_pin: String::new(),
-            interface_mapping: iface_mapping,
-        }
-    }
-
-    pub fn display(&self, _ctx: &egui::Context, ui: &mut egui::Ui) -> egui::Response {
-        let label = egui::Label::new(format!("{:?}", self)).sense(egui::Sense::click());
-        ui.add(label)
-    }
 }
 
 /// A system represents the development boards and their interconnections
@@ -74,12 +54,12 @@ pub struct System {
 /// A datastructure that will hold all of the information we need to populate the System module.
 #[derive(Default)]
 struct TokenStreamAccumulator {
-    /// A set of crate Idents that need to be included in the source module.
+    /// A set of crate Idents that need to be included in the system module.
     required_bsp_crates: HashSet<Ident>,
-    /// A vector of <field>: <type> to include in the System struct declaration.
-    struct_field_and_type_list: Vec<TokenStream>,
-    /// A vector of <field>: <constructor> to include in the System struct constructor.
-    struct_field_and_constructor_list: Vec<TokenStream>,
+    // /// A vector of <field>: <type> to include in the System struct declaration.
+    // struct_field_and_type_list: Vec<TokenStream>,
+    // /// A vector of <field>: <constructor> to include in the System struct constructor.
+    // struct_field_and_constructor_list: Vec<TokenStream>,
 }
 
 impl System {
@@ -140,18 +120,14 @@ impl System {
         // Fold through the list of connections, and capture the required information
         let TokenStreamAccumulator {
             required_bsp_crates,
-            struct_field_and_type_list,
-            struct_field_and_constructor_list,
+            ..
         } = self.connections.iter().fold(TokenStreamAccumulator::default(), |mut acc, elem| {
 
             let Connection {
                 start_board,
                 end_board,
-                interface_mapping,
                 ..
             } = elem;
-
-            // info!("folding a connection... start_board is \n{}\n end board is\n {}", &start_board.get_name(), &end_board.get_name());
 
             // get starting board info
             if let Some(start_board_bsp_info) = &start_board.bsp_parse_info {

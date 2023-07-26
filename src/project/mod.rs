@@ -18,8 +18,6 @@ use serde::{Serialize, Deserialize};
 use crate::board::Board;
 use crate::app::code_editor::CodeEditor;
 
-use egui_node_graph::NodeTemplateTrait;
-
 pub mod display;
 use display::ProjectViewType;
 

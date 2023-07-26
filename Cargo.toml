@@ -1,7 +1,7 @@
 [package]
 name = "iron_coder"
 authors = ["Carsten Thue-Bludworth <carstentb@protonmail.com>"]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -33,5 +33,5 @@ quote = "1.0.29"
 proc-macro2 = "1.0.64"
 prettyplease = "0.2.10"
 slotmap = "1.0.6"
-svg-to-egui = { version = "0.1.0", path = "../usvg-testing" }
 clap = { version = "4.3.19", features = ["derive"] }
+usvg = "0.35.0"

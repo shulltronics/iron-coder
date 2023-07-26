@@ -60,13 +60,11 @@ impl CodeFile {
         let CodeFile { code, .. } = self;
         code.clear();
         self.path = Some(file_path.canonicalize()?);
-        self.file = Some(
-            fs::OpenOptions::new()
-                            .read(true)
-                            .write(true)
-                            .open(file_path)?
-                        );
-        // println!("{:?}", self.file);
+        self.file = Some(fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(file_path)?
+        );
         if let Some(file) = &mut self.file {
             file.read_to_string(code)?;
             self.synced = true;

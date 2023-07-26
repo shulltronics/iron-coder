@@ -1,3 +1,5 @@
+use log::error;
+
 use std::path::Path;
 use std::collections::HashMap;
 
@@ -45,7 +47,7 @@ pub fn load_icons(icon_path: &Path) -> HashMap<&'static str, RetainedImage> {
         // attempt to open the icon image file
         let im_file = match image::io::Reader::open(p) {
             Err(e) => {
-                println!("error reading icon file {:?}: {:?}", icon_file, e);
+                error!("error reading icon file {:?}: {:?}", icon_file, e);
                 break;
             },
             Ok(im_file) => {
@@ -55,7 +57,7 @@ pub fn load_icons(icon_path: &Path) -> HashMap<&'static str, RetainedImage> {
         // attempt to decode it
         let image = match im_file.decode() {
             Err(e) => {
-                println!("error decoding icon file {:?}: {:?}", icon_file, e);
+                error!("error decoding icon file {:?}: {:?}", icon_file, e);
                 break;
             },
             Ok(image) => {

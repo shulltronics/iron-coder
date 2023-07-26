@@ -1,6 +1,6 @@
 //! Iron Coder is an app for developing embedded firmware in Rust.
 
-use log::{info, warn};
+use log::{error, warn, info};
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -34,8 +34,9 @@ use colorscheme::ColorScheme;
 
 pub mod code_editor;
 
-/// Some CLI configurable options for the app.
+/// Iron Coder CLI configuration options...
 #[derive(Parser, Debug, Clone, Default)]
+#[command(version)]
 pub struct IronCoderOptions {
     /// The log level, one of INFO, WARN, DEBUG, TRACE. Default if INFO.
     #[arg(short, long)]
@@ -43,9 +44,9 @@ pub struct IronCoderOptions {
     /// An alternative path to look for the Boards directory.
     #[arg(short, long)]
     pub boards_directory: Option<PathBuf>,
-    /// Turn app persistence off.
-    #[arg(long="no-reload")]
-    pub persistence: Option<bool>,
+    /// Turn app persistence on or off. Default is off.
+    #[arg(short, long)]
+    pub persistence: bool,
 }
 
 /// The current GUI mode
@@ -101,7 +102,7 @@ impl IronCoderApp {
         setup_fonts_and_style(&cc.egui_ctx);
         // Load previous app state if it exists and is specified.
         let mut app = IronCoderApp::default();
-        if options.persistence.is_some() {
+        if options.persistence {
             if let Some(storage) = cc.storage {
                 info!("loading former app state from storage...");
                 app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
@@ -159,7 +160,7 @@ impl IronCoderApp {
                         ).shortcut_text("ctrl+s");
                         if ui.add(ib).clicked() {
                             if let Err(e) = project.save() {
-                                println!("error saving project: {:?}", e);
+                                error!("error saving project: {:?}", e);
                             }
                         }
 
@@ -183,7 +184,7 @@ impl IronCoderApp {
                                     *mode = Mode::DevelopProject;
                                 },
                                 Err(e) => {
-                                    println!("error opening project: {:?}", e);
+                                    error!("error opening project: {:?}", e);
                                 },
                             }
                         }
@@ -347,7 +348,6 @@ impl IronCoderApp {
                
                 // create a font selector:
                 for (text_style, font_id) in ctx.style().text_styles.iter() {
-                    // println!("{:?}: {:?}", text_style, font_id);
                     match text_style {
                         egui::TextStyle::Name(name) => {
                             match &*name.clone() {
@@ -421,7 +421,7 @@ impl eframe::App for IronCoderApp {
 
     // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        if self.options.persistence.is_some() {
+        if self.options.persistence {
             info!("saving program state.");
             eframe::set_value(storage, eframe::APP_KEY, self);
         }

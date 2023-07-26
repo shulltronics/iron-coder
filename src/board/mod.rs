@@ -1,6 +1,6 @@
 //! This module provides functionality for development boards
 
-use log::{info, warn, debug};
+use log::{error, warn, info, debug};
 
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -13,8 +13,8 @@ use serde::{Serialize, Deserialize};
 
 use ra_ap_ide;
 
-use svg_to_egui::iron_coder_svg_decode;
-use svg_to_egui::SvgBoardInfo;
+mod svg_reader;
+use svg_reader::SvgBoardInfo;
 
 pub mod display;
 
@@ -140,27 +140,16 @@ impl Board {
         // See if there is an image
         if let Ok(pic_path) = path.with_extension("svg").canonicalize() {
             // BASED ON SVG WORK
-            match iron_coder_svg_decode(&pic_path) {
+            match SvgBoardInfo::from_path(&pic_path) {
                 Ok(svg_board_info) => {
-                    info!("board has physical size: {:?}", svg_board_info.physical_size);
+                    info!("successfully decoded SVG for board {}. Board has physical size: {:?}", b.get_name(), svg_board_info.physical_size);
                     b.svg_board_info = Some(svg_board_info);
                 },
-                Err(e) => println!("error with svg! {:?}", e),
+                Err(e) => error!("error with svg parsing! {:?}", e),
             };
         } else {
-            println!("no svg file for board {}", b.get_name());
+            warn!("no svg file for board {}", b.get_name());
         }
-        //if let Ok(pic_path) = path.with_extension("png").canonicalize() {
-        //    let image = image::io::Reader::open(pic_path).unwrap().decode().unwrap();
-        //    let size = [image.width() as _, image.height() as _];
-        //    let image_buffer = image.to_rgba8();
-        //    let pixels = image_buffer.as_flat_samples();
-        //    let color_image = egui::ColorImage::from_rgba_unmultiplied(
-        //        size,
-        //        pixels.as_slice(),
-        //    );
-        //    b.pic = Some(color_image);
-        //}
 
         // See if there are any examples
         if let Ok(examples_path) = path.parent().unwrap().join("examples").canonicalize() {

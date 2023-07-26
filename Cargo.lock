@@ -1608,7 +1608,7 @@ dependencies = [
 
 [[package]]
 name = "iron_coder"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap",
  "duct",
@@ -1627,12 +1627,12 @@ dependencies = [
  "rfd",
  "serde",
  "slotmap",
- "svg-to-egui",
  "syn 2.0.27",
  "syntect",
  "toml",
  "tracing",
  "tracing-subscriber",
+ "usvg",
 ]
 
 [[package]]
@@ -3646,15 +3646,6 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
-
-[[package]]
-name = "svg-to-egui"
-version = "0.1.0"
-dependencies = [
- "egui",
- "image",
- "usvg",
-]
 
 [[package]]
 name = "svgtypes"

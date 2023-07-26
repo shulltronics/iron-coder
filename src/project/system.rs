@@ -32,7 +32,9 @@ pub enum SystemError {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Connection {
     pub start_board: Board,
+    pub start_pin: String,
     pub end_board: Board,
+    pub end_pin: String,
     pub interface_mapping: InterfaceMapping,
 }
 
@@ -41,7 +43,9 @@ impl Connection {
     pub fn new(start_board: Board, end_board: Board, iface_mapping: InterfaceMapping) -> Self {
         Self {
             start_board: start_board,
+            start_pin: String::new(),
             end_board: end_board,
+            end_pin: String::new(),
             interface_mapping: iface_mapping,
         }
     }
@@ -62,6 +66,9 @@ pub struct System {
     /// The list of connections between boards. This is what the template generator will use to create
     /// the system module.
     pub connections: Vec<Connection>,
+    /// An optional board + pin for the current in-progress connecion.
+    pub in_progress_connection_start: Option<(Board, String)>,
+    pub in_progress_connection_end: Option<(Board, String)>,
 }
 
 /// A datastructure that will hold all of the information we need to populate the System module.
@@ -101,20 +108,29 @@ impl System {
         return boards;
     }
 
-    /// Try to remove the provided Board from the system. If everything is good, return Ok(()),
-    /// otherwise return an error indicating what went wrong.
+    /// Try to remove the provided Board from the system, along with all of it's connections.
+    /// If everything is good, return Ok(()), otherwise return an error indicating what went wrong.
     pub fn remove_board(&mut self, board: Board) -> Result {
         if let Some(ref mb) = self.main_board {
             if *mb == board {
                 self.main_board = None;
+                self.remove_connections_involving_board(board);
                 return Ok(())
             }
         }
         if let Some(idx) = self.peripheral_boards.iter().position(|elem| *elem == board) {
             self.peripheral_boards.remove(idx);
+            self.remove_connections_involving_board(board);
             return Ok(());
         }
         return Err(SystemError::BoardNotInSystemError);
+    }
+
+    /// Iterate through the connection list, and remove connections that involve the provided board
+    fn remove_connections_involving_board(&mut self, board: Board) {
+        self.connections = self.connections.iter().filter(|elem| {
+            !((**elem).start_board == board || (**elem).end_board == board)
+        }).cloned().collect();
     }
 
     /// Generate a module based on the system. Lots to improve here. For now, this just saves

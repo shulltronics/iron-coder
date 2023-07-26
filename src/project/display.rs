@@ -1,12 +1,15 @@
+use egui::Response;
 use egui_extras::RetainedImage;
 use log::{info, warn};
 
+use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
 use egui::widget_text::RichText;
 use egui::widgets::Button;
 
+use crate::board::Board;
 use crate::{project::Project, board};
 use crate::app::icons::IconSet;
 
@@ -274,11 +277,13 @@ impl Project {
 
     // Show the boards in egui "Area"s so we can move them around!
     pub fn display_system_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        
-        let mut recs: Vec<(egui::Rect, egui::Rect)> = vec![(egui::Rect::NOTHING, egui::Rect::NOTHING); self.system.connections.len()];
 
+        let mut pin_locations: HashMap<(Board, String), egui::Pos2> = HashMap::new();
+
+        // iterate through the system boards and draw them on the screen
         for (board_idx, board) in self.system.get_all_boards().iter_mut().enumerate() {
 
+            // Get the response of the board/pin Ui
             let response = egui::Area::new(board_idx.to_string()).show(ctx, |ui| {
 
                 let mut pin_clicked: Option<String> = None;
@@ -292,9 +297,7 @@ impl Project {
                     let display_size = svg_board_info.physical_size * scale;
                     
                     let image_rect = retained_image.show_max_size(ui, display_size).rect;
-                    
-                    // info!("retained_image response: {:#?}", image_response);
-                        
+  
                     // iterate through the pin_nodes of the board, and check if their rects (properly scaled and translated)
                     // contain the pointer. If so, actually draw the stuff there.
                     for (pin_name, mut pin_rect) in board.clone().svg_board_info.unwrap().pin_rects {
@@ -305,29 +308,66 @@ impl Project {
                         pin_rect.max.y *= scale;
                         // translate the rects so they are in absolute coordinates
                         pin_rect = pin_rect.translate(image_rect.left_top().to_vec2());
+                        pin_locations.insert((board.clone(), pin_name.clone()), pin_rect.center());
+                        
+                        // render the pin overlay, and check for clicks/hovers
                         let r = ui.allocate_rect(pin_rect, egui::Sense::click());
                         if r.clicked() {
-                            info!("clicked pin {}!", &pin_name);
                             pin_clicked = Some(pin_name.clone());
                         }
                         if r.hovered() {
                             ui.painter().circle_filled(r.rect.center(), r.rect.height()/2.0, egui::Color32::GREEN);
                         }
                         r.clone().on_hover_text(String::from(board.get_name()) + ":" + &pin_name);
-                        r.context_menu(|ui| {
+                        r.clone().context_menu(|ui| {
                             ui.label("a pin-level menu option");
                         });
+
+                        // see if a current connection is happening from this pin. If so,
+                        // of if the button was just clicked, update the start location.
+                        ctx.data_mut(|data| {
+                            // let this_project = &mut self;
+                            let id = egui::Id::new("connection_in_progress");
+                            if let Some((ref conn_board, ref pin)) = self.system.in_progress_connection_start {
+                                // if a connection is in progress, update the start location if this pin is the start pin
+                                if conn_board == board && pin == &pin_name {
+                                    data.insert_temp(id, r.rect.center());
+                                // otherwise, if the current pin was clicked, it must be the end connection!
+                                } else if r.clicked() {
+                                    data.remove::<egui::Pos2>(id);
+                                    let conn_start = self.system.in_progress_connection_start.clone();
+                                    // let start_board = conn_start.unwrap().0;
+                                    self.system.in_progress_connection_end = Some((board.clone(), pin_name.clone()));
+                                    let c = super::system::Connection {
+                                        start_board: conn_start.clone().unwrap().0,
+                                        start_pin: conn_start.clone().unwrap().1.clone(),
+                                        end_board: board.clone(),
+                                        end_pin: pin_name.clone(),
+                                        interface_mapping: board::pinout::InterfaceMapping::default(),
+                                    };
+                                    self.system.connections.push(c);
+                                }
+                            } else if r.clicked() {
+                                info!("inserting connection position data");
+                                data.insert_temp(id, r.rect.center());
+                                self.system.in_progress_connection_start = Some((board.clone(), pin_name.clone()));
+                            }
+                        });
+
                     }
                     
                 }
-        
+
                 return pin_clicked;
                 
             });
 
+            // extract response from board (i.e. the egui Area), and from pin
+            let board_response = response.response;
+            let pin_response = response.inner;
+
             // Actions for board-level stuff
-            let window = response.response;
-            window.context_menu(|ui| {
+            board_response.context_menu(|ui| {
                 ui.menu_button("pinout info", |ui| {
                     for po in board.get_pinout().iter() {
                         let label = format!("{:?}", po);
@@ -351,12 +391,126 @@ impl Project {
             });
 
             // Actions for pin-level stuff
-            if let Some(pin) = response.inner {
+            if let Some(pin) = pin_response {
                 info!("pin {} clicked!", pin);
             }
             
         } // for each Board
 
+        // check for any key presses that might end the current in-progress connection.
+        // be careful to avoid deadlocks in the ctx access closure!
+        if let Some(_) = ctx.input(|io| {
+            if io.key_pressed(egui::Key::Escape) {
+                return Some(());
+            } else {
+                return None;
+            }
+        }) {
+            ctx.data_mut(|data| {
+                let id = egui::Id::new("connection_in_progress");
+                data.remove::<egui::Pos2>(id);
+                self.system.in_progress_connection_start = None;
+            });
+        }
+
+        // check if a connection is in progress. Be sure to use the painter outside of the data
+        // closure to avoid deadlock situation.
+        if let Some(sp) = ctx.data(|data| {
+            let id = egui::Id::new("connection_in_progress");
+            data.get_temp::<egui::Pos2>(id)
+        }) {
+            if let Some(ep) = ctx.pointer_latest_pos() {
+                draw_connection(ctx, ui, sp, ep, egui::Color32::GREEN);
+            }
+        }
+
+        // go through the system connections and see if this pin is a part of any of them
+        for connection in self.system.connections.iter() {
+            // get the start and end pin locations. If they're not in the map (which they should be...), just skip
+            let start_loc: egui::Pos2 = match pin_locations.get(&(connection.start_board.clone(), connection.start_pin.clone())) {
+                Some(sl) => *sl,
+                None => continue,
+            };
+            let end_loc: egui::Pos2 = match pin_locations.get(&(connection.end_board.clone(), connection.end_pin.clone())) {
+                Some(el) => *el,
+                None => continue,
+            };
+
+            let resp = draw_connection(ctx, ui, start_loc, end_loc, egui::Color32::RED);
+            resp.on_hover_ui(|ui| {
+                ui.label("connection");
+                ui.label(connection.start_board.get_name().to_string() + ":" + connection.start_pin.as_str());
+                ui.label(connection.end_board.get_name().to_string() + ":" + connection.end_pin.as_str());
+            });
+
+        }
+
     }
+
+    // pub fn display_system_connections(&self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        
+    // }
+
+}
+
+
+
+/// Modified from egui_node_graph. Given a start and end position, draw a line representing the connection.
+/// Return a response (a bit hacky through egui api), that indicates if the pointer is nearby, i.e. hovering, over the line.
+fn draw_connection(ctx: &egui::Context, ui: &mut egui::Ui, src_pos: egui::Pos2, dst_pos: egui::Pos2, color: egui::Color32) -> Response {
+
+    let mut response = ui.allocate_rect(egui::Rect::from_points(&[src_pos, dst_pos]), egui::Sense::hover());
+    // these are public fields, but not exposed in egui documentation!
+    response.hovered = false;
+    response.clicked = [false; 5];
+
+    let mut connection_stroke = egui::Stroke { width: 3.0, color };
+
+    let control_scale = ((dst_pos.x - src_pos.x) / 2.0).max(30.0);
+    let src_control = src_pos + egui::Vec2::X * control_scale;
+    let dst_control = dst_pos - egui::Vec2::X * control_scale;
+
+    let mut bezier = egui::epaint::CubicBezierShape::from_points_stroke(
+        [src_pos, src_control, dst_control, dst_pos],
+        false,
+        egui::Color32::TRANSPARENT,
+        connection_stroke,
+    );
+
+    // construct the painter *before* changing the response rectangle. In fact, expant the rect a bit
+    // to avoid clipping the curve. This is done so that the layer order can be changed.
+    let mut painter = ui.painter_at(response.rect.expand(10.0));
+    let mut layer_id = painter.layer_id();
+    layer_id.order = egui::Order::Middle;
+    painter.set_layer_id(layer_id);
+
+    if let Some(cursor_pos) = ctx.pointer_interact_pos() {
+        // the TOL here determines the spacing of the segments that this line is broken into
+        // it was determined experimentally, and used in conjunction with THRESH helps to detect
+        // if we are hovering over the line.
+        const TOL: f32 = 0.01;
+        const THRESH: f32 = 15.0;
+        bezier.for_each_flattened_with_t(TOL, &mut |pos, _| {
+            if pos.distance(cursor_pos) < THRESH {
+                response.hovered = true;
+                response.rect = egui::Rect::from_center_size(cursor_pos, egui::Vec2::new(THRESH, THRESH));
+
+            }
+        });
+    }
+
+    if response.hovered() {
+        connection_stroke.color = connection_stroke.color.gamma_multiply(0.5);
+        bezier = egui::epaint::CubicBezierShape::from_points_stroke(
+            [src_pos, src_control, dst_control, dst_pos],
+            false,
+            egui::Color32::TRANSPARENT,
+            connection_stroke,
+        );
+    }
+
+    painter.add(bezier);
+
+    response
 
 }

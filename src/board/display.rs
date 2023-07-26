@@ -196,11 +196,7 @@ impl Widget for BoardSelectorWidget {
                         "pic",
                         svg_board_info.image,
                     );
-                    let response = retained_image.show_max_size(ui, egui::vec2(150.0, 150.0)).interact(egui::Sense::click());
-                    // info!("retained image response: {:?}", response);
-                    // if response.clicked() {
-                    //     info!("fuck!");
-                    // };
+                    let _ = retained_image.show_max_size(ui, egui::vec2(150.0, 150.0));
 
                 });
                 ui.horizontal(|ui| {
@@ -233,7 +229,6 @@ impl Widget for BoardSelectorWidget {
         return response;
     }
 }
-
 
 /// Display the Board as a "mini widget"
 pub struct BoardMiniWidget(pub Board);

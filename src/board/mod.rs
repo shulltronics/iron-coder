@@ -7,6 +7,7 @@ use std::fs;
 use std::vec::Vec;
 use std::fmt;
 use std::cmp;
+use std::hash::{Hash, Hasher};
 
 use serde::{Serialize, Deserialize};
 
@@ -108,11 +109,18 @@ impl fmt::Debug for Board {
     }
 }
 
-/// Boards should be uniquely identified by their name, and thus comparable.
+/// Boards are uniquely identified by their name, and thus comparable.
 impl cmp::PartialEq for Board {
-    // Boards are equal if their names are equal
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
+    }
+}
+impl cmp::Eq for Board {}
+
+/// Boards are uniquely identified by their name, and thus hashable.
+impl Hash for Board {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
     }
 }
 

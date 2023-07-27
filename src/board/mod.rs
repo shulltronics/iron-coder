@@ -145,10 +145,15 @@ impl Board {
                     info!("successfully decoded SVG for board {}. Board has physical size: {:?}", b.get_name(), svg_board_info.physical_size);
                     b.svg_board_info = Some(svg_board_info);
                 },
-                Err(e) => error!("error with svg parsing! {:?}", e),
+                Err(e) => {
+                    warn!("error with svg parsing! {:?}", e);
+                    return Err(std::io::Error::other("unable to parse board SVG file."));
+                },
             };
         } else {
             warn!("no svg file for board {}", b.get_name());
+            return Err(std::io::Error::other("no SVG file for board."));
+
         }
 
         // See if there are any examples

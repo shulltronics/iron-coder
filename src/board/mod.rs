@@ -1,6 +1,6 @@
 //! This module provides functionality for development boards
 
-use log::{error, warn, info, debug};
+use log::{warn, info, debug};
 
 use std::path::{Path, PathBuf};
 use std::fs;

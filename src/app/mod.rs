@@ -52,7 +52,7 @@ pub struct IronCoderOptions {
 /// The current GUI mode
 #[non_exhaustive]
 #[derive(serde::Deserialize, serde::Serialize)]
-enum Mode {
+pub enum Mode {
     EditProject,
     DevelopProject,
 }
@@ -246,47 +246,6 @@ impl IronCoderApp {
         self.boards.clone()
     }
 
-    /// Display the list of available boards in a window, and return one if it was clicked
-    pub fn display_available_boards(&mut self, ctx: &egui::Context) -> Option<board::Board> {
-        let Self {
-            display_boards_window,
-            ..
-        } = self;
-        
-        if !*display_boards_window { return None; }
-
-        let mut board: Option<board::Board> = None;
-        // create the window
-        let response = egui::Window::new("Boards")
-        .open(display_boards_window)
-        .collapsible(false)
-        .resizable(false)
-        .movable(false)
-        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
-        .show(ctx, |ui| {
-            // Create a grid-based layout to show all the board widgets
-            let available_width = ui.available_width();
-            let mut num_cols = (available_width / 260.0) as usize;
-            if num_cols == 0 {
-                num_cols = 1;
-            }
-            egui::containers::scroll_area::ScrollArea::vertical().show(ui, |ui| {
-                ui.columns(num_cols, |columns| {
-                    for (i, b) in self.boards.clone().into_iter().enumerate() {
-                        let col = i % num_cols;
-                        // When a board is clicked, add it to the new project
-                        if columns[col].add(board::display::BoardSelectorWidget(b)).clicked() {
-                            board = Some(self.boards[i].clone());
-                        }
-                    }
-                });
-            });
-        });
-        // unwrap ok here because the window has to be open for us to get here.
-        ctx.move_to_top(response.unwrap().response.layer_id);
-        return board;
-    }
-
     /// Show the main view when we're developing a project
     pub fn display_project_developer(&mut self, ctx: &egui::Context) {
         let Self {
@@ -318,6 +277,18 @@ impl IronCoderApp {
                 project.code_editor.display_code(ctx, ui);
             });
         });
+    }
+
+    /// Show the various parts of the project editor
+    pub fn display_project_editor(&mut self, ctx: &egui::Context) {
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui) {
+                self.mode = mode;
+            }
+            self.project.display_system_editor_boards(ctx, ui);
+        });
+
     }
 
     /// show/hide the settings window and update the appropriate app state.
@@ -458,65 +429,7 @@ impl eframe::App for IronCoderApp {
         // depending on the Mode, render the proper main view
         match self.mode {
             Mode::EditProject => {
-                // 1: show the project title in a top panel.
-                egui::TopBottomPanel::top("board_selector_top_panel").show(ctx, |ui| {
-                    let label = RichText::new("Project Name").underline();
-                    ui.label(label);
-                    ui.text_edit_singleline(self.project.borrow_name());
-
-                    let location_text = self.project.get_location();
-                    let label = RichText::new(format!("Project Folder: {}", location_text)).underline();
-                    ui.label(label);
-                    
-                });
-                // 2: show the action buttons in a bottom panel.
-                egui::TopBottomPanel::bottom("new_project_bottom_panel").show(ctx, |ui| {
-                    // self.modal.as_ref().unwrap().show(|ui| {
-                    //     ui.label("a test of the modal");
-                    //     if ui.button("close").clicked() {
-                    //         self.modal.as_ref().unwrap().close();
-                    //     }
-                    // });
-                    if ui.button("Start Development").clicked() {
-                        // self.modal.as_ref().unwrap().open();
-                        match self.project.save() {
-                            Ok(()) => {
-                                // self.project.generate_cargo_template();
-                                // self.project.add_crates_to_project(ctx);
-                                self.mode = Mode::DevelopProject;
-                            },
-                            Err(e) => {
-                                warn!("couldn't save project: {:?}", e);
-                            },
-                        }
-                    }
-                    if ui.button("Add a board").clicked() {
-                        self.display_boards_window = true;
-                    }
-                    ui.label(format!("number of connections: {}", self.project.system.connections.len()));
-                    ui.label(format!("number of boards: {}", self.project.system.get_all_boards().len()));
-                });
-                // 3: show the CentralPanel with the boards and such.
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    if self.project.system.get_all_boards().is_empty() {
-                        ui.with_layout(Layout::top_down(Align::Center), |ui| {
-                            let label = egui::widgets::Label::new("Welcome to Iron Coder! To get started on a project, select a main \
-                                            board and a set of peripheral boards. Then, give your project a name. \
-                                            After clicking \"Start Development\" you will be prompted to choose \
-                                            a location to save you project.");
-                            let Vec2 {mut x, y: _} = ui.available_size();
-                            if x > 300.0 { x = 300.0 }
-                            ui.add_sized([x, 0.0], label);
-                        });
-                    } else {
-                        self.project.display_system_editor(ctx, ui);
-                        // self.project.display_system_node_graph(ctx, ui, self.get_boards());
-                    }
-                });
-                // 4: (possibly) show the available boards window
-                if let Some(b) = self.display_available_boards(ctx) {
-                    self.project.add_board(b);
-                }
+                self.display_project_editor(ctx);
             },
             Mode::DevelopProject => {
                 self.display_project_developer(ctx);

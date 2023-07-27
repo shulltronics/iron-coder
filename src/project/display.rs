@@ -12,6 +12,7 @@ use egui::widgets::Button;
 use crate::board::Board;
 use crate::{project::Project, board};
 use crate::app::icons::IconSet;
+use crate::app::Mode;
 
 use serde::{Serialize, Deserialize};
 
@@ -275,8 +276,48 @@ impl Project {
         });
     }
 
+    /// Display the list of available boards in a window, and return one if it was clicked
+    pub fn display_known_boards(&mut self, ctx: &egui::Context, should_show: &mut bool) -> Option<board::Board> {
+
+        let mut board: Option<board::Board> = None;
+        // create the window
+        let response = egui::Window::new("Boards")
+        .open(should_show)
+        .collapsible(false)
+        .resizable(false)
+        .movable(false)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ctx, |ui| {
+            // Create a grid-based layout to show all the board widgets
+            let available_width = ui.available_width();
+            let mut num_cols = (available_width / 260.0) as usize;
+            if num_cols == 0 {
+                num_cols = 1;
+            }
+            egui::containers::scroll_area::ScrollArea::vertical().show(ui, |ui| {
+                ui.columns(num_cols, |columns| {
+                    for (i, b) in self.known_boards.clone().into_iter().enumerate() {
+                        let col = i % num_cols;
+                        // When a board is clicked, add it to the new project
+                        if columns[col].add(board::display::BoardSelectorWidget(b)).clicked() {
+                            board = Some(self.known_boards[i].clone());
+                        }
+                    }
+                });
+            });
+        });
+        
+        if response.is_some() {
+            // unwrap ok here because we check that response is Some.
+            ctx.move_to_top(response.unwrap().response.layer_id);
+        }
+
+        return board;
+
+    }
+
     // Show the boards in egui "Area"s so we can move them around!
-    pub fn display_system_editor(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    pub fn display_system_editor_boards(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
 
         let mut pin_locations: HashMap<(Board, String), egui::Pos2> = HashMap::new();
 
@@ -447,9 +488,59 @@ impl Project {
 
     }
 
-    // pub fn display_system_connections(&self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    /// Show the project HUD with information about the current system. Return a "Mode" so that 
+    /// the calling module (app) can update the GUI accordingly.
+    pub fn display_system_editor_hud(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) -> Option<Mode> {
+
+        let mut ret: Option<Mode> = None;
+
+        let label = RichText::new("Project Name").underline();
+        ui.label(label);
+        ui.text_edit_singleline(self.borrow_name());
+
+        // let location_text = self.get_location();
+        // let label = RichText::new(format!("Project Folder: {}", location_text)).underline();
+        // ui.label(label);
+
+        if ui.button("Start Development").clicked() {
+            match self.save() {
+                Ok(()) => {
+                    // self.project.generate_cargo_template();
+                    // self.project.add_crates_to_project(ctx);
+                    ret = Some(Mode::DevelopProject);
+                },
+                Err(e) => {
+                    warn!("couldn't save project: {:?}", e);
+                },
+            }
+        }
+
+        // Show the know boards list, if needed
+        let id = egui::Id::new("show_known_boards");
+        let mut to_show = ctx.data_mut(|data| {
+            data.get_temp_mut_or(id, false).clone()
+            
+        });
+        if ui.button("Add a board").clicked() {
+            to_show = true;
+        }
+        if let Some(b) = self.display_known_boards(ctx, &mut to_show) {
+            self.add_board(b);
+        }
+        ctx.data_mut(|data| {
+            data.insert_temp(id, to_show);
+        });
         
-    // }
+        // Show some system stats
+        ui.label(format!("number of connections: {}", self.system.connections.len()));
+        ui.label(format!("number of boards: {}", self.system.get_all_boards().len()));
+
+        // let painter = ui.painter();
+        // let rect = ui.min_rect();
+        // painter.rect(rect, egui::Rounding::none(), egui::Color32::TRANSPARENT, egui::Stroke::new(5.0, egui::Color32::GOLD));
+
+        return ret;
+    }
 
 }
 

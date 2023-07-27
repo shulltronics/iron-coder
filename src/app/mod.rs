@@ -8,9 +8,7 @@ use std::sync::Arc;
 use clap::Parser;
 
 use egui::{
-    Align,
     Align2,
-    Layout,
     Vec2,
     RichText,
     Label,

@@ -257,7 +257,7 @@ impl IronCoderApp {
 
         let mut board: Option<board::Board> = None;
         // create the window
-        egui::Window::new("Boards")
+        let response = egui::Window::new("Boards")
         .open(display_boards_window)
         .collapsible(false)
         .resizable(false)
@@ -282,6 +282,8 @@ impl IronCoderApp {
                 });
             });
         });
+        // unwrap ok here because the window has to be open for us to get here.
+        ctx.move_to_top(response.unwrap().response.layer_id);
         return board;
     }
 
@@ -327,7 +329,7 @@ impl IronCoderApp {
         } = self;
 
         if *display_settings {
-            egui::Window::new("App Settings")
+            let window_response = egui::Window::new("App Settings")
             .open(display_settings)
             .collapsible(false)
             .resizable(false)
@@ -388,6 +390,9 @@ impl IronCoderApp {
                 }
                 // ctx.set_visuals(visuals);
             });
+            // unwrap ok here because window must be open for us to get here.
+            // ctx.move_to_top(window_response.unwrap().response.layer_id);
+            window_response.unwrap().response.layer_id.order = egui::Order::Foreground;
         }
         
     }

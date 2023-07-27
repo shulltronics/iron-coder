@@ -287,7 +287,7 @@ impl Project {
             let response = egui::Area::new(board_idx.to_string()).show(ctx, |ui| {
 
                 let mut pin_clicked: Option<String> = None;
-                let scale = 7.0;
+                let scale = 5.0;
                 if let Some(svg_board_info) = board.clone().svg_board_info {
                     let retained_image = RetainedImage::from_color_image(
                         "pic",
@@ -477,7 +477,7 @@ fn draw_connection(ctx: &egui::Context, ui: &mut egui::Ui, src_pos: egui::Pos2, 
         connection_stroke,
     );
 
-    // construct the painter *before* changing the response rectangle. In fact, expant the rect a bit
+    // construct the painter *before* changing the response rectangle. In fact, expand the rect a bit
     // to avoid clipping the curve. This is done so that the layer order can be changed.
     let mut painter = ui.painter_at(response.rect.expand(10.0));
     let mut layer_id = painter.layer_id();

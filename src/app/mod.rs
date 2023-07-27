@@ -35,7 +35,7 @@ use colorscheme::ColorScheme;
 pub mod code_editor;
 
 /// Iron Coder CLI configuration options...
-#[derive(Parser, Debug, Clone, Default)]
+#[derive(Parser, Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
 #[command(version)]
 pub struct IronCoderOptions {
     /// The log level, one of INFO, WARN, DEBUG, TRACE. Default if INFO.
@@ -71,7 +71,6 @@ pub struct IronCoderApp {
     colorscheme: ColorScheme,
     #[serde(skip)]
     boards: Vec<board::Board>,
-    #[serde(skip)]
     options: IronCoderOptions,
 }
 
@@ -335,6 +334,22 @@ impl IronCoderApp {
             .movable(false)
             .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
+
+                // Store the text edit string representing the ui scale
+                let id = egui::Id::new("ui_scale_string");
+                let current_scale = ctx.pixels_per_point();
+                let mut ui_scale_string: String = ctx.data_mut(|data| {
+                    data.get_temp(id).unwrap_or(current_scale.to_string())
+                });
+                ui.text_edit_singleline(&mut ui_scale_string);
+                ctx.data_mut(|data| data.insert_temp(id, ui_scale_string.clone()));
+                // if the string is parsable into f32, update the global scale
+                match ui_scale_string.parse::<f32>() {
+                    Ok(scale) => {
+                        ctx.set_pixels_per_point(scale);
+                    },
+                    Err(_e) => (),
+                }
 
                 // Create radio buttons for colorscheme selection
                 for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {

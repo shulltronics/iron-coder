@@ -324,11 +324,25 @@ impl Project {
         // iterate through the system boards and draw them on the screen
         for (board_idx, board) in self.system.get_all_boards().iter_mut().enumerate() {
 
+            let scale_id = egui::Id::new("system_editor_scale_factor");
+            // set the editor scale factor in memory:
+            let mut scale = ctx.data_mut(|data| {
+                data.get_temp_mut_or(scale_id, 5.0).clone()
+            });
+            if ctx.input(|io| io.key_pressed(egui::Key::Q)) {
+                scale += 0.5;
+            } else if ctx.input(|io| io.key_pressed(egui::Key::W)) {
+                scale -= 0.5;
+            }
+            ctx.data_mut(|data| {
+                data.insert_temp(scale_id, scale);
+            });
+
             // Get the response of the board/pin Ui
             let response = egui::Area::new(board_idx.to_string()).show(ctx, |ui| {
 
                 let mut pin_clicked: Option<String> = None;
-                let scale = 5.0;
+                
                 if let Some(svg_board_info) = board.clone().svg_board_info {
                     let retained_image = RetainedImage::from_color_image(
                         "pic",
@@ -505,8 +519,6 @@ impl Project {
         if ui.button("Start Development").clicked() {
             match self.save() {
                 Ok(()) => {
-                    // self.project.generate_cargo_template();
-                    // self.project.add_crates_to_project(ctx);
                     ret = Some(Mode::DevelopProject);
                 },
                 Err(e) => {
@@ -535,9 +547,9 @@ impl Project {
         ui.label(format!("number of connections: {}", self.system.connections.len()));
         ui.label(format!("number of boards: {}", self.system.get_all_boards().len()));
 
-        // let painter = ui.painter();
-        // let rect = ui.min_rect();
-        // painter.rect(rect, egui::Rounding::none(), egui::Color32::TRANSPARENT, egui::Stroke::new(5.0, egui::Color32::GOLD));
+        let painter = ui.painter();
+        let rect = ui.min_rect();
+        painter.rect(rect, egui::Rounding::none(), egui::Color32::TRANSPARENT, egui::Stroke::new(2.0, egui::Color32::GOLD));
 
         return ret;
     }

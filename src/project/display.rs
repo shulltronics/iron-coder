@@ -506,17 +506,60 @@ impl Project {
     /// the calling module (app) can update the GUI accordingly.
     pub fn display_system_editor_hud(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) -> Option<Mode> {
 
+        // prepare the return value
         let mut ret: Option<Mode> = None;
 
-        let label = RichText::new("Project Name").underline();
-        ui.label(label);
-        ui.text_edit_singleline(self.borrow_name());
+        // get the app-wide icons
+        let icons_ref: Arc<IconSet> = ctx.data_mut(|data| {
+            data.get_temp("icons".into()).expect("couldn't load icons!")
+        });
+        let icons = icons_ref.clone();
+
+        // push the top of the HUD down just a bit.
+        ui.add_space(6.0);
+
+        // display the project name
+        let font = egui::FontId::monospace(20.0);
+        let top_hud_rect = ui.vertical_centered(|ui| {
+            let te = egui::TextEdit::singleline(self.borrow_name())
+                .horizontal_align(egui::Align::Center)
+                .frame(false)
+                .hint_text("enter project name here")
+                .font(font);
+            ui.add(te);
+        }).response.rect;
+
+        // Show the know boards list, if needed
+        let id = egui::Id::new("show_known_boards");
+        let mut should_show_boards_window = ctx.data_mut(|data| {
+            data.get_temp_mut_or(id, false).clone()
+            
+        });
+        // generate the button
+        let tid = icons.get("plus_icon").expect("error fetching plus_icon!").texture_id(ctx);
+        let add_board_button = egui::Button::image_and_text(tid, egui::Vec2::new(12.0, 12.0), "add board")
+            .frame(false);
+        let mut cui = ui.child_ui(top_hud_rect, egui::Layout::left_to_right(egui::Align::Center));
+        if cui.add(add_board_button).clicked() {
+            should_show_boards_window = true;
+        }
+        if let Some(b) = self.display_known_boards(ctx, &mut should_show_boards_window) {
+            self.add_board(b);
+        }
+        ctx.data_mut(|data| {
+            data.insert_temp(id, should_show_boards_window);
+        });
 
         // let location_text = self.get_location();
         // let label = RichText::new(format!("Project Folder: {}", location_text)).underline();
         // ui.label(label);
 
-        if ui.button("Start Development").clicked() {
+        // generate the button
+        let tid = icons.get("right_arrow_icon").expect("error fetching right_arrow_icon!").texture_id(ctx);
+        let start_dev_button = egui::Button::image_and_text(tid, egui::Vec2::new(12.0, 12.0), "start development")
+            .frame(false);
+        let mut cui = ui.child_ui(top_hud_rect, egui::Layout::right_to_left(egui::Align::Center));
+        if cui.add(start_dev_button).clicked() {
             match self.save() {
                 Ok(()) => {
                     ret = Some(Mode::DevelopProject);
@@ -526,30 +569,16 @@ impl Project {
                 },
             }
         }
-
-        // Show the know boards list, if needed
-        let id = egui::Id::new("show_known_boards");
-        let mut to_show = ctx.data_mut(|data| {
-            data.get_temp_mut_or(id, false).clone()
-            
-        });
-        if ui.button("Add a board").clicked() {
-            to_show = true;
-        }
-        if let Some(b) = self.display_known_boards(ctx, &mut to_show) {
-            self.add_board(b);
-        }
-        ctx.data_mut(|data| {
-            data.insert_temp(id, to_show);
-        });
         
         // Show some system stats
-        ui.label(format!("number of connections: {}", self.system.connections.len()));
-        ui.label(format!("number of boards: {}", self.system.get_all_boards().len()));
+        ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
+            ui.label(format!("number of connections: {}", self.system.connections.len()));
+            ui.label(format!("number of boards: {}", self.system.get_all_boards().len()));
+        });
 
-        let painter = ui.painter();
-        let rect = ui.min_rect();
-        painter.rect(rect, egui::Rounding::none(), egui::Color32::TRANSPARENT, egui::Stroke::new(2.0, egui::Color32::GOLD));
+        // let painter = ui.painter();
+        // let rect = ui.min_rect();
+        // painter.rect(rect, egui::Rounding::none(), egui::Color32::TRANSPARENT, egui::Stroke::new(2.0, egui::Color32::GOLD));
 
         return ret;
     }

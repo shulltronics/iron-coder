@@ -1,0 +1,11 @@
+[package]
+name = "iron-coder-featherwing-oled-bsp"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+embedded-hal = "0.2.7"
+# sh1106 = "0.4.0"
+sh1107 = { git = "https://github.com/shulltronics/sh1107.git", branch = "embedded-graphics-fix" }

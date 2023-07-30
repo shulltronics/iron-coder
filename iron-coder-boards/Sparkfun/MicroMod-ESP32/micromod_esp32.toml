@@ -1,0 +1,8 @@
+
+name = "MicroMod ESP32 Processor"
+manufacturer = "Sparkfun"
+is_main_board = true
+standard = "MicroMod"
+cpu = "ESP32"
+
+bsp = "iron-coder-micromod-esp32-bsp"

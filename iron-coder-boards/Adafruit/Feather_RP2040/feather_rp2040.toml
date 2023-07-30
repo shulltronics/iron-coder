@@ -1,0 +1,25 @@
+
+name = "Feather RP2040"
+manufacturer = "Adafruit"
+is_main_board = true
+standard = "Feather"
+cpu = "Cortex-M0"
+ram = 264
+flash = 8000
+required_crates = ["adafruit-feather-rp2040", "embedded-hal", "embedded-time", "cortex-m-rt", "cortex-m", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+bsp = "iron-coder-feather-rp2040-bsp"
+
+# Each element of the Pinout Vec should be prefaced with [[pinout]]
+[[pinout]]
+pins = ["rx", "tx"]
+interface = { iface_type = "UART", direction = "Bidirectional" }
+
+[[pinout]]
+pins = ["scl", "sda"]
+interface = { iface_type = "I2C", direction = "Output" }
+
+[[pinout]]
+pins = ["mosi", "miso", "sclk"]
+interface = { iface_type = "SPI", direction = "Output" }

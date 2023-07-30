@@ -1,0 +1,15 @@
+
+name = "PropMaker Featherwing"
+manufacturer = "Adafruit"
+is_main_board = false
+standard = "Feather"
+
+related_crates = ["lis3dh"]
+
+bsp = "iron-coder-featherwing-propmaker-bsp"
+
+# Each element of the Pinout Vec should be prefaced with [[pinout]]
+[[pinout]]
+pins = ["5", "9"]
+interface = { iface_type = "I2C", direction = "Input" }
+ident = "Accelerometer"

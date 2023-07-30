@@ -1,0 +1,19 @@
+[package]
+name = "iron-coder-feather-rp2040-bsp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+adafruit-feather-rp2040 = "0.6.0"
+rp2040-hal = { features = ["eh1_0_alpha"] }
+embedded-hal = "0.2.7"
+ws2812-pio = "0.6.0"
+smart-leds = "0.3.0"
+usbd-serial = "0.1.1"
+usb-device = "0.2.9"
+critical-section = "1.1.1"
+fugit = "0.3.7"
+rtt-target = "0.4.0"
+cortex-m = "0.7.7"
+#shared-bus = { version = "0.2.5", path = "../../../../../shared-bus" }
+shared-bus = "0.2.5"

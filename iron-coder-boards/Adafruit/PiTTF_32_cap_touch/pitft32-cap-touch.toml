@@ -1,0 +1,14 @@
+
+name = "PiTFT 3.2 with Capacitive Touch Screen"
+manufacturer = "Adafruit"
+is_main_board = false
+
+related_crates = ["ili9341", "embedded-graphics"]
+
+bsp = "iron-coder-pitft-32-cap-touch-bsp"
+
+# Each element of the Pinout Vec should be prefaced with [[pinout]]
+[[pinout]]
+pins = ["pin", "out"]
+interface = { iface_type = "SPI", direction = "Input" }
+ident = "Display"

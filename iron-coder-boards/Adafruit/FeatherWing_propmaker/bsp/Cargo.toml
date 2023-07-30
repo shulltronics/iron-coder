@@ -1,0 +1,8 @@
+[package]
+name = "iron-coder-featherwing-propmaker-bsp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+embedded-hal = "0.2.7"
+lis3dh = "0.4.2"

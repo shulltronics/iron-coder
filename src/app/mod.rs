@@ -4,6 +4,10 @@ use log::{error, warn, info};
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::fs::File;
+use std::io::Write;
+use std::io::Read;
+use std::string::String;
 
 use clap::Parser;
 
@@ -101,6 +105,7 @@ impl Default for IronCoderApp {
 impl IronCoderApp {
     /// Called once before the first frame.
     pub fn with_options(cc: &eframe::CreationContext<'_>, options: IronCoderOptions) -> Self {
+        
         info!("welcome to Iron Coder! setting up initial app state...");
         // we mutate cc.egui_ctx (the context) to set the overall app style
         setup_fonts_and_style(&cc.egui_ctx);
@@ -112,6 +117,38 @@ impl IronCoderApp {
                 app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
             }
         }
+
+        // Load settings from settings.toml if it exists
+        info!("reading settings and applying to app state...");
+        let mut settings_file = match File::open("settings.toml") {
+            Err(why) => panic!("couldn't open settings.toml: {}", why),
+            Ok(file) => file,
+        };
+
+        let mut settings_string = String::new();
+        match settings_file.read_to_string(&mut settings_string) {
+            Err(why) => panic!("couldn't read settings.toml: {}", why),
+            Ok(_) => print!("settings.toml contains:\n{}", settings_string),
+        }
+
+        // Sets the scale for the app from settings.toml
+        let scale = settings_string.lines().nth(0).unwrap().split("=").nth(1).unwrap().trim().parse::<f32>().unwrap();
+        info!("setting ui scale to {}", scale);
+        cc.egui_ctx.set_pixels_per_point(scale);
+
+        // Supposed to set color scheme for the app from settings.toml
+        let mut colorscheme_name = settings_string.lines().nth(1).unwrap().split("=").nth(1).unwrap().trim().to_string();
+        info!("setting colorscheme to {}", colorscheme_name);
+        colorscheme_name = colorscheme_name.trim_matches('"').to_string();
+        let mut colorscheme = colorscheme::INDUSTRIAL_DARK;
+        for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
+            if cs.name == colorscheme_name {
+                colorscheme = cs.clone();
+            }
+        }
+        app.colorscheme = colorscheme.clone();
+        colorscheme::set_colorscheme(&cc.egui_ctx, colorscheme.clone());
+
         app.options = options;
         info!("Reloading current project and assets...");
         app.set_colorscheme(&cc.egui_ctx);
@@ -391,6 +428,24 @@ impl IronCoderApp {
                 if ui.button("Apply").clicked() {
                     // TODO -- Read all the settings to the settings file so they take place on next startup
                     // TODO -- Make a settings file
+                    let mut settings_file = match File::create("settings.toml") {
+                        Err(why) => panic!("couldn't create settings.toml: {}", why),
+                        Ok(file) => file,
+                    };
+
+                    let mut settings_string = String::new();
+                    settings_string.push_str("ui_scale = ");
+                    settings_string.push_str(&ui_scale_string);
+                    settings_string.push_str("\n");
+                    settings_string.push_str("colorscheme = \"");
+                    settings_string.push_str(&colorscheme.name);
+                    settings_string.push_str("\"\n");
+
+                    match settings_file.write_all(settings_string.as_bytes()) {
+                        Err(why) => panic!("couldn't write to settings.toml: {}", why),
+                        Ok(_) => println!("successfully wrote to settings.toml"),
+                    }
+
                 }
             });
             // unwrap ok here because window must be open for us to get here.

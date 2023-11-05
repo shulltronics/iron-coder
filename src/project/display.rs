@@ -12,7 +12,8 @@ use egui::widgets::Button;
 use crate::board::Board;
 use crate::{project::Project, board};
 use crate::app::icons::IconSet;
-use crate::app::Mode;
+use crate::app::{Mode, self};
+use crate::IronCoderApp;
 
 use serde::{Serialize, Deserialize};
 
@@ -504,7 +505,7 @@ impl Project {
 
     /// Show the project HUD with information about the current system. Return a "Mode" so that 
     /// the calling module (app) can update the GUI accordingly.
-    pub fn display_system_editor_hud(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) -> Option<Mode> {
+    pub fn display_system_editor_hud(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, main_board_warning: &mut bool) -> Option<Mode> {
 
         // prepare the return value
         let mut ret: Option<Mode> = None;
@@ -560,13 +561,28 @@ impl Project {
             .frame(false);
         let mut cui = ui.child_ui(top_hud_rect, egui::Layout::right_to_left(egui::Align::Center));
         if cui.add(start_dev_button).clicked() {
-            match self.save() {
-                Ok(()) => {
-                    ret = Some(Mode::DevelopProject);
-                },
-                Err(e) => {
-                    warn!("couldn't save project: {:?}", e);
-                },
+            if self.has_main_board() {
+                match self.save() {
+                    Ok(()) => {
+                        ret = Some(Mode::DevelopProject);
+                    },
+                    Err(e) => {
+                        warn!("couldn't save project: {:?}", e);
+                    },
+                }
+                // generate template code on initialization of project
+                info!("generating project template");
+                    match self.generate_cargo_template(ctx) {
+                        Ok(()) => {
+                            info!("generate_cargo_template returned Ok(()).");
+                        },
+                        Err(e) => {
+                            warn!("generate_cargo_template returned error: {:?}", e);
+                        },
+                    }
+            }
+            else {
+                *main_board_warning = true;
             }
         }
         
@@ -579,7 +595,6 @@ impl Project {
         // let painter = ui.painter();
         // let rect = ui.min_rect();
         // painter.rect(rect, egui::Rounding::none(), egui::Color32::TRANSPARENT, egui::Stroke::new(2.0, egui::Color32::GOLD));
-
         return ret;
     }
 

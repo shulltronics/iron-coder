@@ -70,6 +70,9 @@ pub struct IronCoderApp {
     #[serde(skip)]
     boards: Vec<board::Board>,
     options: IronCoderOptions,
+
+    // Warning Flags
+    display_mainboard_warning: bool,
 }
 
 impl Default for IronCoderApp {
@@ -87,6 +90,8 @@ impl Default for IronCoderApp {
             boards: boards,
             colorscheme: colorscheme::INDUSTRIAL_DARK,
             options: IronCoderOptions::default(),
+            // Warning Flags
+            display_mainboard_warning: false,
         }
     }
 }
@@ -281,7 +286,7 @@ impl IronCoderApp {
     pub fn display_project_editor(&mut self, ctx: &egui::Context) {
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui) {
+            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui, &mut self.display_mainboard_warning) {
                 self.mode = mode;
             }
             self.project.display_system_editor_boards(ctx, ui);
@@ -404,6 +409,21 @@ impl IronCoderApp {
             });
         });
     }
+
+    // Displays the waring message that no main board has been selected for the project
+    pub fn unselected_mainboard_warning(&mut self, ctx: &egui::Context, state: bool) {
+        self.display_mainboard_warning = state;
+
+        egui::Window::new("Warning")
+        .open(&mut self.display_mainboard_warning)
+        .collapsible(false)
+        .resizable(false)
+        .movable(false)
+        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+        .show(ctx,  |ui| {
+            ui.label("please select a main board to proceed.");
+        });
+    }
 }
 
 impl eframe::App for IronCoderApp {
@@ -436,6 +456,7 @@ impl eframe::App for IronCoderApp {
         // optionally render these popup windows
         self.display_settings_window(ctx);
         self.display_about_window(ctx);
+        self.unselected_mainboard_warning(ctx, self.display_mainboard_warning);
     }
 }
 

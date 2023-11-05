@@ -73,6 +73,7 @@ pub struct IronCoderApp {
 
     // Warning Flags
     display_mainboard_warning: bool,
+    display_unnamed_project_warning: bool,
 }
 
 impl Default for IronCoderApp {
@@ -92,6 +93,7 @@ impl Default for IronCoderApp {
             options: IronCoderOptions::default(),
             // Warning Flags
             display_mainboard_warning: false,
+            display_unnamed_project_warning: false,
         }
     }
 }
@@ -286,7 +288,7 @@ impl IronCoderApp {
     pub fn display_project_editor(&mut self, ctx: &egui::Context) {
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui, &mut self.display_mainboard_warning) {
+            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui, &mut self.display_mainboard_warning, &mut self.display_unnamed_project_warning) {
                 self.mode = mode;
             }
             self.project.display_system_editor_boards(ctx, ui);
@@ -440,16 +442,25 @@ impl IronCoderApp {
     }
 
     // Displays the waring message that no main board has been selected for the project
-    pub fn unselected_mainboard_warning(&mut self, ctx: &egui::Context, state: bool) {
-        self.display_mainboard_warning = state;
-
-        egui::Window::new("Warning")
+    pub fn unselected_mainboard_warning(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Board Warning")
         .open(&mut self.display_mainboard_warning)
         .collapsible(false)
         .resizable(false)
         .movable(true)
         .show(ctx,  |ui| {
             ui.label("please select a main board to proceed.");
+        });
+    }
+    // Displays the waring message that the project has not been named
+    pub fn display_unnamed_project_warning(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Name Warning")
+        .open(&mut self.display_unnamed_project_warning)
+        .collapsible(false)
+        .resizable(false)
+        .movable(true)
+        .show(ctx,  |ui| {
+            ui.label("please name the project to proceed.");
         });
     }
 }
@@ -484,7 +495,8 @@ impl eframe::App for IronCoderApp {
         // optionally render these popup windows
         self.display_settings_window(ctx);
         self.display_about_window(ctx);
-        self.unselected_mainboard_warning(ctx, self.display_mainboard_warning);
+        self.unselected_mainboard_warning(ctx);
+        self.display_unnamed_project_warning(ctx);
     }
 }
 

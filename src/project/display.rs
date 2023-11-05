@@ -505,7 +505,7 @@ impl Project {
 
     /// Show the project HUD with information about the current system. Return a "Mode" so that 
     /// the calling module (app) can update the GUI accordingly.
-    pub fn display_system_editor_hud(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, main_board_warning: &mut bool) -> Option<Mode> {
+    pub fn display_system_editor_hud(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, main_board_warning: &mut bool, no_name_warning: &mut bool) -> Option<Mode> {
 
         // prepare the return value
         let mut ret: Option<Mode> = None;
@@ -561,7 +561,7 @@ impl Project {
             .frame(false);
         let mut cui = ui.child_ui(top_hud_rect, egui::Layout::right_to_left(egui::Align::Center));
         if cui.add(start_dev_button).clicked() {
-            if self.has_main_board() {
+            if self.has_main_board() && self.name != "" {
                 match self.save() {
                     Ok(()) => {
                         ret = Some(Mode::DevelopProject);
@@ -582,7 +582,12 @@ impl Project {
                     }
             }
             else {
-                *main_board_warning = true;
+                if !self.has_main_board() {
+                    *main_board_warning = true;
+                }
+                if  self.name == "" {
+                    *no_name_warning = true;
+                }
             }
         }
         

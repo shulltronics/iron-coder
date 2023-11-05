@@ -307,11 +307,11 @@ impl IronCoderApp {
             .open(display_settings)
             .collapsible(false)
             .resizable(false)
-            .movable(false)
-            .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+            .movable(true)
             .show(ctx, |ui| {
 
                 // Store the text edit string representing the ui scale
+                ui.heading("Font Size:");
                 let id = egui::Id::new("ui_scale_string");
                 let current_scale = ctx.pixels_per_point();
                 let mut ui_scale_string: String = ctx.data_mut(|data| {
@@ -328,6 +328,8 @@ impl IronCoderApp {
                 }
 
                 // Create radio buttons for colorscheme selection
+                ui.separator();
+                ui.heading("Color Scheme:");
                 for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
                     // ui.radio_value(&mut colorscheme, colorscheme::SOLARIZED_DARK, cs.name);
                     let rb = egui::RadioButton::new(*colorscheme == cs.clone(), cs.name.clone());
@@ -338,6 +340,21 @@ impl IronCoderApp {
                 }
                
                 // create a font selector:
+                ui.separator();
+                ui.heading("Font Selector:");
+                // Tried working on selecotr box for fonts
+                // Need to figure out how fonts are configured before continuing
+                // Used example here: https://github.com/emilk/egui/blob/master/examples/user_attention/src/main.rs
+                //
+                // eframe::egui::ComboBox::new("","")
+                //     .show_ui(ui, |ui| {
+                //         for font in [
+
+                //         ] {
+                //             ui.selectable_value(&mut colorscheme, font, font);
+                //         }
+                //     });
+
                 for (text_style, font_id) in ctx.style().text_styles.iter() {
                     match text_style {
                         egui::TextStyle::Name(name) => {
@@ -362,7 +379,17 @@ impl IronCoderApp {
                         _ => (),
                     }
                 }
+
+                ui.separator();
+                ui.heading("Account Settings:");
+                ui.label("Add github account here.");
                 // ctx.set_visuals(visuals);
+
+
+                if ui.button("Apply").clicked() {
+                    // TODO -- Read all the settings to the settings file so they take place on next startup
+                    // TODO -- Make a settings file
+                }
             });
             // unwrap ok here because window must be open for us to get here.
             // ctx.move_to_top(window_response.unwrap().response.layer_id);
@@ -383,14 +410,16 @@ impl IronCoderApp {
         .open(display_about)
         .collapsible(false)
         .resizable(false)
-        .movable(false)
-        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+        .movable(true)
         .show(ctx, |ui| {
+            ui.label("Iron Coder Version: 0.2.0");
+            ui.separator();
             ui.label(
                 "Iron Coder is an app for practicing embedded Rust development.\n\
                 With inspirations from Arduino and CircuitPython, Iron Coder aims\n\
                 to provide a fun environment for embedded development."
             );
+            ui.separator();
             ui.label("Developed by Shulltronics");
             ui.hyperlink_to("Iron Coder on Github", "https://github.com/shulltronics/iron-coder");
             ui.horizontal(|ui| {
@@ -418,8 +447,7 @@ impl IronCoderApp {
         .open(&mut self.display_mainboard_warning)
         .collapsible(false)
         .resizable(false)
-        .movable(false)
-        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+        .movable(true)
         .show(ctx,  |ui| {
             ui.label("please select a main board to proceed.");
         });

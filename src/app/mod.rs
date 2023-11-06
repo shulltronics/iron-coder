@@ -386,7 +386,7 @@ impl IronCoderApp {
                 With inspirations from Arduino and CircuitPython, Iron Coder aims\n\
                 to provide a fun environment for embedded development."
             );
-            ui.label("Developed by Shulltronics");
+            ui.label("Developed by Shulltronics, fredward36, aidanpine");
             ui.hyperlink_to("Iron Coder on Github", "https://github.com/shulltronics/iron-coder");
             ui.horizontal(|ui| {
                 egui::warn_if_debug_build(ui);

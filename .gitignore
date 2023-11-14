@@ -1,6 +1,7 @@
 .vscode
 .obsidian/
 tmp/
+settings.toml
 
 # for now don't track these as they constantly have breaking changes
 projects/

@@ -12,8 +12,7 @@ use egui::widgets::Button;
 use crate::board::Board;
 use crate::{project::Project, board};
 use crate::app::icons::IconSet;
-use crate::app::{Mode, self};
-use crate::IronCoderApp;
+use crate::app::{Mode, Warnings};
 
 use serde::{Serialize, Deserialize};
 
@@ -505,7 +504,7 @@ impl Project {
 
     /// Show the project HUD with information about the current system. Return a "Mode" so that 
     /// the calling module (app) can update the GUI accordingly.
-    pub fn display_system_editor_hud(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, main_board_warning: &mut bool, no_name_warning: &mut bool) -> Option<Mode> {
+    pub fn display_system_editor_hud(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, warning_flags: &mut Warnings) -> Option<Mode> {
 
         // prepare the return value
         let mut ret: Option<Mode> = None;
@@ -583,10 +582,10 @@ impl Project {
             }
             else {
                 if !self.has_main_board() {
-                    *main_board_warning = true;
+                    warning_flags.display_mainboard_warning = true;
                 }
                 if  self.name == "" {
-                    *no_name_warning = true;
+                    warning_flags.display_unnamed_project_warning = true;
                 }
             }
         }

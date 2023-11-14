@@ -12,7 +12,6 @@ use std::string::String;
 use clap::Parser;
 
 use egui::{
-    Align2,
     Vec2,
     RichText,
     Label,
@@ -51,6 +50,13 @@ pub struct IronCoderOptions {
     pub persistence: bool,
 }
 
+// The current warning flags
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct Warnings {
+    pub display_mainboard_warning: bool,
+    pub display_unnamed_project_warning: bool,
+}
+
 /// The current GUI mode
 #[non_exhaustive]
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -75,9 +81,7 @@ pub struct IronCoderApp {
     boards: Vec<board::Board>,
     options: IronCoderOptions,
 
-    // Warning Flags
-    display_mainboard_warning: bool,
-    display_unnamed_project_warning: bool,
+    warning_flags: Warnings,
 }
 
 impl Default for IronCoderApp {
@@ -96,8 +100,10 @@ impl Default for IronCoderApp {
             colorscheme: colorscheme::INDUSTRIAL_DARK,
             options: IronCoderOptions::default(),
             // Warning Flags
-            display_mainboard_warning: false,
-            display_unnamed_project_warning: false,
+            warning_flags: Warnings {
+                display_mainboard_warning: false,
+                display_unnamed_project_warning: false,
+            },
         }
     }
 }
@@ -136,7 +142,7 @@ impl IronCoderApp {
         info!("setting ui scale to {}", scale);
         cc.egui_ctx.set_pixels_per_point(scale);
 
-        // Supposed to set color scheme for the app from settings.toml
+        // Sets the color scheme for the app from settings.toml
         let mut colorscheme_name = settings_string.lines().nth(1).unwrap().split("=").nth(1).unwrap().trim().to_string();
         info!("setting colorscheme to {}", colorscheme_name);
         colorscheme_name = colorscheme_name.trim_matches('"').to_string();
@@ -325,7 +331,7 @@ impl IronCoderApp {
     pub fn display_project_editor(&mut self, ctx: &egui::Context) {
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui, &mut self.display_mainboard_warning, &mut self.display_unnamed_project_warning) {
+            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui, &mut self.warning_flags) {
                 self.mode = mode;
             }
             self.project.display_system_editor_boards(ctx, ui);
@@ -499,7 +505,7 @@ impl IronCoderApp {
     // Displays the waring message that no main board has been selected for the project
     pub fn unselected_mainboard_warning(&mut self, ctx: &egui::Context) {
         egui::Window::new("Board Warning")
-        .open(&mut self.display_mainboard_warning)
+        .open(&mut self.warning_flags.display_mainboard_warning)
         .collapsible(false)
         .resizable(false)
         .movable(true)
@@ -510,7 +516,7 @@ impl IronCoderApp {
     // Displays the waring message that the project has not been named
     pub fn display_unnamed_project_warning(&mut self, ctx: &egui::Context) {
         egui::Window::new("Name Warning")
-        .open(&mut self.display_unnamed_project_warning)
+        .open(&mut self.warning_flags.display_unnamed_project_warning)
         .collapsible(false)
         .resizable(false)
         .movable(true)

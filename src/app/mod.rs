@@ -328,22 +328,16 @@ impl IronCoderApp {
                 ui.text_edit_singleline(&mut ui_scale_string);
                 ctx.data_mut(|data| data.insert_temp(id, ui_scale_string.clone()));
                 // if the string is parsable into f32, update the global scale
-                match ui_scale_string.parse::<f32>() {
-                    Ok(scale) => {
-                        ctx.set_pixels_per_point(scale);
-                    },
-                    Err(_e) => (),
-                }
+                
 
                 // Create radio buttons for colorscheme selection
                 ui.separator();
-                ui.heading("Color Scheme:");
+                ui.heading("Color Scheme:"); 
                 for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
                     // ui.radio_value(&mut colorscheme, colorscheme::SOLARIZED_DARK, cs.name);
                     let rb = egui::RadioButton::new(*colorscheme == cs.clone(), cs.name.clone());
                     if ui.add(rb).clicked() {
                         *colorscheme = cs.clone();
-                        colorscheme::set_colorscheme(ctx, cs.clone());
                     }
                 }
                
@@ -394,9 +388,39 @@ impl IronCoderApp {
                 // ctx.set_visuals(visuals);
 
 
+                // Create a button to apply the settings
                 if ui.button("Apply").clicked() {
-                    // TODO -- Read all the settings to the settings file so they take place on next startup
-                    // TODO -- Make a settings file
+                    // Change settings when Apply button is pressed
+                    // Change the colorscheme
+                    colorscheme::set_colorscheme(ctx, colorscheme.clone());
+
+                    // Set the ui scale
+                    match ui_scale_string.parse::<f32>() {
+                        Ok(scale) => {
+                            ctx.set_pixels_per_point(scale);
+                        },
+                        Err(_e) => (),
+                    }
+
+
+                    // Write the settings to settings.toml
+                    let mut settings_file = match File::create("settings.toml") {
+                        Err(why) => panic!("couldn't create settings.toml: {}", why),
+                        Ok(file) => file,
+                    };
+
+                    let mut settings_string = String::new();
+                    settings_string.push_str("ui_scale = ");
+                    settings_string.push_str(&ui_scale_string);
+                    settings_string.push_str("\n");
+                    settings_string.push_str("colorscheme = \"");
+                    settings_string.push_str(&colorscheme.name);
+                    settings_string.push_str("\"\n");
+
+                    match settings_file.write_all(settings_string.as_bytes()) {
+                        Err(why) => panic!("couldn't write to settings.toml: {}", why),
+                        Ok(_) => println!("successfully wrote to settings.toml"),
+                    }
                 }
             });
             // unwrap ok here because window must be open for us to get here.

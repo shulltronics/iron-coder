@@ -404,7 +404,7 @@ impl IronCoderApp {
                             }
                             let egui::FontId {size: _, family} = font_id;
                             // I don't really understand this dereference syntax with the Arc...
-                            let font_text = egui::RichText::new((&**name).clone())
+                            let font_text = egui::RichText::new(&**name)
                                             .family((family).clone()).size(12.0);
                             ui.label(font_text);
                         },

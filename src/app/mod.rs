@@ -137,23 +137,26 @@ impl IronCoderApp {
             Ok(_) => print!("settings.toml contains:\n{}", settings_string),
         }
 
-        // Sets the scale for the app from settings.toml
-        let scale = settings_string.lines().nth(0).unwrap().split("=").nth(1).unwrap().trim().parse::<f32>().unwrap();
-        info!("setting ui scale to {}", scale);
-        cc.egui_ctx.set_pixels_per_point(scale);
+        if (settings_string != "") {
+            // Sets the scale for the app from settings.toml
+            let scale = settings_string.lines().nth(0).unwrap().split("=").nth(1).unwrap().trim().parse::<f32>().unwrap();
+            info!("setting ui scale to {}", scale);
+            cc.egui_ctx.set_pixels_per_point(scale);
+        
 
-        // Sets the color scheme for the app from settings.toml
-        let mut colorscheme_name = settings_string.lines().nth(1).unwrap().split("=").nth(1).unwrap().trim().to_string();
-        info!("setting colorscheme to {}", colorscheme_name);
-        colorscheme_name = colorscheme_name.trim_matches('"').to_string();
-        let mut colorscheme = colorscheme::INDUSTRIAL_DARK;
-        for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
-            if cs.name == colorscheme_name {
-                colorscheme = cs.clone();
+            // Sets the color scheme for the app from settings.toml
+            let mut colorscheme_name = settings_string.lines().nth(1).unwrap().split("=").nth(1).unwrap().trim().to_string();
+            info!("setting colorscheme to {}", colorscheme_name);
+            colorscheme_name = colorscheme_name.trim_matches('"').to_string();
+            let mut colorscheme = colorscheme::INDUSTRIAL_DARK;
+            for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
+                if cs.name == colorscheme_name {
+                    colorscheme = cs.clone();
+                }
             }
+            app.colorscheme = colorscheme.clone();
+            colorscheme::set_colorscheme(&cc.egui_ctx, colorscheme.clone());
         }
-        app.colorscheme = colorscheme.clone();
-        colorscheme::set_colorscheme(&cc.egui_ctx, colorscheme.clone());
 
         app.options = options;
         info!("Reloading current project and assets...");

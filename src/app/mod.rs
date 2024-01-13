@@ -368,7 +368,17 @@ impl IronCoderApp {
                 ui.text_edit_singleline(&mut ui_scale_string);
                 ctx.data_mut(|data| data.insert_temp(id, ui_scale_string.clone()));
                 // if the string is parsable into f32, update the global scale
-                
+                match ui_scale_string.parse::<f32>() {
+                    Ok(scale) if scale >=0.7 => {
+                        ctx.set_pixels_per_point(scale);
+                    },
+                    Ok(_scale) => {
+                        warn!("scale can't be below 0.7!");
+                    }
+                    Err(_e) => {
+                        warn!("scale not parsed as f32.");
+                    },
+                }
 
                 // Create radio buttons for colorscheme selection
                 ui.separator();

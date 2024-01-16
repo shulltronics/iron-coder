@@ -137,7 +137,7 @@ impl IronCoderApp {
             Ok(_) => print!("settings.toml contains:\n{}", settings_string),
         }
 
-        if (settings_string != "") {
+        if settings_string != "" {
             // Sets the scale for the app from settings.toml
             let scale = settings_string.lines().nth(0).unwrap().split("=").nth(1).unwrap().trim().parse::<f32>().unwrap();
             info!("setting ui scale to {}", scale);

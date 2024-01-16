@@ -26,6 +26,8 @@ pub mod egui_helpers;
 mod system;
 use system::System;
 
+use git2::Repository;
+
 const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 
 pub type Result = core::result::Result<(), ProjectIOError>;
@@ -342,6 +344,10 @@ impl Project {
         } else {
             return Err(ProjectIOError::NoMainBoard);
         }
+        let _repo = match Repository::init(self.get_location()) {
+            Ok(_repo) => _repo,
+            Err(e) => panic!("failed to init: {}", e),
+        };
         Ok(())
     }
 

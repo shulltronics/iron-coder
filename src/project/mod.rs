@@ -232,6 +232,8 @@ impl Project {
                     warn!("couldn't save project to toml file!! {:?}", e);
                 }
             }
+
+            self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
             Ok(())
         }
     }

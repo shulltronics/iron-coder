@@ -8,15 +8,17 @@ use std::fs::File;
 use std::io::Write;
 use std::io::Read;
 use std::string::String;
-
 use clap::Parser;
-
 use egui::{
     Vec2,
     RichText,
     Label,
     Color32,
+    Key,
+    Modifiers,
+    KeyboardShortcut
 };
+use fs_extra::dir::DirEntryAttr::Modified;
 
 // use egui_modal::Modal;
 
@@ -567,6 +569,46 @@ impl eframe::App for IronCoderApp {
         self.display_about_window(ctx);
         self.unselected_mainboard_warning(ctx);
         self.display_unnamed_project_warning(ctx);
+
+        let save_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::S);
+        let quit_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::Q);
+        let open_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::O);
+        let new_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::N);
+
+        if ctx.input_mut(|i| i.consume_shortcut(&save_shortcut)) {
+            if let Err(e) = self.project.save() {
+                error!("error saving project: {:?}", e);
+            }
+        }
+
+        if ctx.input_mut(|i| i.consume_shortcut(&quit_shortcut)) {
+            frame.close();
+        }
+
+        if ctx.input_mut(|i| i.consume_shortcut(&open_shortcut)) {
+            match self.project.open() {
+                Ok(_) => {
+                    self.mode = Mode::DevelopProject;
+                },
+                Err(e) => {
+                    error!("error opening project: {:?}", e);
+                },
+            }
+        }
+
+        if ctx.input_mut(|i| i.consume_shortcut(&new_shortcut)) {
+            match self.mode {
+                Mode::EditProject => (),
+                Mode::DevelopProject => {
+                    // TODO -- add a popup here confirming that user
+                    // wants to leave the current project, and probably save
+                    // the project in it's current state.
+                    self.project = Project::default();
+                    self.project.known_boards = self.boards.clone();
+                    self.mode = Mode::EditProject;
+                },
+            }
+        }
     }
 }
 

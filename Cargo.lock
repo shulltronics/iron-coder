@@ -1618,6 +1618,7 @@ dependencies = [
  "enum-iterator",
  "fs_extra",
  "image",
+ "k_board",
  "log",
  "prettyplease",
  "proc-macro2",
@@ -1625,6 +1626,7 @@ dependencies = [
  "ra_ap_ide",
  "ra_ap_rust-analyzer",
  "rfd",
+ "savefile-derive",
  "serde",
  "slotmap",
  "syn 2.0.27",
@@ -1715,6 +1717,12 @@ checksum = "c5f195fe497f702db0f318b07fdd68edb16955aed830df8363d837542f8f935a"
 dependencies = [
  "wasm-bindgen",
 ]
+
+[[package]]
+name = "k_board"
+version = "1.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05e2d301ff74526f34b9d912ff99fe7896ad94582ffa44162229bd919f087666"
 
 [[package]]
 name = "khronos_api"
@@ -3396,6 +3404,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "savefile-derive"
+version = "0.16.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68a4c5bd5525edb4cb83fb0febff5aee308053554a765a745856bd59c65d573f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]

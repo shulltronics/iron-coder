@@ -25,6 +25,7 @@ pub mod egui_helpers;
 
 mod system;
 use system::System;
+use std::process::Command;
 
 const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 
@@ -59,6 +60,23 @@ pub struct Project {
     current_view: ProjectViewType,
     #[serde(skip)]
     pub known_boards: Vec<Board>,
+}
+
+fn cli_cmd(str: &str) {
+    let output = if cfg!(target_os = "windows") {
+        Command::new("powershell")
+            .args(["/C", &str])
+            .output()
+            .expect("failed to execute process")
+    } else {
+        Command::new("sh")
+            .arg("-c")
+            .arg("echo hello")
+            .output()
+            .expect("failed to execute process")
+    };
+    let str = String::from_utf8(output.stdout).expect("Returned output");
+    print!("{}", str);
 }
 
 // backend functionality for Project struct
@@ -251,12 +269,27 @@ impl Project {
 
     /// Load the code (for now using 'cargo run')
     fn load_to_board(&mut self, ctx: &egui::Context) {
+        // First check if the board is mounted
+        cli_cmd("");
+        // Create the uf2 file for the board. Then redirect the uf2 to be in the current directory.
+        cli_cmd("cd ./iron-coder-boards/Adafruit/Feather_RP2040/template;\\ 
+                     cargo run;\\
+                     cd ./target/thumbv6m-none-eabi/debug;\\
+                     cp feather-rp2040-blink.uf2 ../../../../../../../projects/blinky
+                     ");
+        self.info_logger("Successfully flashed board.");
+        // Flash the board
+        cli_cmd("cd ./projects/blinky;\\
+                     cp feather-rp2040-blink.uf2 D:;
+                     ");
+        /*
         if let Some(path) = &self.location {
             let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run");
             self.run_background_commands(&[cmd], ctx);
         } else {
             self.info_logger("project needs a valid working directory before building");
         }
+        */
     }
 
     pub fn new_file(&mut self) -> io::Result<()> {

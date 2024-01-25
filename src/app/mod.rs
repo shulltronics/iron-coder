@@ -316,10 +316,15 @@ impl IronCoderApp {
                 ctx.data_mut(|data| data.insert_temp(id, ui_scale_string.clone()));
                 // if the string is parsable into f32, update the global scale
                 match ui_scale_string.parse::<f32>() {
-                    Ok(scale) => {
+                    Ok(scale) if scale >=0.7 => {
                         ctx.set_pixels_per_point(scale);
                     },
-                    Err(_e) => (),
+                    Ok(_scale) => {
+                        warn!("scale can't be below 0.7!");
+                    }
+                    Err(_e) => {
+                        warn!("scale not parsed as f32.");
+                    },
                 }
 
                 // Create radio buttons for colorscheme selection
@@ -343,7 +348,7 @@ impl IronCoderApp {
                             }
                             let egui::FontId {size: _, family} = font_id;
                             // I don't really understand this dereference syntax with the Arc...
-                            let font_text = egui::RichText::new((&**name).clone())
+                            let font_text = egui::RichText::new(&**name)
                                             .family((family).clone()).size(12.0);
                             ui.label(font_text);
                         },

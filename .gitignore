@@ -8,3 +8,7 @@ projects/
 # Added by cargo
 
 /target
+/.idea/.gitignore
+/.idea/iron-coder.iml
+/.idea/modules.xml
+/.idea/vcs.xml

@@ -274,11 +274,18 @@ impl Project {
         // First check if the board is mounted
         cli_cmd("");
         // Create the uf2 file for the board. Then redirect the uf2 to be in the current directory.
+        /*
         cli_cmd("cd ./iron-coder-boards/Adafruit/Feather_RP2040/template;\\ 
                      cargo run;\\
                      cd ./target/thumbv6m-none-eabi/debug;\\
                      cp feather-rp2040-blink.uf2 ../../../../../../../projects/blinky
                      ");
+        */
+        cli_cmd("cd ./projects/blinky\\ 
+        cargo run;\\
+        cd ./target/thumbv6m-none-eabi/debug;\\
+        cp feather-rp2040-blink.uf2 ../../../../../../../projects/blinky
+        ");
         self.info_logger("Successfully flashed board.");
         // Flash the board
         cli_cmd("cd ./projects/blinky;\\

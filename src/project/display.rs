@@ -9,10 +9,13 @@ use std::sync::Arc;
 use egui::widget_text::RichText;
 use egui::widgets::Button;
 
+use git2::{Repository, StatusOptions};
+
 use crate::board::Board;
 use crate::{project::Project, board};
 use crate::app::icons::IconSet;
 use crate::app::{Mode, Warnings};
+
 
 use serde::{Serialize, Deserialize};
 
@@ -163,6 +166,43 @@ impl Project {
                         warn!("generate_system_module returned error: {:?}", e);
                     },
                 }
+            }
+
+            // Open a window to add changes
+            // Commit the changes to the git repo with a user message
+            ui.separator();
+
+            if ui.button("commit").clicked() {
+                // Open the repo
+                let mut repo = match Repository::open(self.get_location()) {
+                    Ok(repo) => repo,
+                    Err(e) => {
+                        panic!("Error opening repository: {:?}", e);
+                    }
+                };
+
+                let mut status_options = StatusOptions::new();
+                status_options.include_untracked(true);
+
+                // Get the status of the repo
+                let repo_statuses = repo.statuses(Some(&mut status_options));
+
+                // Check if there are any changes or new files and save them in a vector
+                let mut changes: Vec<String> = Vec::new();
+                for entry in repo_statuses.unwrap().iter() {
+                    if entry.status().contains(git2::Status::WT_NEW) || entry.status().contains(git2::Status::WT_MODIFIED){
+                        changes.push(entry.path().unwrap().to_string());
+                    }
+                }
+
+                // Print the changes
+                info!("Changes to be committed:");
+                for change in changes.iter() {
+                    info!("{}", change);
+                }
+
+                // Open a window to choose the changes to commit
+
             }
 
         });

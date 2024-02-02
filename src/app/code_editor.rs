@@ -295,18 +295,26 @@ impl CodeEditor {
                 ui.separator();
             }
             // Remove a tab if necessary
-            // TODO -- make it so that the active tab is changed only if
-            //   the closed tab was the active tab.
+            // TODO -- FIXED, but consider changing vector to linked list
             if let Some(i) = idx_to_remove {
                 let _ = self.tabs.remove(i);
                 let mut at = i;
+
                 if self.tabs.len() == 0 {
                     self.active_tab = None;
                 } else {
                     if at >= self.tabs.len() {
                         at -= 1;
                     }
-                    self.active_tab = Some(at);
+
+                    if (self.active_tab == None || self.active_tab == Some(i)) {
+                        self.active_tab = Some(at);
+                    }
+                    else {
+                        if self.active_tab > Some(i) {
+                            self.active_tab = Some(self.active_tab.unwrap() - 1);
+                        }
+                    }
                 }
             }
         });

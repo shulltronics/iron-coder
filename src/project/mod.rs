@@ -268,35 +268,27 @@ impl Project {
     }
 
     /// Load the code (for now using 'cargo run')
-    fn load_to_board(&mut self, ctx: &egui::Context) {
-        // First check if the board is mounted
-        cli_cmd("");
-        // Create the uf2 file for the board. Then redirect the uf2 to be in the current directory.
-        /*
-        cli_cmd("cd ./iron-coder-boards/Adafruit/Feather_RP2040/template;\\ 
-                     cargo run;\\
-                     cd ./target/thumbv6m-none-eabi/debug;\\
-                     cp feather-rp2040-blink.uf2 ../../../../../../../projects/blinky
-                     ");
-        */
-        cli_cmd("cd ./projects/blinky\\ 
-        cargo run;\\
-        cd ./target/thumbv6m-none-eabi/debug;\\
-        cp feather-rp2040-blink.uf2 ../../../../../../../projects/blinky
-        ");
-        self.info_logger("Successfully flashed board.");
-        // Flash the board
-        cli_cmd("cd ./projects/blinky;\\
-                     cp feather-rp2040-blink.uf2 D:;
-                     ");
-        /*
+    fn load_to_board(&mut self, ctx: &egui::Context) {        
         if let Some(path) = &self.location {
-            let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run");
-            self.run_background_commands(&[cmd], ctx);
+            //let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run");
+            //self.run_background_commands(&[cmd], ctx);
+            // First check if the board is mounted
+            // Create the uf2 file for the board. Then redirect the uf2 to be in the current directory.
+            let file_path_str = path.to_str().unwrap().to_string();
+            let cmd_str1 = "cd ".to_string() + &file_path_str + ";\\
+                cargo run;\\
+                cd ./target/thumbv6m-none-eabi/debug;
+                cp feather-rp2040-blink.uf2 " + &file_path_str;
+            cli_cmd(&cmd_str1);
+            // Flash the board
+            let cmd_str2 = "cd ".to_string() + &file_path_str + ";\\
+                    cp feather-rp2040-blink.uf2 D:;";
+            cli_cmd(&cmd_str2);
+            self.info_logger("Successfully flashed board.");
         } else {
             self.info_logger("project needs a valid working directory before building");
         }
-        */
+        
     }
 
     pub fn new_file(&mut self) -> io::Result<()> {

@@ -576,7 +576,6 @@ impl eframe::App for IronCoderApp {
         self.display_settings_window(ctx);
         self.display_about_window(ctx);
         self.unselected_mainboard_warning(ctx);
-        self.display_unnamed_project_warning(ctx);
     }
 }
 

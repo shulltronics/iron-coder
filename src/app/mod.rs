@@ -4,11 +4,14 @@ use log::{error, warn, info};
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::fs::File;
+use std::io::Write;
+use std::io::Read;
+use std::string::String;
 
 use clap::Parser;
 
 use egui::{
-    Align2,
     Vec2,
     RichText,
     Label,
@@ -47,6 +50,13 @@ pub struct IronCoderOptions {
     pub persistence: bool,
 }
 
+// The current warning flags
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct Warnings {
+    pub display_mainboard_warning: bool,
+    pub display_unnamed_project_warning: bool,
+}
+
 /// The current GUI mode
 #[non_exhaustive]
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -70,6 +80,8 @@ pub struct IronCoderApp {
     #[serde(skip)]
     boards: Vec<board::Board>,
     options: IronCoderOptions,
+
+    warning_flags: Warnings,
 }
 
 impl Default for IronCoderApp {
@@ -87,6 +99,11 @@ impl Default for IronCoderApp {
             boards: boards,
             colorscheme: colorscheme::INDUSTRIAL_DARK,
             options: IronCoderOptions::default(),
+            // Warning Flags
+            warning_flags: Warnings {
+                display_mainboard_warning: false,
+                display_unnamed_project_warning: false,
+            },
         }
     }
 }
@@ -94,6 +111,7 @@ impl Default for IronCoderApp {
 impl IronCoderApp {
     /// Called once before the first frame.
     pub fn with_options(cc: &eframe::CreationContext<'_>, options: IronCoderOptions) -> Self {
+        
         info!("welcome to Iron Coder! setting up initial app state...");
         // we mutate cc.egui_ctx (the context) to set the overall app style
         setup_fonts_and_style(&cc.egui_ctx);
@@ -105,6 +123,41 @@ impl IronCoderApp {
                 app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
             }
         }
+
+        // Load settings from settings.toml if it exists
+        info!("reading settings and applying to app state...");
+        let mut settings_file = match File::open("settings.toml") {
+            Err(why) => panic!("couldn't open settings.toml: {}", why),
+            Ok(file) => file,
+        };
+
+        let mut settings_string = String::new();
+        match settings_file.read_to_string(&mut settings_string) {
+            Err(why) => panic!("couldn't read settings.toml: {}", why),
+            Ok(_) => print!("settings.toml contains:\n{}", settings_string),
+        }
+
+        if settings_string != "" {
+            // Sets the scale for the app from settings.toml
+            let scale = settings_string.lines().nth(0).unwrap().split("=").nth(1).unwrap().trim().parse::<f32>().unwrap();
+            info!("setting ui scale to {}", scale);
+            cc.egui_ctx.set_pixels_per_point(scale);
+        
+
+            // Sets the color scheme for the app from settings.toml
+            let mut colorscheme_name = settings_string.lines().nth(1).unwrap().split("=").nth(1).unwrap().trim().to_string();
+            info!("setting colorscheme to {}", colorscheme_name);
+            colorscheme_name = colorscheme_name.trim_matches('"').to_string();
+            let mut colorscheme = colorscheme::INDUSTRIAL_DARK;
+            for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
+                if cs.name == colorscheme_name {
+                    colorscheme = cs.clone();
+                }
+            }
+            app.colorscheme = colorscheme.clone();
+            colorscheme::set_colorscheme(&cc.egui_ctx, colorscheme.clone());
+        }
+
         app.options = options;
         info!("Reloading current project and assets...");
         app.set_colorscheme(&cc.egui_ctx);
@@ -281,7 +334,7 @@ impl IronCoderApp {
     pub fn display_project_editor(&mut self, ctx: &egui::Context) {
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui) {
+            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui, &mut self.warning_flags) {
                 self.mode = mode;
             }
             self.project.display_system_editor_boards(ctx, ui);
@@ -302,11 +355,11 @@ impl IronCoderApp {
             .open(display_settings)
             .collapsible(false)
             .resizable(false)
-            .movable(false)
-            .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+            .movable(true)
             .show(ctx, |ui| {
 
                 // Store the text edit string representing the ui scale
+                ui.heading("Font Size:");
                 let id = egui::Id::new("ui_scale_string");
                 let current_scale = ctx.pixels_per_point();
                 let mut ui_scale_string: String = ctx.data_mut(|data| {
@@ -328,16 +381,32 @@ impl IronCoderApp {
                 }
 
                 // Create radio buttons for colorscheme selection
+                ui.separator();
+                ui.heading("Color Scheme:"); 
                 for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
                     // ui.radio_value(&mut colorscheme, colorscheme::SOLARIZED_DARK, cs.name);
                     let rb = egui::RadioButton::new(*colorscheme == cs.clone(), cs.name.clone());
                     if ui.add(rb).clicked() {
                         *colorscheme = cs.clone();
-                        colorscheme::set_colorscheme(ctx, cs.clone());
                     }
                 }
                
                 // create a font selector:
+                ui.separator();
+                ui.heading("Font Selector:");
+                // Tried working on selecotr box for fonts
+                // Need to figure out how fonts are configured before continuing
+                // Used example here: https://github.com/emilk/egui/blob/master/examples/user_attention/src/main.rs
+                //
+                // eframe::egui::ComboBox::new("","")
+                //     .show_ui(ui, |ui| {
+                //         for font in [
+
+                //         ] {
+                //             ui.selectable_value(&mut colorscheme, font, font);
+                //         }
+                //     });
+
                 for (text_style, font_id) in ctx.style().text_styles.iter() {
                     match text_style {
                         egui::TextStyle::Name(name) => {
@@ -362,7 +431,47 @@ impl IronCoderApp {
                         _ => (),
                     }
                 }
+
+                ui.separator();
+                ui.heading("Account Settings:");
+                ui.label("Add github account here.");
                 // ctx.set_visuals(visuals);
+
+
+                // Create a button to apply the settings
+                if ui.button("Apply").clicked() {
+                    // Change settings when Apply button is pressed
+                    // Change the colorscheme
+                    colorscheme::set_colorscheme(ctx, colorscheme.clone());
+
+                    // Set the ui scale
+                    match ui_scale_string.parse::<f32>() {
+                        Ok(scale) => {
+                            ctx.set_pixels_per_point(scale);
+                        },
+                        Err(_e) => (),
+                    }
+
+
+                    // Write the settings to settings.toml
+                    let mut settings_file = match File::create("settings.toml") {
+                        Err(why) => panic!("couldn't create settings.toml: {}", why),
+                        Ok(file) => file,
+                    };
+
+                    let mut settings_string = String::new();
+                    settings_string.push_str("ui_scale = ");
+                    settings_string.push_str(&ui_scale_string);
+                    settings_string.push_str("\n");
+                    settings_string.push_str("colorscheme = \"");
+                    settings_string.push_str(&colorscheme.name);
+                    settings_string.push_str("\"\n");
+
+                    match settings_file.write_all(settings_string.as_bytes()) {
+                        Err(why) => panic!("couldn't write to settings.toml: {}", why),
+                        Ok(_) => println!("successfully wrote to settings.toml"),
+                    }
+                }
             });
             // unwrap ok here because window must be open for us to get here.
             // ctx.move_to_top(window_response.unwrap().response.layer_id);
@@ -383,14 +492,16 @@ impl IronCoderApp {
         .open(display_about)
         .collapsible(false)
         .resizable(false)
-        .movable(false)
-        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+        .movable(true)
         .show(ctx, |ui| {
+            ui.label("Iron Coder Version: 0.2.0");
+            ui.separator();
             ui.label(
                 "Iron Coder is an app for practicing embedded Rust development.\n\
                 With inspirations from Arduino and CircuitPython, Iron Coder aims\n\
                 to provide a fun environment for embedded development."
             );
+            ui.separator();
             ui.label("Developed by Shulltronics");
             ui.hyperlink_to("Iron Coder on Github", "https://github.com/shulltronics/iron-coder");
             ui.horizontal(|ui| {
@@ -407,6 +518,29 @@ impl IronCoderApp {
                 );
                 ui.label(".");
             });
+        });
+    }
+
+    // Displays the waring message that no main board has been selected for the project
+    pub fn unselected_mainboard_warning(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Board Warning")
+        .open(&mut self.warning_flags.display_mainboard_warning)
+        .collapsible(false)
+        .resizable(false)
+        .movable(true)
+        .show(ctx,  |ui| {
+            ui.label("please select a main board to proceed.");
+        });
+    }
+    // Displays the waring message that the project has not been named
+    pub fn display_unnamed_project_warning(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Name Warning")
+        .open(&mut self.warning_flags.display_unnamed_project_warning)
+        .collapsible(false)
+        .resizable(false)
+        .movable(true)
+        .show(ctx,  |ui| {
+            ui.label("please name the project to proceed.");
         });
     }
 }
@@ -441,6 +575,8 @@ impl eframe::App for IronCoderApp {
         // optionally render these popup windows
         self.display_settings_window(ctx);
         self.display_about_window(ctx);
+        self.unselected_mainboard_warning(ctx);
+        self.display_unnamed_project_warning(ctx);
     }
 }
 

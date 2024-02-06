@@ -26,6 +26,8 @@ pub mod egui_helpers;
 mod system;
 use system::System;
 
+use git2::Repository;
+
 const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 
 pub type Result = core::result::Result<(), ProjectIOError>;
@@ -59,6 +61,8 @@ pub struct Project {
     current_view: ProjectViewType,
     #[serde(skip)]
     pub known_boards: Vec<Board>,
+    #[serde(skip)]
+    repo: Option<Repository>,
 }
 
 // backend functionality for Project struct
@@ -166,6 +170,12 @@ impl Project {
         self.current_view = p.current_view;
         // sync the assets with the global ones
         self.load_board_resources();
+        // Open the repo in the project directory
+        self.repo = match Repository::open(self.get_location()) {
+            Ok(repo) => Some(repo),
+            Err(e) => panic!("Failed to open: {}", e),
+        };
+        
         Ok(())
     }
 
@@ -342,6 +352,12 @@ impl Project {
         } else {
             return Err(ProjectIOError::NoMainBoard);
         }
+        // Create a repo to store code
+        self.repo = match Repository::init(self.get_location()) {
+            Ok(repo) => Some(repo),
+            Err(e) => panic!("Failed to init: {}", e),
+        };
+
         Ok(())
     }
 

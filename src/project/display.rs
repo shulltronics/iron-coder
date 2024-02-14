@@ -14,7 +14,7 @@ use git2::{Repository, StatusOptions};
 use crate::board::Board;
 use crate::{project::Project, board};
 use crate::app::icons::IconSet;
-use crate::app::{Mode, Warnings};
+use crate::app::{Mode, Warnings, Git};
 
 
 use serde::{Serialize, Deserialize};
@@ -106,7 +106,7 @@ impl Project {
     }
 
     /// Show the project toolbar, with buttons to perform various actions
-    pub fn display_project_toolbar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    pub fn display_project_toolbar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, git_things: &mut Git) {
         let iconref: Arc<IconSet> = ctx.data_mut(|data| {
             data.get_temp("icons".into()).expect("error loading shared icons!")
         });
@@ -172,9 +172,9 @@ impl Project {
             // Commit the changes to the git repo with a user message
             ui.separator();
 
-            if ui.button("commit").clicked() {
+            if ui.button("Commit").clicked() {
                 // Open the repo
-                let mut repo = match Repository::open(self.get_location()) {
+                let repo = match Repository::open(self.get_location()) {
                     Ok(repo) => repo,
                     Err(e) => {
                         panic!("Error opening repository: {:?}", e);
@@ -202,7 +202,9 @@ impl Project {
                 }
 
                 // Open a window to choose the changes to commit
-
+                git_things.display = true;
+                git_things.changes = changes;
+                git_things.repo = Some(repo);
             }
 
         });

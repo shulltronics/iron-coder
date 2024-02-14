@@ -51,6 +51,20 @@ pub struct IronCoderOptions {
 pub struct Warnings {
     pub display_mainboard_warning: bool,
     pub display_unnamed_project_warning: bool,
+    pub display_git_warning: bool,
+}
+
+// The current git state
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct Git {
+    pub display : bool,
+    pub changes: Vec<String>,
+    pub staged_changes: Vec<String>,
+    pub commit_name: String,
+    pub commit_email: String,
+    pub commit_message: String,
+    #[serde(skip)]
+    pub repo : Option<git2::Repository>,
 }
 
 /// The current GUI mode
@@ -78,6 +92,7 @@ pub struct IronCoderApp {
     options: IronCoderOptions,
 
     warning_flags: Warnings,
+    git_things: Git,
 }
 
 impl Default for IronCoderApp {
@@ -99,6 +114,16 @@ impl Default for IronCoderApp {
             warning_flags: Warnings {
                 display_mainboard_warning: false,
                 display_unnamed_project_warning: false,
+                display_git_warning: false,
+            },
+            git_things: Git {
+                display: false,
+                changes: Vec::new(),
+                staged_changes: Vec::new(),
+                commit_name: String::new(),
+                commit_email: String::new(),
+                commit_message: String::new(),
+                repo: None,
             },
         }
     }
@@ -278,7 +303,7 @@ impl IronCoderApp {
                 project.display_terminal(ctx, ui);
             });
             egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
-                project.display_project_toolbar(ctx, ui);
+                project.display_project_toolbar(ctx, ui, &mut self.git_things);
             });
             egui::TopBottomPanel::top("editor_tabs").show(ctx, |ui| {
                 project.code_editor.display_editor_tabs(ctx, ui);
@@ -461,7 +486,7 @@ impl IronCoderApp {
         });
     }
 
-    // Displays the waring message that no main board has been selected for the project
+    /// Displays the waring message that no main board has been selected for the project
     pub fn unselected_mainboard_warning(&mut self, ctx: &egui::Context) {
         egui::Window::new("Board Warning")
         .open(&mut self.warning_flags.display_mainboard_warning)
@@ -472,7 +497,7 @@ impl IronCoderApp {
             ui.label("please select a main board to proceed.");
         });
     }
-    // Displays the waring message that the project has not been named
+    /// Displays the waring message that the project has not been named
     pub fn display_unnamed_project_warning(&mut self, ctx: &egui::Context) {
         egui::Window::new("Name Warning")
         .open(&mut self.warning_flags.display_unnamed_project_warning)
@@ -483,6 +508,135 @@ impl IronCoderApp {
             ui.label("please name the project to proceed.");
         });
     }
+
+    /// Displays the warning message that not all of the git fields have been filled out
+    /// This is called when the user tries to commit changes to git
+    pub fn display_git_warning(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Git Warning")
+        .open(&mut self.warning_flags.display_git_warning)
+        .collapsible(false)
+        .resizable(false)
+        .movable(true)
+        .show(ctx,  |ui| {
+            ui.label("please fill out all of the git fields to commit changes.");
+        });
+    }
+    
+    /// Displays the git changes window
+    // Is called by the toolbar when the user clicks the commit button
+    pub fn display_git_window(&mut self, ctx: &egui::Context) {
+        let mut display_git = self.git_things.display;
+        let mut unstaged_to_remove: Vec<String> = Vec::new();
+        let mut staged_to_remove: Vec<String> = Vec::new();
+        let mut staged_to_add: Vec<String> = Vec::new();
+        let mut unstaged_to_add: Vec<String> = Vec::new();
+
+        
+        egui::Window::new("Commit")
+        .open(&mut display_git)
+            .collapsible(false)
+            .resizable(true)
+            .movable(true)
+            .show(ctx, |ui| {
+                egui::SidePanel::right("Unstaged Changes").show_inside(ui, |ui| {
+                    ui.label("Staged Changes -- Currently doesn't work");
+                    ui.separator();
+                    ui.vertical(|ui| {
+                        for (_i, change) in self.git_things.staged_changes.iter().enumerate() {
+                            if ui.button(change.clone()).clicked() {
+                                info!("Unstaging: {}", change.clone());
+                                unstaged_to_add.push(change.clone());
+                                staged_to_remove.push(change.clone());
+                            }
+                        }
+                        self.git_things.staged_changes.retain(|change| !staged_to_remove.contains(change));
+                    });
+                    ui.separator();
+                    ui.label("Unstaged Changes");
+                    // Display the files that have changed on the right side
+                    ui.separator();
+                    ui.vertical(|ui| {
+                        // Create a button for each unstaged change in git_things.changes
+                        for (_i, change) in self.git_things.changes.iter().enumerate() {
+                            if ui.button(change.clone()).clicked() {
+                                info!("Staging: {}", change.clone());
+                                staged_to_add.push(change.clone());
+                                unstaged_to_remove.push(change.clone());
+                            }
+                        }
+                        self.git_things.changes.retain(|change| !unstaged_to_remove.contains(change));
+                    });
+                });
+                self.git_things.staged_changes.append(&mut staged_to_add);
+                self.git_things.changes.append(&mut unstaged_to_add);
+
+                egui::CentralPanel::default().show_inside(ui, |ui|{
+                    // Have a text box for the commit message
+                    // Have the text box take as much space as possible
+                    ui.label("Commit Message:");
+                    ui.text_edit_multiline(&mut self.git_things.commit_message);
+                    ui.label("Name");
+                    ui.text_edit_singleline(&mut self.git_things.commit_name);
+                    ui.label("Email Address");
+                    ui.text_edit_singleline(&mut self.git_things.commit_email);
+
+                    let name = self.git_things.commit_name.clone();
+                    let email = self.git_things.commit_email.clone();
+                    let commit_message = self.git_things.commit_message.clone();
+
+                    // Have a button to commit the changes
+                    if ui.button("Commit").clicked() {
+                        if name != "" && email != "" && commit_message != "" {
+                            info!("committing changes to git...");
+                            info!("{}", self.git_things.commit_message.clone());
+
+                            let repo = self.git_things.repo.as_mut().unwrap();
+
+                            let signature = git2::Signature::now(&name, &email).unwrap();
+                            let mut index = repo.index().unwrap();
+                            // Should make only staged changes be committed but doesn't work instead crashes when reading staged changes
+                            // This has to be fixed because it starts with none of the changes added
+                            index.clear().unwrap();
+                            for change in self.git_things.staged_changes.iter() {
+                                index.add_path(Path::new(change)).unwrap();
+                            }
+                            let tree_id = index.write_tree().unwrap();
+                            let tree = repo.find_tree(tree_id).unwrap();
+
+                            repo.commit(
+                                // There is a problem with the head
+                                None, 
+                                &signature, 
+                                &signature, 
+                                &commit_message,
+                                &tree,
+                                &[]
+                            ).unwrap();
+
+                            self.git_things.display = false;
+                            self.git_things.commit_message.clear();
+                            self.git_things.commit_name.clear();
+                            self.git_things.commit_email.clear();
+                        } else {
+                            self.warning_flags.display_git_warning = true;
+                        }
+                    }
+                });
+            });
+
+            // Makes sure that both commit button and x button close the window
+            if self.git_things.display == false || display_git == false {
+                self.git_things.display = false;
+                display_git = false;
+                self.git_things.commit_message.clear();
+                self.git_things.commit_name.clear();
+                self.git_things.commit_email.clear();
+                self.git_things.changes.clear();
+                self.git_things.staged_changes.clear();
+            }
+            
+            
+    } 
 }
 
 impl eframe::App for IronCoderApp {
@@ -517,6 +671,8 @@ impl eframe::App for IronCoderApp {
         self.display_about_window(ctx);
         self.unselected_mainboard_warning(ctx);
         self.display_unnamed_project_warning(ctx);
+        self.display_git_window(ctx);
+        self.display_git_warning(ctx);
     }
 }
 

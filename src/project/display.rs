@@ -181,6 +181,11 @@ impl Project {
                     }
                 };
 
+                // Unstage all staged files
+                let mut index = repo.index().unwrap();
+                index.clear().unwrap();
+                index.write().unwrap();
+
                 let mut status_options = StatusOptions::new();
                 status_options.include_untracked(true);
 

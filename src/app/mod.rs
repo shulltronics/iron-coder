@@ -538,6 +538,9 @@ impl IronCoderApp {
             .resizable(true)
             .movable(true)
             .show(ctx, |ui| {
+                let repo = self.git_things.repo.as_mut().unwrap();
+                let mut index = repo.index().unwrap();
+                
                 egui::SidePanel::right("Unstaged Changes").show_inside(ui, |ui| {
                     ui.label("Staged Changes -- Currently doesn't work");
                     ui.separator();
@@ -547,6 +550,8 @@ impl IronCoderApp {
                                 info!("Unstaging: {}", change.clone());
                                 unstaged_to_add.push(change.clone());
                                 staged_to_remove.push(change.clone());
+                                index.remove_all([change.clone()].iter(), None).unwrap();
+                                index.write().unwrap();
                             }
                         }
                         self.git_things.staged_changes.retain(|change| !staged_to_remove.contains(change));
@@ -562,6 +567,17 @@ impl IronCoderApp {
                                 info!("Staging: {}", change.clone());
                                 staged_to_add.push(change.clone());
                                 unstaged_to_remove.push(change.clone());
+                                //index.add_path(Path::new(change)).unwrap();
+                                match index.add_path(Path::new(change)) {
+                                    Ok(_) => {
+                                        // add_path succeeded, do nothing
+                                    },
+                                    Err(_) => {
+                                        // add_path failed, try add_all
+                                        index.add_all([change.clone()].iter(), git2::IndexAddOption::DEFAULT, None).unwrap();
+                                    }
+                                }
+                                index.write().unwrap();
                             }
                         }
                         self.git_things.changes.retain(|change| !unstaged_to_remove.contains(change));
@@ -589,29 +605,30 @@ impl IronCoderApp {
                         if name != "" && email != "" && commit_message != "" {
                             info!("committing changes to git...");
                             info!("{}", self.git_things.commit_message.clone());
-
-                            let repo = self.git_things.repo.as_mut().unwrap();
-
+                            
                             let signature = git2::Signature::now(&name, &email).unwrap();
-                            let mut index = repo.index().unwrap();
-                            // Should make only staged changes be committed but doesn't work instead crashes when reading staged changes
-                            // This has to be fixed because it starts with none of the changes added
-                            index.clear().unwrap();
-                            for change in self.git_things.staged_changes.iter() {
-                                index.add_path(Path::new(change)).unwrap();
-                            }
-                            let tree_id = index.write_tree().unwrap();
-                            let tree = repo.find_tree(tree_id).unwrap();
+                            let oid = index.write_tree().unwrap();
+                            let tree = repo.find_tree(oid).unwrap();
+                            let head = repo.head().unwrap();
+                            let head_commit = repo.find_commit(head.target().unwrap()).unwrap();
 
-                            repo.commit(
+
+                            match repo.commit(
                                 // There is a problem with the head
-                                None, 
+                                Some("HEAD"), 
                                 &signature, 
                                 &signature, 
                                 &commit_message,
                                 &tree,
-                                &[]
-                            ).unwrap();
+                                &[&head_commit]
+                            ) {
+                                Ok(_) => {
+                                    info!("commit successful!");
+                                },
+                                Err(e) => {
+                                    error!("error committing changes to git: {:?}", e);
+                                }
+                            }
 
                             self.git_things.display = false;
                             self.git_things.commit_message.clear();

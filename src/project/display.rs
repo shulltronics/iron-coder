@@ -9,10 +9,13 @@ use std::sync::Arc;
 use egui::widget_text::RichText;
 use egui::widgets::Button;
 
+use git2::{Repository, StatusOptions};
+
 use crate::board::Board;
 use crate::{project::Project, board};
 use crate::app::icons::IconSet;
-use crate::app::{Mode, Warnings};
+use crate::app::{Mode, Warnings, Git};
+
 
 use serde::{Serialize, Deserialize};
 
@@ -103,7 +106,7 @@ impl Project {
     }
 
     /// Show the project toolbar, with buttons to perform various actions
-    pub fn display_project_toolbar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    pub fn display_project_toolbar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, git_things: &mut Git) {
         let iconref: Arc<IconSet> = ctx.data_mut(|data| {
             data.get_temp("icons".into()).expect("error loading shared icons!")
         });
@@ -163,6 +166,50 @@ impl Project {
                         warn!("generate_system_module returned error: {:?}", e);
                     },
                 }
+            }
+
+            // Open a window to add changes
+            // Commit the changes to the git repo with a user message
+            ui.separator();
+
+            if ui.button("Commit").clicked() {
+                // Open the repo
+                let repo = match Repository::open(self.get_location()) {
+                    Ok(repo) => repo,
+                    Err(e) => {
+                        panic!("Error opening repository: {:?}", e);
+                    }
+                };
+
+                // Unstage all staged files
+                let mut index = repo.index().unwrap();
+                index.clear().unwrap();
+                index.write().unwrap();
+
+                let mut status_options = StatusOptions::new();
+                status_options.include_untracked(true);
+
+                // Get the status of the repo
+                let repo_statuses = repo.statuses(Some(&mut status_options));
+
+                // Check if there are any changes or new files and save them in a vector
+                let mut changes: Vec<String> = Vec::new();
+                for entry in repo_statuses.unwrap().iter() {
+                    if entry.status().contains(git2::Status::WT_NEW) || entry.status().contains(git2::Status::WT_MODIFIED){
+                        changes.push(entry.path().unwrap().to_string());
+                    }
+                }
+
+                // Print the changes
+                info!("Changes to be committed:");
+                for change in changes.iter() {
+                    info!("{}", change);
+                }
+
+                // Open a window to choose the changes to commit
+                git_things.display = true;
+                git_things.changes = changes;
+                git_things.repo = Some(repo);
             }
 
         });

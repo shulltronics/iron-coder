@@ -607,7 +607,7 @@ impl Project {
             .frame(false);
         let mut cui = ui.child_ui(top_hud_rect, egui::Layout::right_to_left(egui::Align::Center));
         if cui.add(start_dev_button).clicked() {
-            if self.has_main_board() && self.name != "" {
+            if self.has_main_board() {
                 match self.save() {
                     Ok(()) => {
                         ret = Some(Mode::DevelopProject);

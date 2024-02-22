@@ -1,6 +1,7 @@
 use egui::Response;
 use egui_extras::RetainedImage;
 use log::{info, warn};
+use ra_ap_ide::Change;
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -181,11 +182,6 @@ impl Project {
                     }
                 };
 
-                // Unstage all staged files
-                let mut index = repo.index().unwrap();
-                index.clear().unwrap();
-                index.write().unwrap();
-
                 let mut status_options = StatusOptions::new();
                 status_options.include_untracked(true);
 
@@ -204,6 +200,12 @@ impl Project {
                 info!("Changes to be committed:");
                 for change in changes.iter() {
                     info!("{}", change);
+                }
+
+                for change in changes.iter() {
+                    let mut index = repo.index().unwrap();
+                    index.remove_all([change.clone()].iter(), None).unwrap();
+                    index.write().unwrap();
                 }
 
                 // Open a window to choose the changes to commit

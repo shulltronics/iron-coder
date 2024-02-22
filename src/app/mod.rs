@@ -442,26 +442,6 @@ impl IronCoderApp {
                         },
                         Err(_e) => (),
                     }
-
-
-                    // Write the settings to settings.toml
-                    let mut settings_file = match File::create("settings.toml") {
-                        Err(why) => panic!("couldn't create settings.toml: {}", why),
-                        Ok(file) => file,
-                    };
-
-                    let mut settings_string = String::new();
-                    settings_string.push_str("ui_scale = ");
-                    settings_string.push_str(&ui_scale_string);
-                    settings_string.push_str("\n");
-                    settings_string.push_str("colorscheme = \"");
-                    settings_string.push_str(&colorscheme.name);
-                    settings_string.push_str("\"\n");
-
-                    match settings_file.write_all(settings_string.as_bytes()) {
-                        Err(why) => panic!("couldn't write to settings.toml: {}", why),
-                        Ok(_) => println!("successfully wrote to settings.toml"),
-                    }
                 }
             });
             // unwrap ok here because window must be open for us to get here.

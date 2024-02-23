@@ -42,8 +42,8 @@ pub struct IronCoderOptions {
     /// An alternative path to look for the Boards directory.
     #[arg(short, long)]
     pub boards_directory: Option<PathBuf>,
-    /// Turn app persistence on or off. Default is off.
-    #[arg(short, long)]
+    /// Turn app persistence on or off. Default is on.
+    #[arg(short, long, default_value="true")]
     pub persistence: bool,
 }
 
@@ -67,6 +67,7 @@ pub struct IronCoderApp {
     // modal: Option<Modal>,
     mode: Mode,
     colorscheme: ColorScheme,
+    gui_scaling: f32,
     #[serde(skip)]
     boards: Vec<board::Board>,
     options: IronCoderOptions,
@@ -84,6 +85,7 @@ impl Default for IronCoderApp {
             display_boards_window: false,
             // modal: None,
             mode: Mode::EditProject,
+            gui_scaling: 0.0,
             boards: boards,
             colorscheme: colorscheme::INDUSTRIAL_DARK,
             options: IronCoderOptions::default(),

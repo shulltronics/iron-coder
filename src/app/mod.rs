@@ -36,6 +36,7 @@ pub mod colorscheme;
 use colorscheme::ColorScheme;
 
 pub mod code_editor;
+mod test;
 
 /// Iron Coder CLI configuration options...
 #[derive(Parser, Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
@@ -61,7 +62,7 @@ pub struct Warnings {
 
 /// The current GUI mode
 #[non_exhaustive]
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq)]
 pub enum Mode {
     EditProject,
     DevelopProject,
@@ -89,7 +90,7 @@ pub struct IronCoderApp {
 impl Default for IronCoderApp {
     fn default() -> Self {
         // Populate the boards
-        let boards_dir = Path::new("./iron-coder-boards");
+        let boards_dir = Path::new("./iron-coder-boards"); // consider making this a global macro
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
         Self {
             project: Project::default(),

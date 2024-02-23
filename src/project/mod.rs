@@ -24,6 +24,8 @@ use display::ProjectViewType;
 pub mod egui_helpers;
 
 mod system;
+mod test;
+
 use system::System;
 use std::process::Command;
 
@@ -161,6 +163,11 @@ impl Project {
 
     /// Load a project from a specified directory, and sync the board assets.
     fn load_from(&mut self, project_directory: &Path) -> Result {
+        // check if a project is currently open and save and close all tabs
+        if self.location != None {
+            self.save().expect("Error saving project");
+        }
+
         let project_file = project_directory.join(PROJECT_FILE_NAME);
         let toml_str = match fs::read_to_string(project_file) {
             Ok(s) => s,
@@ -178,12 +185,14 @@ impl Project {
             }
         };
         // Now load in certain fields without overwriting others:
+        self.code_editor.close_all_tabs();
         self.name = p.name;
         self.location = Some(project_directory.to_path_buf());
         self.system = p.system;
         self.current_view = p.current_view;
         // sync the assets with the global ones
         self.load_board_resources();
+        self.terminal_buffer.clear();
         Ok(())
     }
 
@@ -198,6 +207,7 @@ impl Project {
     }
 
     /// Open a file dialog to select a project folder, and then call the save method
+    /// TODO - make file dialog have default directory
     pub fn save_as(&mut self, create_containing_folder: bool) -> io::Result<()> {
         if let Some(mut project_folder) = FileDialog::new().pick_folder() {
             // if indicated, create a new folder for the project (with same name as project)
@@ -215,7 +225,7 @@ impl Project {
                 }
             }
             self.location = Some(project_folder);
-            // TODo: find template directory based on "programmable board" (for now just use board 0)
+            // TODo: find template directory based on "programmable board" (for now just use board 0) -- No longer relevant?
             // if let Some(template_dir) = self.system.boards[0].get_template_dir() {
             //     // copy_recursive(template_dir, project_dir)
             //     let options = fs_extra::dir::CopyOptions::new();
@@ -232,7 +242,7 @@ impl Project {
         self.save()
     }
 
-    // TODO - have this save all project files, maybe, except the target directory
+    // TODO - have this save all project files, maybe, except the target directory -- FIXED (note: currently only saves all open tabs)
     pub fn save(&mut self) -> io::Result<()> {
         if self.location == None {
             info!("no project location, calling save_as...");
@@ -272,20 +282,8 @@ impl Project {
     /// Load the code (for now using 'cargo run')
     fn load_to_board(&mut self, ctx: &egui::Context) {        
         if let Some(path) = &self.location {
-            //let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run");
-            //self.run_background_commands(&[cmd], ctx);
-            // First check if the board is mounted
-            // Create the uf2 file for the board. Then redirect the uf2 to be in the current directory.
-            let file_path_str = path.to_str().unwrap().to_string();
-            let cmd_str1 = "cd ".to_string() + &file_path_str + ";\\
-                cargo run;\\
-                cd ./target/thumbv6m-none-eabi/debug;
-                cp feather-rp2040-blink.uf2 " + &file_path_str;
-            cli_cmd(&cmd_str1);
-            // Flash the board
-            let cmd_str2 = "cd ".to_string() + &file_path_str + ";\\
-                    cp feather-rp2040-blink.uf2 D:;";
-            cli_cmd(&cmd_str2);
+            let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run");
+            self.run_background_commands(&[cmd], ctx);
             self.info_logger("Successfully flashed board.");
         } else {
             self.info_logger("project needs a valid working directory before building");

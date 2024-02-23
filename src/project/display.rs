@@ -165,6 +165,16 @@ impl Project {
                 }
             }
 
+            ui.separator();
+            let button = Button::image_and_text(
+                icons.get("trash_icon").unwrap().texture_id(ctx),
+                egui::Vec2::new(9.0, 9.0),
+                " clear terminal",
+            ).frame(false);
+            if ui.add(button).clicked() {
+                self.terminal_buffer.clear();
+            }
+
         });
     }
 

@@ -256,6 +256,11 @@ impl CodeEditor {
         });
     }
 
+    pub fn close_all_tabs(&mut self) {
+        self.active_tab = None;
+        self.tabs.clear();
+    }
+
     pub fn display_editor_tabs(&mut self, ctx: &egui::Context, ui: &mut Ui) {
         let icons_ref: Arc<IconSet> = ctx.data_mut(|data| {
             data.get_temp("icons".into()).expect("error loading shared icon map!")

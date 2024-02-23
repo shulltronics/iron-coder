@@ -6,7 +6,7 @@ standard = "Feather"
 cpu = "Cortex-M4"
 ram = 64
 flash = 512
-required_crates = ["nRF52832", "embedded-hal", "embedded-time", "cortex-m-rt", "cortex-m", "panic-halt"]
+required_crates = ["nRF52832-hal", "nrf52832-pac", "nb", "embedded-hal", "embedded-time", "cortex-m-rt", "cortex-m", "panic-halt"]
 related_crates = ["smart-leds", "ws2812-pio"]
 
 bsp = "iron-coder-nRF52832-bsp"

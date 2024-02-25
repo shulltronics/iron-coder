@@ -41,6 +41,7 @@ mod board_tests {
             assert!(board.related_crates().unwrap().is_empty() == FALSE);
         }
     }
+    #[test]
     pub fn test_board_crates() {
         // Ensure crates don't have any errors.
         let mut boards = board::get_boards(Path::new("./iron-coder-boards"));

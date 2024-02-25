@@ -8,3 +8,5 @@ projects/
 # Added by cargo
 
 /target
+/settings.toml
+/Cargo.lock

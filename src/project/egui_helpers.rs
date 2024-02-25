@@ -43,8 +43,7 @@ impl Project {
                 // capture the height of drawn text
                 height = (resp.rect.max - resp.rect.min).y;
                 let button = ImageButton::new(
-                    icons.get("edit_icon").unwrap().texture_id(ctx),
-                    DEFAULT_ICON_SIZE,
+                    icons.get("edit_icon").unwrap().clone(),
                 ).frame(false).tint(color);
                 columns[1].with_layout(Layout::top_down(Align::RIGHT), |ui| {
                     // slightly confusing, but we leave the semi-colons off here so that

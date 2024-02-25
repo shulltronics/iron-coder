@@ -55,8 +55,7 @@ impl Project {
             // FILE case
             if child.file_type().unwrap().is_file() {
                 let button = egui::widgets::Button::image_and_text(
-                    icons.get("file_icon").unwrap().texture_id(ctx),
-                    egui::Vec2::new(7.0, 7.0),
+                    icons.get("file_icon").unwrap().clone(),
                     text,
                 ).frame(false);
                 let resp = ui.add(button);
@@ -120,8 +119,7 @@ impl Project {
         ui.horizontal(|ui| {
             // COMPILE CODE
             let button = egui::widgets::Button::image_and_text(
-                icons.get("build_icon").unwrap().texture_id(ctx),
-                egui::Vec2::new(9.0, 9.0),
+                icons.get("build_icon").unwrap().clone(),
                 " build project",
             ).frame(false);
             if ui.add(button).clicked() {
@@ -131,8 +129,7 @@ impl Project {
             ui.separator();
             // LOAD CODE ONTO BOARD
             let button = egui::widgets::Button::image_and_text(
-                icons.get("load_icon").unwrap().texture_id(ctx),
-                egui::Vec2::new(9.0, 9.0),
+                icons.get("load_icon").unwrap().clone(),
                 " load onto board",
             ).frame(false);
             if ui.add(button).clicked() {
@@ -176,8 +173,7 @@ impl Project {
 
             ui.separator();
             let button = Button::image_and_text(
-                icons.get("trash_icon").unwrap().texture_id(ctx),
-                egui::Vec2::new(9.0, 9.0),
+                icons.get("trash_icon").unwrap().clone(),
                 " clear terminal",
             ).frame(false);
             if ui.add(button).clicked() {
@@ -599,8 +595,8 @@ impl Project {
 
         });
         // generate the button
-        let tid = icons.get("plus_icon").expect("error fetching plus_icon!").texture_id(ctx);
-        let add_board_button = egui::Button::image_and_text(tid, egui::Vec2::new(12.0, 12.0), "add board")
+        let tid = icons.get("plus_icon").expect("error fetching plus_icon!").clone();
+        let add_board_button = egui::Button::image_and_text(tid, "add board")
             .frame(false);
         let mut cui = ui.child_ui(top_hud_rect, egui::Layout::left_to_right(egui::Align::Center));
         if cui.add(add_board_button).clicked() {
@@ -618,8 +614,8 @@ impl Project {
         // ui.label(label);
 
         // generate the button
-        let tid = icons.get("right_arrow_icon").expect("error fetching right_arrow_icon!").texture_id(ctx);
-        let start_dev_button = egui::Button::image_and_text(tid, egui::Vec2::new(12.0, 12.0), "start development")
+        let tid = icons.get("right_arrow_icon").expect("error fetching right_arrow_icon!").clone();
+        let start_dev_button = egui::Button::image_and_text(tid, "start development")
             .frame(false);
         let mut cui = ui.child_ui(top_hud_rect, egui::Layout::right_to_left(egui::Align::Center));
         if cui.add(start_dev_button).clicked() {

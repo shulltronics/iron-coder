@@ -22,7 +22,9 @@ use egui::{
     Modifiers,
     KeyboardShortcut
 };
+use::egui_extras::install_image_loaders;
 use fs_extra::dir::DirEntryAttr::Modified;
+use toml::macros::insert_toml;
 
 // use egui_modal::Modal;
 
@@ -147,6 +149,7 @@ impl IronCoderApp {
         info!("welcome to Iron Coder! setting up initial app state...");
         // we mutate cc.egui_ctx (the context) to set the overall app style
         setup_fonts_and_style(&cc.egui_ctx);
+        install_image_loaders(&cc.egui_ctx);
         // Load previous app state if it exists and is specified.
         let mut app = IronCoderApp::default();
         if options.persistence {
@@ -233,12 +236,11 @@ impl IronCoderApp {
                 });
                 // Now use that Rect to draw the menu icon at the proper place
                 ui.allocate_ui_at_rect(r, |ui| {
-                    let tid = icons.get("menu_icon").unwrap().texture_id(ctx);
-                    ui.menu_image_button(tid, Vec2::new(12.0, 12.0), |ui| {
+                    let tid = icons.get("menu_icon").unwrap().clone();
+                    ui.menu_image_button(tid, |ui| {
 
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("save_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("save_icon").unwrap().clone(),
                             "save project"
                         ).shortcut_text("ctrl+s");
                         if ui.add(ib).clicked() {
@@ -248,8 +250,7 @@ impl IronCoderApp {
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("save_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("save_icon").unwrap().clone(),
                             "save project as..."
                         );
                         if ui.add(ib).clicked() {
@@ -257,8 +258,7 @@ impl IronCoderApp {
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("folder_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("folder_icon").unwrap().clone(),
                             "open"
                         ).shortcut_text("ctrl+o");
                         if ui.add(ib).clicked() {
@@ -273,8 +273,7 @@ impl IronCoderApp {
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("boards_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("boards_icon").unwrap().clone(),
                             "new project"
                         ).shortcut_text("ctrl+n");
                         if ui.add(ib).clicked() {
@@ -292,8 +291,7 @@ impl IronCoderApp {
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("settings_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("settings_icon").unwrap().clone(),
                             "settings"
                         );
                         if ui.add(ib).clicked() {
@@ -301,8 +299,7 @@ impl IronCoderApp {
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("about_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("about_icon").unwrap().clone(),
                             "about Iron Coder"
                         );
                         if ui.add(ib).clicked() {
@@ -310,14 +307,13 @@ impl IronCoderApp {
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("quit_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("quit_icon").unwrap().clone(),
                             "quit"
                         ).shortcut_text("ctrl+q");
                         //.tint(egui::Color32::WHITE);
                         // TODO: set tint to the appropriate value for the current colorscheme
                         if ui.add(ib).clicked() {
-                            frame.close();
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                         };
                     });
                 });
@@ -769,7 +765,7 @@ impl eframe::App for IronCoderApp {
         }
 
         if ctx.input_mut(|i| i.consume_shortcut(&quit_shortcut)) {
-            frame.close();
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
 
         if ctx.input_mut(|i| i.consume_shortcut(&open_shortcut)) {
@@ -908,11 +904,11 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     ].into();
 
     // Make things look more square
-    style.visuals.menu_rounding   = egui::Rounding::none();
-    style.visuals.window_rounding = egui::Rounding::none();
+    style.visuals.menu_rounding   = egui::Rounding::ZERO;
+    style.visuals.window_rounding = egui::Rounding::ZERO;
     // change width of scroll bar
-    style.spacing.scroll_bar_width = 6.0;
-    style.spacing.scroll_bar_inner_margin = 6.0;    // this keeps some space
+    style.spacing.scroll.bar_width = 6.0;
+    style.spacing.scroll.bar_inner_margin = 6.0;    // this keeps some space
     // Remove shadows
     style.visuals.window_shadow = eframe::epaint::Shadow::NONE;
     style.visuals.popup_shadow = eframe::epaint::Shadow::NONE;

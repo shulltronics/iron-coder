@@ -1,4 +1,5 @@
-//! This module describes an Iron Coder project.
+//! Title: Iron Coder Project Module - Module
+//! Description: This module contains the Project struct and its associated functionality.
 
 use log::{info, warn, debug};
 
@@ -28,6 +29,8 @@ mod test;
 
 use system::System;
 use std::process::Command;
+
+use git2::Repository;
 
 const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 
@@ -62,6 +65,8 @@ pub struct Project {
     current_view: ProjectViewType,
     #[serde(skip)]
     pub known_boards: Vec<Board>,
+    #[serde(skip)]
+    repo: Option<Repository>,
 }
 
 fn cli_cmd(str: &str) {
@@ -83,7 +88,7 @@ fn cli_cmd(str: &str) {
 
 // backend functionality for Project struct
 impl Project {
-    
+
     // Helper function for printing both to logs and to built-in terminal
     fn info_logger(&mut self, msg: &str) {
         info!("{}", msg);
@@ -193,6 +198,12 @@ impl Project {
         // sync the assets with the global ones
         self.load_board_resources();
         self.terminal_buffer.clear();
+        // Open the repo in the project directory
+        self.repo = match Repository::open(self.get_location()) {
+            Ok(repo) => Some(repo),
+            Err(e) => panic!("Failed to open: {}", e),
+        };
+
         Ok(())
     }
 
@@ -251,7 +262,7 @@ impl Project {
             let project_folder = self.location.clone().unwrap();
             let project_file = project_folder.join(PROJECT_FILE_NAME);
             info!("saving project file to {}", project_file.display().to_string());
-            
+
             match toml::to_string(self) {
                 Ok(contents) => {
                     fs::write(project_file, contents)?;
@@ -280,7 +291,7 @@ impl Project {
     }
 
     /// Load the code (for now using 'cargo run')
-    fn load_to_board(&mut self, ctx: &egui::Context) {        
+    fn load_to_board(&mut self, ctx: &egui::Context) {
         if let Some(path) = &self.location {
             let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run");
             self.run_background_commands(&[cmd], ctx);
@@ -288,7 +299,7 @@ impl Project {
         } else {
             self.info_logger("project needs a valid working directory before building");
         }
-        
+
     }
 
     pub fn new_file(&mut self) -> io::Result<()> {
@@ -306,7 +317,7 @@ impl Project {
 
     /// This method will run a series of command sequentially on a separate
     /// thread, sending their output through the channel to the project's terminal buffer
-    /// TODO - fix bug that calling this command again before a former call's thread is 
+    /// TODO - fix bug that calling this command again before a former call's thread is
     ///   complete will overwrite the rx channel in the Project object. Possible solution
     ///   might be to add a command to a queue to be evaluated.
     fn run_background_commands(&mut self, cmds: &[duct::Expression], ctx: &egui::Context) {
@@ -332,7 +343,7 @@ impl Project {
 
     /// Generate the Cargo project template based on the main board template (if it has one).
     /// The template will be written to the project directory.
-    /// TODO - generally more useful error returns, i.e. if the cargo generate command returns a 
+    /// TODO - generally more useful error returns, i.e. if the cargo generate command returns a
     /// non-zero exit status, or if the project directory already contains a Cargo project.
     pub fn generate_cargo_template(&mut self, ctx: &egui::Context) -> Result {
         info!("generating project template");
@@ -374,6 +385,12 @@ impl Project {
         } else {
             return Err(ProjectIOError::NoMainBoard);
         }
+        // Create a repo to store code
+        self.repo = match Repository::init(self.get_location()) {
+            Ok(repo) => Some(repo),
+            Err(e) => panic!("Failed to init: {}", e),
+        };
+
         Ok(())
     }
 

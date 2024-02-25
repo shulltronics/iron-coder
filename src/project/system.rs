@@ -1,4 +1,5 @@
-//! This module represents a hardware system, i.e. a main board,
+//! Title: Iron Coder Poject Module - System
+//! Description: This  module represents a hardware system, i.e. a main board,
 //! a set of peripheral boards, and the connections between them.
 
 use log::{info, warn};

@@ -40,3 +40,4 @@ cargo-generate = "0.19.0"
 iron-coder-feather-rp2040-bsp = { version = "0.1.0", path = "iron-coder-boards/Adafruit/Feather_RP2040/bsp" }
 savefile-derive = "0.16.4"
 k_board = "1.2.2"
+git2 = "0.13.17"

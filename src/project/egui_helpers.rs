@@ -1,3 +1,6 @@
+//! Title: Iron Coder Project Module - Egui Helpers
+//! Description: This module contains helper functions for drawing egui elements in the project module.
+
 use std::sync::Arc;
 
 use crate::project::Project;

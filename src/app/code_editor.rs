@@ -1,3 +1,6 @@
+//! Title: Iron Coder App Module - Code Editor
+//! Description: Handles all the code editing functionality for the app.
+
 use std::string::String;
 use std::fmt;
 

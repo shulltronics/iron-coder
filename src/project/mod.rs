@@ -1,4 +1,5 @@
-//! This module describes an Iron Coder project.
+//! Title: Iron Coder Project Module - Module
+//! Description: This module contains the Project struct and its associated functionality.
 
 use log::{info, warn, debug};
 

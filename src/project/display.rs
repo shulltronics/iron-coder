@@ -1,3 +1,9 @@
+//! Title: Iron Coder Project Module - Display
+//! Description: This file contains methods that help display
+//! the main project window using equi. It also contains some
+//! helper functions for drawing connections between pins on
+//! the system editor.
+
 use egui::Response;
 use egui_extras::RetainedImage;
 use log::{info, warn};
@@ -234,6 +240,7 @@ impl Project {
         });
     }
 
+    /// Show the crate info
     pub fn show_crate_info(&mut self, crate_name: String) {
         self.current_view = ProjectViewType::CrateView(crate_name);
     }

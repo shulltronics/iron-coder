@@ -1,3 +1,7 @@
+//! Title: Iron Coder App Module - Icons
+//! Description: This module defines the IconSet type, which is a mapping of static str
+//!   to RetainedImages. It also defines functionality to load icons from the filesystem,
+
 use log::error;
 
 use std::path::Path;
@@ -9,12 +13,6 @@ use egui::{
     Vec2,
 };
 use egui_extras::RetainedImage;
-
-/// icons module
-/// defines an IconSet type, which is a mapping of static str
-///   to RetainedImages.
-/// defines functionality to load icons from the filesystem,
-///   and exposes them to the app via a const
 
 pub type IconSet = HashMap<&'static str, RetainedImage>;
 pub const ICON_DIR: &'static str = "assets/icons/pack/white/";

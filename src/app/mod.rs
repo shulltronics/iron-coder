@@ -1,4 +1,8 @@
-//! Iron Coder is an app for developing embedded firmware in Rust.
+//! Title: Iron Coder App Module - Module
+//! Description: This module contains the IronCoderApp struct and its implementation.
+//!   The IronCoderApp struct is the main application struct for the Iron Coder app.
+//!   It contains all the state and methods for the app, and is the main entry point
+//!   for the eframe framework to interact with the app.
 
 use log::{error, warn, info};
 
@@ -155,6 +159,7 @@ impl IronCoderApp {
         return app;
     }
 
+    /// Set the colorscheme for the app
     fn set_colorscheme(&self, ctx: &egui::Context) {
         colorscheme::set_colorscheme(ctx, self.colorscheme.clone());
     }
@@ -693,6 +698,7 @@ impl eframe::App for IronCoderApp {
     }
 }
 
+/// Sets up the fonts and style for the app
 fn setup_fonts_and_style(ctx: &egui::Context) {
 
     let mut fonts = egui::FontDefinitions::default();
@@ -816,8 +822,8 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     });
 }
 
-// Displays a cool looking header in the Ui element, utilizing our custom fonts
-// and returns the rect that was drawn to.
+/// Displays a cool looking header in the Ui element, utilizing our custom fonts
+/// and returns the rect that was drawn to.
 fn pretty_header(ui: &mut egui::Ui, text: &str) -> egui::Rect {
     // draw the background and get the rectangle we drew to
     let text_bg = RichText::new(text.to_uppercase())

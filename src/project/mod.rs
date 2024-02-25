@@ -64,23 +64,6 @@ pub struct Project {
     pub known_boards: Vec<Board>,
 }
 
-fn cli_cmd(str: &str) {
-    let output = if cfg!(target_os = "windows") {
-        Command::new("powershell")
-            .args(["/C", &str])
-            .output()
-            .expect("failed to execute process")
-    } else {
-        Command::new("sh")
-            .arg("-c")
-            .arg("echo hello")
-            .output()
-            .expect("failed to execute process")
-    };
-    let str = String::from_utf8(output.stdout).expect("Returned output");
-    print!("{}", str);
-}
-
 // backend functionality for Project struct
 impl Project {
     

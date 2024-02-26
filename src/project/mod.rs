@@ -366,6 +366,9 @@ impl Project {
                 return Err(ProjectIOError::NoProjectTemplate);
             }
             // iterate through BSP paths and add the crates to the project
+            // TODO: This needs to be changed, likely an issue with
+            // updating the crates in the main toml file. Figure out why!
+            /*
             for b in self.system.get_all_boards() {
                 if let Some(local_bsp) = b.bsp_path {
                     let cmd = duct::cmd!(
@@ -381,6 +384,7 @@ impl Project {
                     cmds.push(cmd);
                 }
             }
+            */
             self.run_background_commands(&cmds, ctx);
         } else {
             return Err(ProjectIOError::NoMainBoard);

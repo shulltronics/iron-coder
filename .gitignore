@@ -10,3 +10,4 @@ projects/
 
 /target
 Cargo.lock
+settings.toml

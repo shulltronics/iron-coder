@@ -145,7 +145,6 @@ impl Default for IronCoderApp {
 impl IronCoderApp {
     /// Called once before the first frame.
     pub fn with_options(cc: &eframe::CreationContext<'_>, options: IronCoderOptions) -> Self {
-
         info!("welcome to Iron Coder! setting up initial app state...");
         // we mutate cc.egui_ctx (the context) to set the overall app style
         setup_fonts_and_style(&cc.egui_ctx);

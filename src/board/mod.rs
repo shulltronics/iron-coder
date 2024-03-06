@@ -22,6 +22,8 @@ pub mod pinout;
 use pinout::Pinout;
 
 pub mod parsing;
+mod test;
+
 use parsing::BspParseInfo;
 
 /// These are the various standard development board form factors

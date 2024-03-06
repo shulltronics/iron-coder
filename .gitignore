@@ -9,5 +9,6 @@ projects/
 # Added by cargo
 
 /target
-Cargo.lock
-settings.toml
+/Cargo.lock
+*.lock
+/settings.toml

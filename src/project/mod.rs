@@ -1,4 +1,5 @@
-//! This module describes an Iron Coder project.
+//! Title: Iron Coder Project Module - Module
+//! Description: This module contains the Project struct and its associated functionality.
 
 use log::{info, warn, debug};
 
@@ -24,7 +25,10 @@ use display::ProjectViewType;
 pub mod egui_helpers;
 
 mod system;
+mod test;
+
 use system::System;
+use std::process::Command;
 
 use git2::Repository;
 
@@ -65,9 +69,26 @@ pub struct Project {
     repo: Option<Repository>,
 }
 
+fn cli_cmd(str: &str) {
+    let output = if cfg!(target_os = "windows") {
+        Command::new("powershell")
+            .args(["/C", &str])
+            .output()
+            .expect("failed to execute process")
+    } else {
+        Command::new("sh")
+            .arg("-c")
+            .arg("echo hello")
+            .output()
+            .expect("failed to execute process")
+    };
+    let str = String::from_utf8(output.stdout).expect("Returned output");
+    print!("{}", str);
+}
+
 // backend functionality for Project struct
 impl Project {
-    
+
     // Helper function for printing both to logs and to built-in terminal
     fn info_logger(&mut self, msg: &str) {
         info!("{}", msg);
@@ -147,6 +168,11 @@ impl Project {
 
     /// Load a project from a specified directory, and sync the board assets.
     fn load_from(&mut self, project_directory: &Path) -> Result {
+        // check if a project is currently open and save and close all tabs
+        if self.location != None {
+            self.save().expect("Error saving project");
+        }
+
         let project_file = project_directory.join(PROJECT_FILE_NAME);
         let toml_str = match fs::read_to_string(project_file) {
             Ok(s) => s,
@@ -164,18 +190,20 @@ impl Project {
             }
         };
         // Now load in certain fields without overwriting others:
+        self.code_editor.close_all_tabs();
         self.name = p.name;
         self.location = Some(project_directory.to_path_buf());
         self.system = p.system;
         self.current_view = p.current_view;
         // sync the assets with the global ones
         self.load_board_resources();
+        self.terminal_buffer.clear();
         // Open the repo in the project directory
         self.repo = match Repository::open(self.get_location()) {
             Ok(repo) => Some(repo),
             Err(e) => panic!("Failed to open: {}", e),
         };
-        
+
         Ok(())
     }
 
@@ -190,6 +218,7 @@ impl Project {
     }
 
     /// Open a file dialog to select a project folder, and then call the save method
+    /// TODO - make file dialog have default directory
     pub fn save_as(&mut self, create_containing_folder: bool) -> io::Result<()> {
         if let Some(mut project_folder) = FileDialog::new().pick_folder() {
             // if indicated, create a new folder for the project (with same name as project)
@@ -207,7 +236,7 @@ impl Project {
                 }
             }
             self.location = Some(project_folder);
-            // TODo: find template directory based on "programmable board" (for now just use board 0)
+            // TODo: find template directory based on "programmable board" (for now just use board 0) -- No longer relevant?
             // if let Some(template_dir) = self.system.boards[0].get_template_dir() {
             //     // copy_recursive(template_dir, project_dir)
             //     let options = fs_extra::dir::CopyOptions::new();
@@ -224,7 +253,7 @@ impl Project {
         self.save()
     }
 
-    // TODO - have this save all project files, maybe, except the target directory
+    // TODO - have this save all project files, maybe, except the target directory -- FIXED (note: currently only saves all open tabs)
     pub fn save(&mut self) -> io::Result<()> {
         if self.location == None {
             info!("no project location, calling save_as...");
@@ -233,7 +262,7 @@ impl Project {
             let project_folder = self.location.clone().unwrap();
             let project_file = project_folder.join(PROJECT_FILE_NAME);
             info!("saving project file to {}", project_file.display().to_string());
-            
+
             match toml::to_string(self) {
                 Ok(contents) => {
                     fs::write(project_file, contents)?;
@@ -242,6 +271,8 @@ impl Project {
                     warn!("couldn't save project to toml file!! {:?}", e);
                 }
             }
+
+            self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
             Ok(())
         }
     }
@@ -264,9 +295,11 @@ impl Project {
         if let Some(path) = &self.location {
             let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run");
             self.run_background_commands(&[cmd], ctx);
+            self.info_logger("Successfully flashed board.");
         } else {
             self.info_logger("project needs a valid working directory before building");
         }
+
     }
 
     pub fn new_file(&mut self) -> io::Result<()> {
@@ -284,7 +317,7 @@ impl Project {
 
     /// This method will run a series of command sequentially on a separate
     /// thread, sending their output through the channel to the project's terminal buffer
-    /// TODO - fix bug that calling this command again before a former call's thread is 
+    /// TODO - fix bug that calling this command again before a former call's thread is
     ///   complete will overwrite the rx channel in the Project object. Possible solution
     ///   might be to add a command to a queue to be evaluated.
     fn run_background_commands(&mut self, cmds: &[duct::Expression], ctx: &egui::Context) {
@@ -310,7 +343,7 @@ impl Project {
 
     /// Generate the Cargo project template based on the main board template (if it has one).
     /// The template will be written to the project directory.
-    /// TODO - generally more useful error returns, i.e. if the cargo generate command returns a 
+    /// TODO - generally more useful error returns, i.e. if the cargo generate command returns a
     /// non-zero exit status, or if the project directory already contains a Cargo project.
     pub fn generate_cargo_template(&mut self, ctx: &egui::Context) -> Result {
         info!("generating project template");
@@ -333,6 +366,9 @@ impl Project {
                 return Err(ProjectIOError::NoProjectTemplate);
             }
             // iterate through BSP paths and add the crates to the project
+            // TODO: This needs to be changed, likely an issue with
+            // updating the crates in the main toml file. Figure out why!
+            /*
             for b in self.system.get_all_boards() {
                 if let Some(local_bsp) = b.bsp_path {
                     let cmd = duct::cmd!(
@@ -348,6 +384,7 @@ impl Project {
                     cmds.push(cmd);
                 }
             }
+            */
             self.run_background_commands(&cmds, ctx);
         } else {
             return Err(ProjectIOError::NoMainBoard);

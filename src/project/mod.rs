@@ -88,7 +88,6 @@ fn cli_cmd(str: &str) {
 
 // backend functionality for Project struct
 impl Project {
-
     // Helper function for printing both to logs and to built-in terminal
     fn info_logger(&mut self, msg: &str) {
         info!("{}", msg);

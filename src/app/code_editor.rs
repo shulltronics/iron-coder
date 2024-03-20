@@ -1,3 +1,6 @@
+//! Title: Iron Coder App Module - Code Editor
+//! Description: Handles all the code editing functionality for the app.
+
 use std::string::String;
 use std::fmt;
 
@@ -256,6 +259,11 @@ impl CodeEditor {
         });
     }
 
+    pub fn close_all_tabs(&mut self) {
+        self.active_tab = None;
+        self.tabs.clear();
+    }
+
     pub fn display_editor_tabs(&mut self, ctx: &egui::Context, ui: &mut Ui) {
         let icons_ref: Arc<IconSet> = ctx.data_mut(|data| {
             data.get_temp("icons".into()).expect("error loading shared icon map!")
@@ -266,8 +274,7 @@ impl CodeEditor {
             for (i, code_file) in self.tabs.iter().enumerate() {
                 // display the close icon
                 let x_icon = egui::widgets::ImageButton::new(
-                    icons.get("quit_icon").unwrap().texture_id(ctx),
-                    egui::Vec2::new(6.0, 6.0),
+                    icons.get("quit_icon").unwrap().clone()
                 ).frame(true);
                 if ui.add(x_icon).clicked() {
                     // we'll remove the tab right after this loop
@@ -295,18 +302,26 @@ impl CodeEditor {
                 ui.separator();
             }
             // Remove a tab if necessary
-            // TODO -- make it so that the active tab is changed only if
-            //   the closed tab was the active tab.
+            // TODO -- FIXED, but consider changing vector to linked list
             if let Some(i) = idx_to_remove {
                 let _ = self.tabs.remove(i);
                 let mut at = i;
+
                 if self.tabs.len() == 0 {
                     self.active_tab = None;
                 } else {
                     if at >= self.tabs.len() {
                         at -= 1;
                     }
-                    self.active_tab = Some(at);
+
+                    if (self.active_tab == None || self.active_tab == Some(i)) {
+                        self.active_tab = Some(at);
+                    }
+                    else {
+                        if self.active_tab > Some(i) {
+                            self.active_tab = Some(self.active_tab.unwrap() - 1);
+                        }
+                    }
                 }
             }
         });

@@ -1,19 +1,30 @@
-//! Iron Coder is an app for developing embedded firmware in Rust.
+//! Title: Iron Coder App Module - Module
+//! Description: This module contains the IronCoderApp struct and its implementation.
+//!   The IronCoderApp struct is the main application struct for the Iron Coder app.
+//!   It contains all the state and methods for the app, and is the main entry point
+//!   for the eframe framework to interact with the app.
 
 use log::{error, warn, info};
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-
+use std::fs::File;
+use std::io::Write;
+use std::io::Read;
+use std::string::String;
 use clap::Parser;
-
 use egui::{
-    Align2,
     Vec2,
     RichText,
     Label,
     Color32,
+    Key,
+    Modifiers,
+    KeyboardShortcut
 };
+use::egui_extras::install_image_loaders;
+use fs_extra::dir::DirEntryAttr::Modified;
+use toml::macros::insert_toml;
 
 // use egui_modal::Modal;
 
@@ -31,6 +42,7 @@ pub mod colorscheme;
 use colorscheme::ColorScheme;
 
 pub mod code_editor;
+mod test;
 
 /// Iron Coder CLI configuration options...
 #[derive(Parser, Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
@@ -47,9 +59,30 @@ pub struct IronCoderOptions {
     pub persistence: bool,
 }
 
+// The current warning flags
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct Warnings {
+    pub display_mainboard_warning: bool,
+    pub display_unnamed_project_warning: bool,
+    pub display_git_warning: bool,
+}
+
+// The current git state
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct Git {
+    pub display : bool,
+    pub changes: Vec<String>,
+    pub staged_changes: Vec<String>,
+    pub commit_name: String,
+    pub commit_email: String,
+    pub commit_message: String,
+    #[serde(skip)]
+    pub repo : Option<git2::Repository>,
+}
+
 /// The current GUI mode
 #[non_exhaustive]
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq)]
 pub enum Mode {
     EditProject,
     DevelopProject,
@@ -70,12 +103,15 @@ pub struct IronCoderApp {
     #[serde(skip)]
     boards: Vec<board::Board>,
     options: IronCoderOptions,
+
+    warning_flags: Warnings,
+    git_things: Git,
 }
 
 impl Default for IronCoderApp {
     fn default() -> Self {
         // Populate the boards
-        let boards_dir = Path::new("./iron-coder-boards");
+        let boards_dir = Path::new("./iron-coder-boards"); // consider making this a global macro
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
         Self {
             project: Project::default(),
@@ -87,6 +123,21 @@ impl Default for IronCoderApp {
             boards: boards,
             colorscheme: colorscheme::INDUSTRIAL_DARK,
             options: IronCoderOptions::default(),
+            // Warning Flags
+            warning_flags: Warnings {
+                display_mainboard_warning: false,
+                display_unnamed_project_warning: false,
+                display_git_warning: false,
+            },
+            git_things: Git {
+                display: false,
+                changes: Vec::new(),
+                staged_changes: Vec::new(),
+                commit_name: String::new(),
+                commit_email: String::new(),
+                commit_message: String::new(),
+                repo: None,
+            },
         }
     }
 }
@@ -97,6 +148,7 @@ impl IronCoderApp {
         info!("welcome to Iron Coder! setting up initial app state...");
         // we mutate cc.egui_ctx (the context) to set the overall app style
         setup_fonts_and_style(&cc.egui_ctx);
+        install_image_loaders(&cc.egui_ctx);
         // Load previous app state if it exists and is specified.
         let mut app = IronCoderApp::default();
         if options.persistence {
@@ -105,6 +157,41 @@ impl IronCoderApp {
                 app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
             }
         }
+
+        // Load settings from settings.toml if it exists
+        info!("reading settings and applying to app state...");
+        let mut settings_file = match File::open("settings.toml") {
+            Err(why) => panic!("couldn't open settings.toml: {}", why),
+            Ok(file) => file,
+        };
+
+        let mut settings_string = String::new();
+        match settings_file.read_to_string(&mut settings_string) {
+            Err(why) => panic!("couldn't read settings.toml: {}", why),
+            Ok(_) => print!("settings.toml contains:\n{}", settings_string),
+        }
+
+        if (settings_string != "") {
+            // Sets the scale for the app from settings.toml
+            let scale = settings_string.lines().nth(0).unwrap().split("=").nth(1).unwrap().trim().parse::<f32>().unwrap();
+            info!("setting ui scale to {}", scale);
+            cc.egui_ctx.set_pixels_per_point(scale);
+
+
+            // Sets the color scheme for the app from settings.toml
+            let mut colorscheme_name = settings_string.lines().nth(1).unwrap().split("=").nth(1).unwrap().trim().to_string();
+            info!("setting colorscheme to {}", colorscheme_name);
+            colorscheme_name = colorscheme_name.trim_matches('"').to_string();
+            let mut colorscheme = colorscheme::INDUSTRIAL_DARK;
+            for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
+                if cs.name == colorscheme_name {
+                    colorscheme = cs.clone();
+                }
+            }
+            app.colorscheme = colorscheme.clone();
+            colorscheme::set_colorscheme(&cc.egui_ctx, colorscheme.clone());
+        }
+
         app.options = options;
         info!("Reloading current project and assets...");
         app.set_colorscheme(&cc.egui_ctx);
@@ -117,6 +204,7 @@ impl IronCoderApp {
         return app;
     }
 
+    /// Set the colorscheme for the app
     fn set_colorscheme(&self, ctx: &egui::Context) {
         colorscheme::set_colorscheme(ctx, self.colorscheme.clone());
     }
@@ -147,12 +235,11 @@ impl IronCoderApp {
                 });
                 // Now use that Rect to draw the menu icon at the proper place
                 ui.allocate_ui_at_rect(r, |ui| {
-                    let tid = icons.get("menu_icon").unwrap().texture_id(ctx);
-                    ui.menu_image_button(tid, Vec2::new(12.0, 12.0), |ui| {
-                        
+                    let tid = icons.get("menu_icon").unwrap().clone();
+                    ui.menu_image_button(tid, |ui| {
+
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("save_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("save_icon").unwrap().clone(),
                             "save project"
                         ).shortcut_text("ctrl+s");
                         if ui.add(ib).clicked() {
@@ -162,8 +249,7 @@ impl IronCoderApp {
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("save_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("save_icon").unwrap().clone(),
                             "save project as..."
                         );
                         if ui.add(ib).clicked() {
@@ -171,8 +257,7 @@ impl IronCoderApp {
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("folder_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("folder_icon").unwrap().clone(),
                             "open"
                         ).shortcut_text("ctrl+o");
                         if ui.add(ib).clicked() {
@@ -185,10 +270,9 @@ impl IronCoderApp {
                                 },
                             }
                         }
-                        
+
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("boards_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("boards_icon").unwrap().clone(),
                             "new project"
                         ).shortcut_text("ctrl+n");
                         if ui.add(ib).clicked() {
@@ -206,8 +290,7 @@ impl IronCoderApp {
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("settings_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("settings_icon").unwrap().clone(),
                             "settings"
                         );
                         if ui.add(ib).clicked() {
@@ -215,23 +298,21 @@ impl IronCoderApp {
                         }
 
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("about_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("about_icon").unwrap().clone(),
                             "about Iron Coder"
                         );
                         if ui.add(ib).clicked() {
                             *display_about = !*display_about;
                         }
-                   
+
                         let ib = egui::widgets::Button::image_and_text(
-                            icons.get("quit_icon").unwrap().texture_id(ctx),
-                            SMALL_ICON_SIZE,
+                            icons.get("quit_icon").unwrap().clone(),
                             "quit"
                         ).shortcut_text("ctrl+q");
                         //.tint(egui::Color32::WHITE);
                         // TODO: set tint to the appropriate value for the current colorscheme
                         if ui.add(ib).clicked() {
-                            frame.close();
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                         };
                     });
                 });
@@ -265,7 +346,7 @@ impl IronCoderApp {
                 project.display_terminal(ctx, ui);
             });
             egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
-                project.display_project_toolbar(ctx, ui);
+                project.display_project_toolbar(ctx, ui, &mut self.git_things);
             });
             egui::TopBottomPanel::top("editor_tabs").show(ctx, |ui| {
                 project.code_editor.display_editor_tabs(ctx, ui);
@@ -281,7 +362,7 @@ impl IronCoderApp {
     pub fn display_project_editor(&mut self, ctx: &egui::Context) {
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui) {
+            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui, &mut self.warning_flags) {
                 self.mode = mode;
             }
             self.project.display_system_editor_boards(ctx, ui);
@@ -302,11 +383,11 @@ impl IronCoderApp {
             .open(display_settings)
             .collapsible(false)
             .resizable(false)
-            .movable(false)
-            .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+            .movable(true)
             .show(ctx, |ui| {
 
                 // Store the text edit string representing the ui scale
+                ui.heading("Font Size:");
                 let id = egui::Id::new("ui_scale_string");
                 let current_scale = ctx.pixels_per_point();
                 let mut ui_scale_string: String = ctx.data_mut(|data| {
@@ -328,16 +409,32 @@ impl IronCoderApp {
                 }
 
                 // Create radio buttons for colorscheme selection
+                ui.separator();
+                ui.heading("Color Scheme:");
                 for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
                     // ui.radio_value(&mut colorscheme, colorscheme::SOLARIZED_DARK, cs.name);
                     let rb = egui::RadioButton::new(*colorscheme == cs.clone(), cs.name.clone());
                     if ui.add(rb).clicked() {
                         *colorscheme = cs.clone();
-                        colorscheme::set_colorscheme(ctx, cs.clone());
                     }
                 }
-               
+
                 // create a font selector:
+                ui.separator();
+                ui.heading("Font Selector:");
+                // Tried working on selecotr box for fonts
+                // Need to figure out how fonts are configured before continuing
+                // Used example here: https://github.com/emilk/egui/blob/master/examples/user_attention/src/main.rs
+                //
+                // eframe::egui::ComboBox::new("","")
+                //     .show_ui(ui, |ui| {
+                //         for font in [
+
+                //         ] {
+                //             ui.selectable_value(&mut colorscheme, font, font);
+                //         }
+                //     });
+
                 for (text_style, font_id) in ctx.style().text_styles.iter() {
                     match text_style {
                         egui::TextStyle::Name(name) => {
@@ -362,13 +459,53 @@ impl IronCoderApp {
                         _ => (),
                     }
                 }
+
+                ui.separator();
+                ui.heading("Account Settings:");
+                ui.label("Add github account here.");
                 // ctx.set_visuals(visuals);
+
+
+                // Create a button to apply the settings
+                if ui.button("Apply").clicked() {
+                    // Change settings when Apply button is pressed
+                    // Change the colorscheme
+                    colorscheme::set_colorscheme(ctx, colorscheme.clone());
+
+                    // Set the ui scale
+                    match ui_scale_string.parse::<f32>() {
+                        Ok(scale) => {
+                            ctx.set_pixels_per_point(scale);
+                        },
+                        Err(_e) => (),
+                    }
+
+
+                    // Write the settings to settings.toml
+                    let mut settings_file = match File::create("settings.toml") {
+                        Err(why) => panic!("couldn't create settings.toml: {}", why),
+                        Ok(file) => file,
+                    };
+
+                    let mut settings_string = String::new();
+                    settings_string.push_str("ui_scale = ");
+                    settings_string.push_str(&ui_scale_string);
+                    settings_string.push_str("\n");
+                    settings_string.push_str("colorscheme = \"");
+                    settings_string.push_str(&colorscheme.name);
+                    settings_string.push_str("\"\n");
+
+                    match settings_file.write_all(settings_string.as_bytes()) {
+                        Err(why) => panic!("couldn't write to settings.toml: {}", why),
+                        Ok(_) => println!("successfully wrote to settings.toml"),
+                    }
+                }
             });
             // unwrap ok here because window must be open for us to get here.
             // ctx.move_to_top(window_response.unwrap().response.layer_id);
             window_response.unwrap().response.layer_id.order = egui::Order::Foreground;
         }
-        
+
     }
 
     /// This method will show or hide the "about" window
@@ -383,14 +520,16 @@ impl IronCoderApp {
         .open(display_about)
         .collapsible(false)
         .resizable(false)
-        .movable(false)
-        .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
+        .movable(true)
         .show(ctx, |ui| {
+            ui.label("Iron Coder Version: 0.2.0");
+            ui.separator();
             ui.label(
                 "Iron Coder is an app for practicing embedded Rust development.\n\
                 With inspirations from Arduino and CircuitPython, Iron Coder aims\n\
                 to provide a fun environment for embedded development."
             );
+            ui.separator();
             ui.label("Developed by Shulltronics");
             ui.hyperlink_to("Iron Coder on Github", "https://github.com/shulltronics/iron-coder");
             ui.horizontal(|ui| {
@@ -409,6 +548,175 @@ impl IronCoderApp {
             });
         });
     }
+
+    // Displays the waring message that no main board has been selected for the project
+    pub fn unselected_mainboard_warning(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Board Warning")
+        .open(&mut self.warning_flags.display_mainboard_warning)
+        .collapsible(false)
+        .resizable(false)
+        .movable(true)
+        .show(ctx,  |ui| {
+            ui.label("please select a main board to proceed.");
+        });
+    }
+    // Displays the waring message that the project has not been named
+    pub fn display_unnamed_project_warning(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Name Warning")
+        .open(&mut self.warning_flags.display_unnamed_project_warning)
+        .collapsible(false)
+        .resizable(false)
+        .movable(true)
+        .show(ctx,  |ui| {
+            ui.label("please name the project to proceed.");
+        });
+    }
+
+    /// Displays the warning message that not all of the git fields have been filled out
+    /// This is called when the user tries to commit changes to git
+    pub fn display_git_warning(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Git Warning")
+        .open(&mut self.warning_flags.display_git_warning)
+        .collapsible(false)
+        .resizable(false)
+        .movable(true)
+        .show(ctx,  |ui| {
+            ui.label("please fill out all of the git fields to commit changes.");
+        });
+    }
+
+    /// Displays the git changes window
+    // Is called by the toolbar when the user clicks the commit button
+    pub fn display_git_window(&mut self, ctx: &egui::Context) {
+        let mut display_git = self.git_things.display;
+        let mut unstaged_to_remove: Vec<String> = Vec::new();
+        let mut staged_to_remove: Vec<String> = Vec::new();
+        let mut staged_to_add: Vec<String> = Vec::new();
+        let mut unstaged_to_add: Vec<String> = Vec::new();
+
+
+        egui::Window::new("Commit")
+        .open(&mut display_git)
+            .collapsible(false)
+            .resizable(true)
+            .movable(true)
+            .show(ctx, |ui| {
+                let repo = self.git_things.repo.as_mut().unwrap();
+                let mut index = repo.index().unwrap();
+
+                egui::SidePanel::right("Unstaged Changes").show_inside(ui, |ui| {
+                    ui.label("Staged Changes -- Currently doesn't work");
+                    ui.separator();
+                    ui.vertical(|ui| {
+                        for (_i, change) in self.git_things.staged_changes.iter().enumerate() {
+                            if ui.button(change.clone()).clicked() {
+                                info!("Unstaging: {}", change.clone());
+                                unstaged_to_add.push(change.clone());
+                                staged_to_remove.push(change.clone());
+                                index.remove_all([change.clone()].iter(), None).unwrap();
+                                index.write().unwrap();
+                            }
+                        }
+                        self.git_things.staged_changes.retain(|change| !staged_to_remove.contains(change));
+                    });
+                    ui.separator();
+                    ui.label("Unstaged Changes");
+                    // Display the files that have changed on the right side
+                    ui.separator();
+                    ui.vertical(|ui| {
+                        // Create a button for each unstaged change in git_things.changes
+                        for (_i, change) in self.git_things.changes.iter().enumerate() {
+                            if ui.button(change.clone()).clicked() {
+                                info!("Staging: {}", change.clone());
+                                staged_to_add.push(change.clone());
+                                unstaged_to_remove.push(change.clone());
+                                //index.add_path(Path::new(change)).unwrap();
+                                match index.add_path(Path::new(change)) {
+                                    Ok(_) => {
+                                        // add_path succeeded, do nothing
+                                    },
+                                    Err(_) => {
+                                        // add_path failed, try add_all
+                                        index.add_all([change.clone()].iter(), git2::IndexAddOption::DEFAULT, None).unwrap();
+                                    }
+                                }
+                                index.write().unwrap();
+                            }
+                        }
+                        self.git_things.changes.retain(|change| !unstaged_to_remove.contains(change));
+                    });
+                });
+                self.git_things.staged_changes.append(&mut staged_to_add);
+                self.git_things.changes.append(&mut unstaged_to_add);
+
+                egui::CentralPanel::default().show_inside(ui, |ui|{
+                    // Have a text box for the commit message
+                    // Have the text box take as much space as possible
+                    ui.label("Commit Message:");
+                    ui.text_edit_multiline(&mut self.git_things.commit_message);
+                    ui.label("Name");
+                    ui.text_edit_singleline(&mut self.git_things.commit_name);
+                    ui.label("Email Address");
+                    ui.text_edit_singleline(&mut self.git_things.commit_email);
+
+                    let name = self.git_things.commit_name.clone();
+                    let email = self.git_things.commit_email.clone();
+                    let commit_message = self.git_things.commit_message.clone();
+
+                    // Have a button to commit the changes
+                    if ui.button("Commit").clicked() {
+                        if name != "" && email != "" && commit_message != "" {
+                            info!("committing changes to git...");
+                            info!("{}", self.git_things.commit_message.clone());
+
+                            let signature = git2::Signature::now(&name, &email).unwrap();
+                            let oid = index.write_tree().unwrap();
+                            let tree = repo.find_tree(oid).unwrap();
+                            let head = repo.head().unwrap();
+                            let head_commit = repo.find_commit(head.target().unwrap()).unwrap();
+
+
+                            match repo.commit(
+                                // There is a problem with the head
+                                Some("HEAD"),
+                                &signature,
+                                &signature,
+                                &commit_message,
+                                &tree,
+                                &[&head_commit]
+                            ) {
+                                Ok(_) => {
+                                    info!("commit successful!");
+                                },
+                                Err(e) => {
+                                    error!("error committing changes to git: {:?}", e);
+                                }
+                            }
+
+                            self.git_things.display = false;
+                            self.git_things.commit_message.clear();
+                            self.git_things.commit_name.clear();
+                            self.git_things.commit_email.clear();
+                        } else {
+                            self.warning_flags.display_git_warning = true;
+                        }
+                    }
+                });
+            });
+
+            // Makes sure that both commit button and x button close the window
+            if self.git_things.display == false || display_git == false {
+                self.git_things.display = false;
+                display_git = false;
+                self.git_things.commit_message.clear();
+                self.git_things.commit_name.clear();
+                self.git_things.commit_email.clear();
+                self.git_things.changes.clear();
+                self.git_things.staged_changes.clear();
+            }
+
+
+    }
 }
 
 impl eframe::App for IronCoderApp {
@@ -423,7 +731,7 @@ impl eframe::App for IronCoderApp {
 
     // Called each time the UI needs repainting, which may be many times per second.
     // This method will call all the display methods of IronCoderApp.
-    // TODO -- is this the best architecture? Is there an overhead of destructuring 
+    // TODO -- is this the best architecture? Is there an overhead of destructuring
     //   self in each of these method calls separately, vs once in the beginning of this
     //   method? But I can't do it the latter way while still having these as method calls.
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
@@ -441,9 +749,55 @@ impl eframe::App for IronCoderApp {
         // optionally render these popup windows
         self.display_settings_window(ctx);
         self.display_about_window(ctx);
+        self.unselected_mainboard_warning(ctx);
+        self.display_unnamed_project_warning(ctx);
+
+        let save_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::S);
+        let quit_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::Q);
+        let open_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::O);
+        let new_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::N);
+
+        if ctx.input_mut(|i| i.consume_shortcut(&save_shortcut)) {
+            if let Err(e) = self.project.save() {
+                error!("error saving project: {:?}", e);
+            }
+        }
+
+        if ctx.input_mut(|i| i.consume_shortcut(&quit_shortcut)) {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
+
+        if ctx.input_mut(|i| i.consume_shortcut(&open_shortcut)) {
+            match self.project.open() {
+                Ok(_) => {
+                    self.mode = Mode::DevelopProject;
+                },
+                Err(e) => {
+                    error!("error opening project: {:?}", e);
+                },
+            }
+        }
+
+        if ctx.input_mut(|i| i.consume_shortcut(&new_shortcut)) {
+            match self.mode {
+                Mode::EditProject => (),
+                Mode::DevelopProject => {
+                    // TODO -- add a popup here confirming that user
+                    // wants to leave the current project, and probably save
+                    // the project in it's current state.
+                    self.project = Project::default();
+                    self.project.known_boards = self.boards.clone();
+                    self.mode = Mode::EditProject;
+                },
+            }
+        }
+
+        self.display_git_window(ctx);
+        self.display_git_warning(ctx);
     }
 }
 
+/// Sets up the fonts and style for the app
 fn setup_fonts_and_style(ctx: &egui::Context) {
 
     let mut fonts = egui::FontDefinitions::default();
@@ -482,7 +836,7 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
         )),
     );
 
-    // example of how to install font to an existing style 
+    // example of how to install font to an existing style
     fonts
         .families
         .entry(egui::FontFamily::Monospace)
@@ -549,11 +903,11 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     ].into();
 
     // Make things look more square
-    style.visuals.menu_rounding   = egui::Rounding::none();
-    style.visuals.window_rounding = egui::Rounding::none();
+    style.visuals.menu_rounding   = egui::Rounding::ZERO;
+    style.visuals.window_rounding = egui::Rounding::ZERO;
     // change width of scroll bar
-    style.spacing.scroll_bar_width = 6.0;
-    style.spacing.scroll_bar_inner_margin = 6.0;    // this keeps some space
+    style.spacing.scroll.bar_width = 6.0;
+    style.spacing.scroll.bar_inner_margin = 6.0;    // this keeps some space
     // Remove shadows
     style.visuals.window_shadow = eframe::epaint::Shadow::NONE;
     style.visuals.popup_shadow = eframe::epaint::Shadow::NONE;
@@ -567,8 +921,8 @@ fn setup_fonts_and_style(ctx: &egui::Context) {
     });
 }
 
-// Displays a cool looking header in the Ui element, utilizing our custom fonts
-// and returns the rect that was drawn to.
+/// Displays a cool looking header in the Ui element, utilizing our custom fonts
+/// and returns the rect that was drawn to.
 fn pretty_header(ui: &mut egui::Ui, text: &str) -> egui::Rect {
     // draw the background and get the rectangle we drew to
     let text_bg = RichText::new(text.to_uppercase())

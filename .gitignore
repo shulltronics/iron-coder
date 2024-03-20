@@ -1,6 +1,7 @@
 .vscode
 .obsidian/
 tmp/
+settings.toml
 
 # for now don't track these as they constantly have breaking changes
 projects/
@@ -8,3 +9,6 @@ projects/
 # Added by cargo
 
 /target
+/Cargo.lock
+*.lock
+/settings.toml

@@ -7,8 +7,6 @@
 use egui::Response;
 use egui_extras::RetainedImage;
 use log::{info, warn};
-use ra_ap_ide::Change;
-
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;

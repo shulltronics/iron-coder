@@ -1,3 +1,6 @@
+//! Title: Iron Coder App Module - ColorScheme
+//! Description: This module defines the ColorScheme struct and some built-in color schemes for the app.
+
 use egui::Color32;
 use serde::{Serialize, Deserialize};
 

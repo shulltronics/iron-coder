@@ -1,7 +1,12 @@
+//! Title: Iron Coder Project Module - Display
+//! Description: This file contains methods that help display
+//! the main project window using equi. It also contains some
+//! helper functions for drawing connections between pins on
+//! the system editor.
+
 use egui::Response;
 use egui_extras::RetainedImage;
 use log::{info, warn};
-
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
@@ -9,10 +14,13 @@ use std::sync::Arc;
 use egui::widget_text::RichText;
 use egui::widgets::Button;
 
+use git2::{Repository, StatusOptions};
+
 use crate::board::Board;
 use crate::{project::Project, board};
 use crate::app::icons::IconSet;
-use crate::app::{Mode, Warnings};
+use crate::app::{Mode, Warnings, Git};
+
 
 use serde::{Serialize, Deserialize};
 
@@ -27,7 +35,7 @@ pub enum ProjectViewType {
 // this block contains the display related
 // methods for showing the Project in egui.
 impl Project {
-    
+
     /// Recursively display the project directory.
     /// <dir> is the starting location, <level> is the recursion depth
     fn display_directory(&mut self, dir: &Path, level: usize, ctx: &egui::Context, ui: &mut egui::Ui) {
@@ -46,8 +54,7 @@ impl Project {
             // FILE case
             if child.file_type().unwrap().is_file() {
                 let button = egui::widgets::Button::image_and_text(
-                    icons.get("file_icon").unwrap().texture_id(ctx),
-                    egui::Vec2::new(7.0, 7.0),
+                    icons.get("file_icon").unwrap().clone(),
                     text,
                 ).frame(false);
                 let resp = ui.add(button);
@@ -103,7 +110,7 @@ impl Project {
     }
 
     /// Show the project toolbar, with buttons to perform various actions
-    pub fn display_project_toolbar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+    pub fn display_project_toolbar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, git_things: &mut Git) {
         let iconref: Arc<IconSet> = ctx.data_mut(|data| {
             data.get_temp("icons".into()).expect("error loading shared icons!")
         });
@@ -111,8 +118,7 @@ impl Project {
         ui.horizontal(|ui| {
             // COMPILE CODE
             let button = egui::widgets::Button::image_and_text(
-                icons.get("build_icon").unwrap().texture_id(ctx),
-                egui::Vec2::new(9.0, 9.0),
+                icons.get("build_icon").unwrap().clone(),
                 " build project",
             ).frame(false);
             if ui.add(button).clicked() {
@@ -122,8 +128,7 @@ impl Project {
             ui.separator();
             // LOAD CODE ONTO BOARD
             let button = egui::widgets::Button::image_and_text(
-                icons.get("load_icon").unwrap().texture_id(ctx),
-                egui::Vec2::new(9.0, 9.0),
+                icons.get("load_icon").unwrap().clone(),
                 " load onto board",
             ).frame(false);
             if ui.add(button).clicked() {
@@ -167,12 +172,55 @@ impl Project {
 
             ui.separator();
             let button = Button::image_and_text(
-                icons.get("trash_icon").unwrap().texture_id(ctx),
-                egui::Vec2::new(9.0, 9.0),
+                icons.get("trash_icon").unwrap().clone(),
                 " clear terminal",
             ).frame(false);
             if ui.add(button).clicked() {
                 self.terminal_buffer.clear();
+            }
+            // Open a window to add changes
+            // Commit the changes to the git repo with a user message
+            ui.separator();
+
+            if ui.button("Commit").clicked() {
+                // Open the repo
+                let repo = match Repository::open(self.get_location()) {
+                    Ok(repo) => repo,
+                    Err(e) => {
+                        panic!("Error opening repository: {:?}", e);
+                    }
+                };
+
+                let mut status_options = StatusOptions::new();
+                status_options.include_untracked(true);
+
+                // Get the status of the repo
+                let repo_statuses = repo.statuses(Some(&mut status_options));
+
+                // Check if there are any changes or new files and save them in a vector
+                let mut changes: Vec<String> = Vec::new();
+                for entry in repo_statuses.unwrap().iter() {
+                    if entry.status().contains(git2::Status::WT_NEW) || entry.status().contains(git2::Status::WT_MODIFIED){
+                        changes.push(entry.path().unwrap().to_string());
+                    }
+                }
+
+                // Print the changes
+                info!("Changes to be committed:");
+                for change in changes.iter() {
+                    info!("{}", change);
+                }
+
+                for change in changes.iter() {
+                    let mut index = repo.index().unwrap();
+                    index.remove_all([change.clone()].iter(), None).unwrap();
+                    index.write().unwrap();
+                }
+
+                // Open a window to choose the changes to commit
+                git_things.display = true;
+                git_things.changes = changes;
+                git_things.repo = Some(repo);
             }
 
         });
@@ -197,6 +245,7 @@ impl Project {
         });
     }
 
+    /// Show the crate info
     pub fn show_crate_info(&mut self, crate_name: String) {
         self.current_view = ProjectViewType::CrateView(crate_name);
     }
@@ -230,7 +279,7 @@ impl Project {
                                         } else {
                                             self.terminal_buffer += "save project first!\n";
                                         }
-                                        
+
                                     };
                                 });
                             }
@@ -263,7 +312,7 @@ impl Project {
                         .frame(false);
                     let resp = ui.add(te);
                     let resp = resp.interact(egui::Sense::drag());
-                    // check if the drag was released. if so, store the snippet in memory 
+                    // check if the drag was released. if so, store the snippet in memory
                     // so we can retrieve it in the CodeEditor
                     if resp.drag_released() {
                         info!("drag released! storing snippet in memory.");
@@ -316,7 +365,7 @@ impl Project {
                 });
             });
         });
-        
+
         if response.is_some() {
             // unwrap ok here because we check that response is Some.
             ctx.move_to_top(response.unwrap().response.layer_id);
@@ -352,17 +401,17 @@ impl Project {
             let response = egui::Area::new(board_idx.to_string()).show(ctx, |ui| {
 
                 let mut pin_clicked: Option<String> = None;
-                
+
                 if let Some(svg_board_info) = board.clone().svg_board_info {
                     let retained_image = RetainedImage::from_color_image(
                         "pic",
                         svg_board_info.image,
                     );
-                
+
                     let display_size = svg_board_info.physical_size * scale;
-                    
+
                     let image_rect = retained_image.show_max_size(ui, display_size).rect;
-  
+
                     // iterate through the pin_nodes of the board, and check if their rects (properly scaled and translated)
                     // contain the pointer. If so, actually draw the stuff there.
                     for (pin_name, mut pin_rect) in board.clone().svg_board_info.unwrap().pin_rects {
@@ -374,7 +423,7 @@ impl Project {
                         // translate the rects so they are in absolute coordinates
                         pin_rect = pin_rect.translate(image_rect.left_top().to_vec2());
                         pin_locations.insert((board.clone(), pin_name.clone()), pin_rect.center());
-                        
+
                         // render the pin overlay, and check for clicks/hovers
                         let r = ui.allocate_rect(pin_rect, egui::Sense::click());
                         if r.clicked() {
@@ -420,11 +469,11 @@ impl Project {
                         });
 
                     }
-                    
+
                 }
 
                 return pin_clicked;
-                
+
             });
 
             // extract response from board (i.e. the egui Area), and from pin
@@ -459,7 +508,7 @@ impl Project {
             if let Some(pin) = pin_response {
                 info!("pin {} clicked!", pin);
             }
-            
+
         } // for each Board
 
         // check for any key presses that might end the current in-progress connection.
@@ -512,7 +561,7 @@ impl Project {
 
     }
 
-    /// Show the project HUD with information about the current system. Return a "Mode" so that 
+    /// Show the project HUD with information about the current system. Return a "Mode" so that
     /// the calling module (app) can update the GUI accordingly.
     pub fn display_system_editor_hud(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, warning_flags: &mut Warnings) -> Option<Mode> {
 
@@ -543,11 +592,11 @@ impl Project {
         let id = egui::Id::new("show_known_boards");
         let mut should_show_boards_window = ctx.data_mut(|data| {
             data.get_temp_mut_or(id, false).clone()
-            
+
         });
         // generate the button
-        let tid = icons.get("plus_icon").expect("error fetching plus_icon!").texture_id(ctx);
-        let add_board_button = egui::Button::image_and_text(tid, egui::Vec2::new(12.0, 12.0), "add board")
+        let tid = icons.get("plus_icon").expect("error fetching plus_icon!").clone();
+        let add_board_button = egui::Button::image_and_text(tid, "add board")
             .frame(false);
         let mut cui = ui.child_ui(top_hud_rect, egui::Layout::left_to_right(egui::Align::Center));
         if cui.add(add_board_button).clicked() {
@@ -565,12 +614,12 @@ impl Project {
         // ui.label(label);
 
         // generate the button
-        let tid = icons.get("right_arrow_icon").expect("error fetching right_arrow_icon!").texture_id(ctx);
-        let start_dev_button = egui::Button::image_and_text(tid, egui::Vec2::new(12.0, 12.0), "start development")
+        let tid = icons.get("right_arrow_icon").expect("error fetching right_arrow_icon!").clone();
+        let start_dev_button = egui::Button::image_and_text(tid, "start development")
             .frame(false);
         let mut cui = ui.child_ui(top_hud_rect, egui::Layout::right_to_left(egui::Align::Center));
         if cui.add(start_dev_button).clicked() {
-            if self.has_main_board() && self.name != "" {
+            if self.has_main_board() {
                 match self.save() {
                     Ok(()) => {
                         ret = Some(Mode::DevelopProject);
@@ -599,7 +648,7 @@ impl Project {
                 }
             }
         }
-        
+
         // Show some system stats
         ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
             ui.label(format!("number of connections: {}", self.system.connections.len()));

@@ -1,3 +1,6 @@
+//! Title: Iron Coder App Module - Code Editor
+//! Description: Handles all the code editing functionality for the app.
+
 use std::string::String;
 use std::fmt;
 
@@ -271,8 +274,7 @@ impl CodeEditor {
             for (i, code_file) in self.tabs.iter().enumerate() {
                 // display the close icon
                 let x_icon = egui::widgets::ImageButton::new(
-                    icons.get("quit_icon").unwrap().texture_id(ctx),
-                    egui::Vec2::new(6.0, 6.0),
+                    icons.get("quit_icon").unwrap().clone()
                 ).frame(true);
                 if ui.add(x_icon).clicked() {
                     // we'll remove the tab right after this loop

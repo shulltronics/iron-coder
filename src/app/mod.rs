@@ -158,40 +158,6 @@ impl IronCoderApp {
             }
         }
 
-        // Load settings from settings.toml if it exists
-        info!("reading settings and applying to app state...");
-        let mut settings_file = match File::open("settings.toml") {
-            Err(why) => panic!("couldn't open settings.toml: {}", why),
-            Ok(file) => file,
-        };
-
-        let mut settings_string = String::new();
-        match settings_file.read_to_string(&mut settings_string) {
-            Err(why) => panic!("couldn't read settings.toml: {}", why),
-            Ok(_) => print!("settings.toml contains:\n{}", settings_string),
-        }
-
-        if (settings_string != "") {
-            // Sets the scale for the app from settings.toml
-            let scale = settings_string.lines().nth(0).unwrap().split("=").nth(1).unwrap().trim().parse::<f32>().unwrap();
-            info!("setting ui scale to {}", scale);
-            cc.egui_ctx.set_pixels_per_point(scale);
-
-
-            // Sets the color scheme for the app from settings.toml
-            let mut colorscheme_name = settings_string.lines().nth(1).unwrap().split("=").nth(1).unwrap().trim().to_string();
-            info!("setting colorscheme to {}", colorscheme_name);
-            colorscheme_name = colorscheme_name.trim_matches('"').to_string();
-            let mut colorscheme = colorscheme::INDUSTRIAL_DARK;
-            for cs in colorscheme::SYSTEM_COLORSCHEMES.iter() {
-                if cs.name == colorscheme_name {
-                    colorscheme = cs.clone();
-                }
-            }
-            app.colorscheme = colorscheme.clone();
-            colorscheme::set_colorscheme(&cc.egui_ctx, colorscheme.clone());
-        }
-
         app.options = options;
         info!("Reloading current project and assets...");
         app.set_colorscheme(&cc.egui_ctx);
@@ -396,16 +362,19 @@ impl IronCoderApp {
                 ui.text_edit_singleline(&mut ui_scale_string);
                 ctx.data_mut(|data| data.insert_temp(id, ui_scale_string.clone()));
                 // if the string is parsable into f32, update the global scale
-                match ui_scale_string.parse::<f32>() {
-                    Ok(scale) if scale >=0.7 => {
-                        ctx.set_pixels_per_point(scale);
-                    },
-                    Ok(_scale) => {
-                        warn!("scale can't be below 0.7!");
+                if ui.button("Apply").clicked() {
+                    match ui_scale_string.parse::<f32>() {
+                        Ok(scale) if scale >=0.7 && scale <=2.5 => {
+                            ctx.set_pixels_per_point(scale);
+                            info!("native pixels per point: {:?}", ctx.native_pixels_per_point());
+                        }
+                        Ok(_scale) => {
+                            warn!("scale can't be below 0.7!");
+                        },
+                        Err(_e) => {
+                            warn!("scale not parsed as f32.");
+                        },
                     }
-                    Err(_e) => {
-                        warn!("scale not parsed as f32.");
-                    },
                 }
 
                 // Create radio buttons for colorscheme selection
@@ -416,6 +385,7 @@ impl IronCoderApp {
                     let rb = egui::RadioButton::new(*colorscheme == cs.clone(), cs.name.clone());
                     if ui.add(rb).clicked() {
                         *colorscheme = cs.clone();
+                        colorscheme::set_colorscheme(ctx, colorscheme.clone());
                     }
                 }
 
@@ -464,42 +434,6 @@ impl IronCoderApp {
                 ui.heading("Account Settings:");
                 ui.label("Add github account here.");
                 // ctx.set_visuals(visuals);
-
-
-                // Create a button to apply the settings
-                if ui.button("Apply").clicked() {
-                    // Change settings when Apply button is pressed
-                    // Change the colorscheme
-                    colorscheme::set_colorscheme(ctx, colorscheme.clone());
-
-                    // Set the ui scale
-                    match ui_scale_string.parse::<f32>() {
-                        Ok(scale) => {
-                            ctx.set_pixels_per_point(scale);
-                        },
-                        Err(_e) => (),
-                    }
-
-
-                    // Write the settings to settings.toml
-                    let mut settings_file = match File::create("settings.toml") {
-                        Err(why) => panic!("couldn't create settings.toml: {}", why),
-                        Ok(file) => file,
-                    };
-
-                    let mut settings_string = String::new();
-                    settings_string.push_str("ui_scale = ");
-                    settings_string.push_str(&ui_scale_string);
-                    settings_string.push_str("\n");
-                    settings_string.push_str("colorscheme = \"");
-                    settings_string.push_str(&colorscheme.name);
-                    settings_string.push_str("\"\n");
-
-                    match settings_file.write_all(settings_string.as_bytes()) {
-                        Err(why) => panic!("couldn't write to settings.toml: {}", why),
-                        Ok(_) => println!("successfully wrote to settings.toml"),
-                    }
-                }
             });
             // unwrap ok here because window must be open for us to get here.
             // ctx.move_to_top(window_response.unwrap().response.layer_id);

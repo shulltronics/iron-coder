@@ -8,13 +8,8 @@ use log::{error, warn, info};
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::fs::File;
-use std::io::Write;
-use std::io::Read;
-use std::string::String;
 use clap::Parser;
 use egui::{
-    Vec2,
     RichText,
     Label,
     Color32,
@@ -641,7 +636,6 @@ impl IronCoderApp {
             // Makes sure that both commit button and x button close the window
             if self.git_things.display == false || display_git == false {
                 self.git_things.display = false;
-                display_git = false;
                 self.git_things.commit_message.clear();
                 self.git_things.commit_name.clear();
                 self.git_things.commit_email.clear();

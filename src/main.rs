@@ -1,6 +1,5 @@
 use log::info;
 use clap::Parser;
-use tracing;
 use std::str::FromStr;
 
 use iron_coder::IronCoderOptions;

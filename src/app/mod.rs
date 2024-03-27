@@ -353,7 +353,7 @@ impl IronCoderApp {
             .show(ctx, |ui| {
 
                 // Store the text edit string representing the ui scale
-                ui.heading("Font Size:");
+                ui.heading("Display Scale:");
                 let id = egui::Id::new("ui_scale_string");
                 let current_scale = ctx.pixels_per_point();
                 let mut ui_scale_string: String = ctx.data_mut(|data| {
@@ -363,13 +363,14 @@ impl IronCoderApp {
                 ctx.data_mut(|data| data.insert_temp(id, ui_scale_string.clone()));
                 // if the string is parsable into f32, update the global scale
                 if ui.button("Apply").clicked() {
+                    let native_pixels_per_point = ctx.native_pixels_per_point().unwrap();
                     match ui_scale_string.parse::<f32>() {
-                        Ok(scale) if scale >=0.7 && scale <=2.5 => {
+                        Ok(scale) if scale >= (0.5 * native_pixels_per_point) && scale <= (2.0 * native_pixels_per_point) => {
                             ctx.set_pixels_per_point(scale);
                             info!("native pixels per point: {:?}", ctx.native_pixels_per_point());
                         }
                         Ok(_scale) => {
-                            warn!("scale can't be below 0.7!");
+                            warn!("scale can't be below {} or above {}!", (0.5 * native_pixels_per_point), (2.0 * native_pixels_per_point));
                         },
                         Err(_e) => {
                             warn!("scale not parsed as f32.");

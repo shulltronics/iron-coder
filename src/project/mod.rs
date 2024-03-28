@@ -374,7 +374,7 @@ impl Project {
         // Create a repo to store code
         self.repo = match Repository::init(self.get_location()) {
             Ok(repo) => Some(repo),
-            Err(e) => panic!("Failed to init: {}", e),
+            Err(e) => return Err(ProjectIOError::NoProjectDirectory),
         };
 
         Ok(())

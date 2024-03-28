@@ -748,6 +748,7 @@ impl eframe::App for IronCoderApp {
         let quit_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::Q);
         let open_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::O);
         let new_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::N);
+        let close_tab_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::W);
 
         if ctx.input_mut(|i| i.consume_shortcut(&save_shortcut)) {
             if let Err(e) = self.project.save() {
@@ -781,6 +782,13 @@ impl eframe::App for IronCoderApp {
                     self.project.known_boards = self.boards.clone();
                     self.mode = Mode::EditProject;
                 },
+            }
+        }
+
+        if ctx.input_mut(|i| i.consume_shortcut(&close_tab_shortcut)) {
+            let curr_tab = self.project.code_editor.get_active_tab();
+            if curr_tab.is_some() {
+                self.project.code_editor.close_tab(curr_tab.unwrap());
             }
         }
 

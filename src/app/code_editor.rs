@@ -264,6 +264,34 @@ impl CodeEditor {
         self.tabs.clear();
     }
 
+    pub fn get_active_tab(&self) -> Option<usize> {
+        return self.active_tab;
+    }
+    pub fn close_tab(&mut self, i: usize) {
+        if self.tabs.len() == 0 {
+            return;
+        }
+
+        let _ = self.tabs.remove(i);
+        let mut at = i;
+
+        if self.tabs.len() == 0 {
+            self.active_tab = None;
+        } else {
+            if at >= self.tabs.len() {
+                at -= 1;
+            }
+
+            if (self.active_tab == None || self.active_tab == Some(i)) {
+                self.active_tab = Some(at);
+            }
+            else {
+                if self.active_tab > Some(i) {
+                    self.active_tab = Some(self.active_tab.unwrap() - 1);
+                }
+            }
+        }
+    }
     pub fn display_editor_tabs(&mut self, ctx: &egui::Context, ui: &mut Ui) {
         let icons_ref: Arc<IconSet> = ctx.data_mut(|data| {
             data.get_temp("icons".into()).expect("error loading shared icon map!")
@@ -301,28 +329,9 @@ impl CodeEditor {
                 }
                 ui.separator();
             }
-            // Remove a tab if necessary
-            // TODO -- FIXED, but consider changing vector to linked list
-            if let Some(i) = idx_to_remove {
-                let _ = self.tabs.remove(i);
-                let mut at = i;
 
-                if self.tabs.len() == 0 {
-                    self.active_tab = None;
-                } else {
-                    if at >= self.tabs.len() {
-                        at -= 1;
-                    }
-
-                    if (self.active_tab == None || self.active_tab == Some(i)) {
-                        self.active_tab = Some(at);
-                    }
-                    else {
-                        if self.active_tab > Some(i) {
-                            self.active_tab = Some(self.active_tab.unwrap() - 1);
-                        }
-                    }
-                }
+            if idx_to_remove.is_some() {
+                self.close_tab(idx_to_remove.unwrap());
             }
         });
     }

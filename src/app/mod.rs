@@ -13,15 +13,7 @@ use std::io::Write;
 use std::io::Read;
 use std::string::String;
 use clap::Parser;
-use egui::{
-    Vec2,
-    RichText,
-    Label,
-    Color32,
-    Key,
-    Modifiers,
-    KeyboardShortcut
-};
+use egui::{Vec2, RichText, Label, Color32, Key, Modifiers, KeyboardShortcut, Ui};
 use::egui_extras::install_image_loaders;
 use fs_extra::dir::DirEntryAttr::Modified;
 use toml::macros::insert_toml;
@@ -342,7 +334,7 @@ impl IronCoderApp {
         });
 
         egui::Area::new("editor area").show(ctx, |_ui| {
-            egui::TopBottomPanel::bottom("terminal_panel").resizable(true).show(ctx, |ui| {
+            egui::TopBottomPanel::bottom("terminal_panel").resizable(true).max_height(_ui.available_height()*0.75).show(ctx, |ui| {
                 project.display_terminal(ctx, ui);
             });
             egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {

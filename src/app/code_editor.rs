@@ -26,6 +26,8 @@ use std::io::{Read, Write, Seek};
 use std::sync::Arc;
 use crate::app::icons::IconSet;
 
+use crate::app::IronCoderApp;
+
 // use crate::app::colorscheme::ColorScheme;
 
 /// This module contains functionality for the code editor.
@@ -94,7 +96,7 @@ pub struct CodeEditor {
     ps: SyntaxSet,
     ts: ThemeSet,
     // cs: ColorScheme,
-    close: bool,
+    unsaved: bool,
 }
 
 impl fmt::Debug for CodeEditor {
@@ -113,7 +115,7 @@ impl Default for CodeEditor {
             ps: SyntaxSet::load_defaults_newlines(),
             ts: ThemeSet::load_defaults(),
             // cs: ColorScheme::default(),
-            close : false,
+            unsaved: false,
         }
     }
 }
@@ -270,14 +272,12 @@ impl CodeEditor {
     pub fn get_active_tab(&self) -> Option<usize> {
         return self.active_tab;
     }
-    pub fn close_tab(&mut self, i: usize) {
+    pub fn close_tab(&mut self, i: usize, ctx: &egui::Context) {
         if self.tabs.len() == 0 {
             return;
         }
         if !self.tabs[i].synced {
-            //IronCoderApp::display_unsaved_project_warning(&mut self, ctx);
-            self.close = true;
-            println!("Save changes before exiting!");
+            self.unsaved = true;
             return;
         }
         let _ = self.tabs.remove(i);
@@ -330,15 +330,14 @@ impl CodeEditor {
                 }
                 if !self.tabs[i].synced {
                     text = text.color(egui::Color32::RED);
-                    if self.close == true {
+                    if self.unsaved == true {
                         egui::Window::new("Unsaved Warning")
-                        .open(&mut self.close)
+                        .open(&mut self.unsaved)
                         .collapsible(false)
                         .resizable(false)
                         .movable(true)
-                        .show(ctx, |ui| {
-                            ui.label("Please save changes before closing tab.")
-                        });
+                        .show(ctx, |ui| {ui.label("Please save changes before closing tab.")
+                    });
                     }
                 }
                 let label = Label::new(text).sense(Sense::click());
@@ -349,7 +348,7 @@ impl CodeEditor {
             }
 
             if idx_to_remove.is_some() {
-                self.close_tab(idx_to_remove.unwrap());
+                self.close_tab(idx_to_remove.unwrap(), ctx);
             }
         });
     }

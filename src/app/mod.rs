@@ -58,6 +58,7 @@ pub struct Warnings {
     pub display_unnamed_project_warning: bool,
     pub display_git_warning: bool,
     pub display_invalid_name_warning: bool,
+    pub display_unsaved_warning: bool,
 }
 
 // The current git state
@@ -122,6 +123,7 @@ impl Default for IronCoderApp {
                 display_unnamed_project_warning: false,
                 display_git_warning: false,
                 display_invalid_name_warning: false,
+                display_unsaved_warning: false,
             },
             git_things: Git {
                 display: false,
@@ -258,6 +260,7 @@ impl IronCoderApp {
                             match project.open() {
                                 Ok(_) => {
                                     *mode = Mode::DevelopProject;
+                                    ui.close_menu();
                                 },
                                 Err(e) => {
                                     error!("error opening project: {:?}", e);
@@ -590,6 +593,18 @@ impl IronCoderApp {
         });
     }
 
+    // Displays the warning that there are unsaved changes to the file being closed.
+    pub fn display_unsaved_warning(ctx: &egui::Context, mut open: bool) {
+        egui::Window::new("Unsaved Changes Warning")
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(false)
+        .movable(true)
+        .show(ctx,  |ui| {
+            ui.label("Please save your changes before closing.");
+        });
+    }
+
     /// Displays the git changes window
     // Is called by the toolbar when the user clicks the commit button
     pub fn display_git_window(&mut self, ctx: &egui::Context) {
@@ -802,7 +817,7 @@ impl eframe::App for IronCoderApp {
         if ctx.input_mut(|i| i.consume_shortcut(&close_tab_shortcut)) {
             let curr_tab = self.project.code_editor.get_active_tab();
             if curr_tab.is_some() {
-                self.project.code_editor.close_tab(curr_tab.unwrap());
+                self.project.code_editor.close_tab(curr_tab.unwrap(), ctx);
             }
         }
 

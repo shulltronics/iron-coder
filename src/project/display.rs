@@ -643,8 +643,12 @@ impl Project {
                 if !self.has_main_board() {
                     warning_flags.display_mainboard_warning = true;
                 }
-                if  self.name == "" {
+                if self.name == "" {
                     warning_flags.display_unnamed_project_warning = true;
+                }
+                if self.name.contains(char::is_whitespace) {
+                    warning_flags.display_invalid_name_warning = true;
+                    println!("Invalid name!");
                 }
             }
         }

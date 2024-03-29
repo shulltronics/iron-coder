@@ -25,6 +25,7 @@ use std::io::{Read, Write, Seek};
 
 use std::sync::Arc;
 use crate::app::icons::IconSet;
+
 // use crate::app::colorscheme::ColorScheme;
 
 /// This module contains functionality for the code editor.
@@ -93,6 +94,7 @@ pub struct CodeEditor {
     ps: SyntaxSet,
     ts: ThemeSet,
     // cs: ColorScheme,
+    close: bool,
 }
 
 impl fmt::Debug for CodeEditor {
@@ -111,6 +113,7 @@ impl Default for CodeEditor {
             ps: SyntaxSet::load_defaults_newlines(),
             ts: ThemeSet::load_defaults(),
             // cs: ColorScheme::default(),
+            close : false,
         }
     }
 }
@@ -271,7 +274,12 @@ impl CodeEditor {
         if self.tabs.len() == 0 {
             return;
         }
-
+        if !self.tabs[i].synced {
+            //IronCoderApp::display_unsaved_project_warning(&mut self, ctx);
+            self.close = true;
+            println!("Save changes before exiting!");
+            return;
+        }
         let _ = self.tabs.remove(i);
         let mut at = i;
 
@@ -322,6 +330,16 @@ impl CodeEditor {
                 }
                 if !self.tabs[i].synced {
                     text = text.color(egui::Color32::RED);
+                    if self.close == true {
+                        egui::Window::new("Unsaved Warning")
+                        .open(&mut self.close)
+                        .collapsible(false)
+                        .resizable(false)
+                        .movable(true)
+                        .show(ctx, |ui| {
+                            ui.label("Please save changes before closing tab.")
+                        });
+                    }
                 }
                 let label = Label::new(text).sense(Sense::click());
                 if ui.add(label).clicked() {

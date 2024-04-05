@@ -75,6 +75,12 @@ pub struct Git {
     pub repo : Option<git2::Repository>,
 }
 
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct Settings {
+    pub colorscheme: ColorScheme,
+    pub ui_scale: f32,
+}
+
 /// The current GUI mode
 #[non_exhaustive]
 #[derive(serde::Deserialize, serde::Serialize, PartialEq)]
@@ -94,13 +100,13 @@ pub struct IronCoderApp {
     // #[serde(skip)]
     // modal: Option<Modal>,
     mode: Mode,
-    colorscheme: ColorScheme,
     #[serde(skip)]
     boards: Vec<board::Board>,
     options: IronCoderOptions,
 
     warning_flags: Warnings,
     git_things: Git,
+    settings: Settings,
 }
 
 impl Default for IronCoderApp {
@@ -116,7 +122,6 @@ impl Default for IronCoderApp {
             // modal: None,
             mode: Mode::EditProject,
             boards: boards,
-            colorscheme: colorscheme::INDUSTRIAL_DARK,
             options: IronCoderOptions::default(),
             // Warning Flags
             warning_flags: Warnings {
@@ -133,6 +138,10 @@ impl Default for IronCoderApp {
                 commit_message: String::new(),
                 repo: None,
             },
+            settings: Settings {
+                colorscheme: colorscheme::INDUSTRIAL_DARK,
+                ui_scale: 1.0,
+            },
         }
     }
 }
@@ -146,7 +155,7 @@ impl IronCoderApp {
         install_image_loaders(&cc.egui_ctx);
         // Load previous app state if it exists and is specified.
         let mut app = IronCoderApp::default();
-        if options.persistence {
+        if !options.persistence {
             if let Some(storage) = cc.storage {
                 info!("loading former app state from storage...");
                 app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
@@ -167,7 +176,7 @@ impl IronCoderApp {
 
     /// Set the colorscheme for the app
     fn set_colorscheme(&self, ctx: &egui::Context) {
-        colorscheme::set_colorscheme(ctx, self.colorscheme.clone());
+        colorscheme::set_colorscheme(ctx, self.settings.colorscheme.clone());
     }
 
     /// Show the menu and app title
@@ -335,7 +344,10 @@ impl IronCoderApp {
     pub fn display_settings_window(&mut self, ctx: &egui::Context) {
         let Self {
             display_settings,
-            colorscheme,
+            settings: Settings{ 
+                colorscheme, 
+                ui_scale,
+            },
             ..
         } = self;
 
@@ -348,7 +360,7 @@ impl IronCoderApp {
             .show(ctx, |ui| {
 
                 // Store the text edit string representing the ui scale
-                ui.heading("Font Size:");
+                ui.heading("Display Scale:");
                 let id = egui::Id::new("ui_scale_string");
                 let current_scale = ctx.pixels_per_point();
                 let mut ui_scale_string: String = ctx.data_mut(|data| {
@@ -358,13 +370,14 @@ impl IronCoderApp {
                 ctx.data_mut(|data| data.insert_temp(id, ui_scale_string.clone()));
                 // if the string is parsable into f32, update the global scale
                 if ui.button("Apply").clicked() {
+                    let native_pixels_per_point = ctx.native_pixels_per_point().unwrap();
                     match ui_scale_string.parse::<f32>() {
-                        Ok(scale) if scale >=0.7 && scale <=2.5 => {
+                        Ok(scale) if scale >= (0.5 * native_pixels_per_point) && scale <= (2.0 * native_pixels_per_point) => {
                             ctx.set_pixels_per_point(scale);
                             info!("native pixels per point: {:?}", ctx.native_pixels_per_point());
                         }
                         Ok(_scale) => {
-                            warn!("scale can't be below 0.7!");
+                            warn!("scale can't be below {} or above {}!", (0.5 * native_pixels_per_point), (2.0 * native_pixels_per_point));
                         },
                         Err(_e) => {
                             warn!("scale not parsed as f32.");
@@ -669,7 +682,7 @@ impl eframe::App for IronCoderApp {
 
     // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        if self.options.persistence {
+        if !self.options.persistence {
             info!("saving program state.");
             eframe::set_value(storage, eframe::APP_KEY, self);
         }

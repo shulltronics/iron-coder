@@ -75,6 +75,12 @@ pub struct Git {
     pub repo : Option<git2::Repository>,
 }
 
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct Settings {
+    pub colorscheme: ColorScheme,
+    pub ui_scale: f32,
+}
+
 /// The current GUI mode
 #[non_exhaustive]
 #[derive(serde::Deserialize, serde::Serialize, PartialEq)]
@@ -94,13 +100,13 @@ pub struct IronCoderApp {
     // #[serde(skip)]
     // modal: Option<Modal>,
     mode: Mode,
-    colorscheme: ColorScheme,
     #[serde(skip)]
     boards: Vec<board::Board>,
     options: IronCoderOptions,
 
     warning_flags: Warnings,
     git_things: Git,
+    settings: Settings,
 }
 
 impl Default for IronCoderApp {
@@ -116,7 +122,6 @@ impl Default for IronCoderApp {
             // modal: None,
             mode: Mode::EditProject,
             boards: boards,
-            colorscheme: colorscheme::INDUSTRIAL_DARK,
             options: IronCoderOptions::default(),
             // Warning Flags
             warning_flags: Warnings {
@@ -133,6 +138,10 @@ impl Default for IronCoderApp {
                 commit_message: String::new(),
                 repo: None,
             },
+            settings: Settings {
+                colorscheme: colorscheme::INDUSTRIAL_DARK,
+                ui_scale: 1.0,
+            },
         }
     }
 }
@@ -146,7 +155,7 @@ impl IronCoderApp {
         install_image_loaders(&cc.egui_ctx);
         // Load previous app state if it exists and is specified.
         let mut app = IronCoderApp::default();
-        if options.persistence {
+        if !options.persistence {
             if let Some(storage) = cc.storage {
                 info!("loading former app state from storage...");
                 app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
@@ -167,7 +176,7 @@ impl IronCoderApp {
 
     /// Set the colorscheme for the app
     fn set_colorscheme(&self, ctx: &egui::Context) {
-        colorscheme::set_colorscheme(ctx, self.colorscheme.clone());
+        colorscheme::set_colorscheme(ctx, self.settings.colorscheme.clone());
     }
 
     /// Show the menu and app title
@@ -335,7 +344,10 @@ impl IronCoderApp {
     pub fn display_settings_window(&mut self, ctx: &egui::Context) {
         let Self {
             display_settings,
-            colorscheme,
+            settings: Settings{ 
+                colorscheme, 
+                ui_scale,
+            },
             ..
         } = self;
 
@@ -535,7 +547,7 @@ impl IronCoderApp {
             let mut index = repo.index().unwrap();
 
             egui::SidePanel::right("Unstaged Changes").show_inside(ui, |ui| {
-                ui.label("Staged Changes -- Currently doesn't work");
+                ui.label("Staged Changes");
                 ui.separator();
                 ui.vertical(|ui| {
                     for (_i, change) in self.git_things.staged_changes.iter().enumerate() {
@@ -589,12 +601,13 @@ impl IronCoderApp {
                 ui.label("Email Address");
                 ui.text_edit_singleline(&mut self.git_things.commit_email);
 
-                let name = self.git_things.commit_name.clone();
-                let email = self.git_things.commit_email.clone();
-                let commit_message = self.git_things.commit_message.clone();
+                
 
                 // Have a button to commit the changes
                 if ui.button("Commit").clicked() {
+                    let name = self.git_things.commit_name.clone();
+                    let email = self.git_things.commit_email.clone();
+                    let commit_message = self.git_things.commit_message.clone();
                     if name != "" && email != "" && commit_message != "" {
                         info!("committing changes to git...");
                         info!("{}", self.git_things.commit_message.clone());
@@ -643,8 +656,6 @@ impl IronCoderApp {
 
                         self.git_things.display = false;
                         self.git_things.commit_message.clear();
-                        self.git_things.commit_name.clear();
-                        self.git_things.commit_email.clear();
                     } else {
                         self.warning_flags.display_git_warning = true;
                     }
@@ -656,8 +667,6 @@ impl IronCoderApp {
         if self.git_things.display == false || display_git == false {
             self.git_things.display = false;
             self.git_things.commit_message.clear();
-            self.git_things.commit_name.clear();
-            self.git_things.commit_email.clear();
             self.git_things.changes.clear();
             self.git_things.staged_changes.clear();
         }
@@ -670,7 +679,7 @@ impl eframe::App for IronCoderApp {
 
     // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        if self.options.persistence {
+        if !self.options.persistence {
             info!("saving program state.");
             eframe::set_value(storage, eframe::APP_KEY, self);
         }

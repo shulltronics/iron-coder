@@ -547,7 +547,7 @@ impl IronCoderApp {
             let mut index = repo.index().unwrap();
 
             egui::SidePanel::right("Unstaged Changes").show_inside(ui, |ui| {
-                ui.label("Staged Changes -- Currently doesn't work");
+                ui.label("Staged Changes");
                 ui.separator();
                 ui.vertical(|ui| {
                     for (_i, change) in self.git_things.staged_changes.iter().enumerate() {
@@ -601,12 +601,13 @@ impl IronCoderApp {
                 ui.label("Email Address");
                 ui.text_edit_singleline(&mut self.git_things.commit_email);
 
-                let name = self.git_things.commit_name.clone();
-                let email = self.git_things.commit_email.clone();
-                let commit_message = self.git_things.commit_message.clone();
+                
 
                 // Have a button to commit the changes
                 if ui.button("Commit").clicked() {
+                    let name = self.git_things.commit_name.clone();
+                    let email = self.git_things.commit_email.clone();
+                    let commit_message = self.git_things.commit_message.clone();
                     if name != "" && email != "" && commit_message != "" {
                         info!("committing changes to git...");
                         info!("{}", self.git_things.commit_message.clone());
@@ -655,8 +656,6 @@ impl IronCoderApp {
 
                         self.git_things.display = false;
                         self.git_things.commit_message.clear();
-                        self.git_things.commit_name.clear();
-                        self.git_things.commit_email.clear();
                     } else {
                         self.warning_flags.display_git_warning = true;
                     }
@@ -668,8 +667,6 @@ impl IronCoderApp {
         if self.git_things.display == false || display_git == false {
             self.git_things.display = false;
             self.git_things.commit_message.clear();
-            self.git_things.commit_name.clear();
-            self.git_things.commit_email.clear();
             self.git_things.changes.clear();
             self.git_things.staged_changes.clear();
         }

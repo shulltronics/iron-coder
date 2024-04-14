@@ -4,7 +4,6 @@
 
 use log::{info, warn};
 
-use std::vec::Vec;
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;

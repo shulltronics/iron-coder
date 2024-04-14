@@ -9,14 +9,7 @@ use log::{error, warn, info};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use clap::Parser;
-use egui::{
-    RichText,
-    Label,
-    Color32,
-    Key,
-    Modifiers,
-    KeyboardShortcut
-};
+use egui::{Vec2, RichText, Label, Color32, Key, Modifiers, KeyboardShortcut, Ui};
 use::egui_extras::install_image_loaders;
 use fs_extra::dir::DirEntryAttr::Modified;
 use toml::macros::insert_toml;
@@ -312,7 +305,7 @@ impl IronCoderApp {
         });
 
         egui::Area::new("editor area").show(ctx, |_ui| {
-            egui::TopBottomPanel::bottom("terminal_panel").resizable(true).show(ctx, |ui| {
+            egui::TopBottomPanel::bottom("terminal_panel").resizable(true).max_height(_ui.available_height()*0.75).show(ctx, |ui| {
                 project.display_terminal(ctx, ui);
             });
             egui::TopBottomPanel::bottom("editor_control_panel").show(ctx, |ui| {
@@ -712,6 +705,7 @@ impl eframe::App for IronCoderApp {
         let quit_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::Q);
         let open_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::O);
         let new_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::N);
+        let close_tab_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::W);
 
         if ctx.input_mut(|i| i.consume_shortcut(&save_shortcut)) {
             if let Err(e) = self.project.save() {
@@ -745,6 +739,13 @@ impl eframe::App for IronCoderApp {
                     self.project.known_boards = self.boards.clone();
                     self.mode = Mode::EditProject;
                 },
+            }
+        }
+
+        if ctx.input_mut(|i| i.consume_shortcut(&close_tab_shortcut)) {
+            let curr_tab = self.project.code_editor.get_active_tab();
+            if curr_tab.is_some() {
+                self.project.code_editor.close_tab(curr_tab.unwrap());
             }
         }
 

@@ -66,23 +66,6 @@ pub struct Project {
     repo: Option<Repository>,
 }
 
-fn cli_cmd(str: &str) {
-    let output = if cfg!(target_os = "windows") {
-        Command::new("powershell")
-            .args(["/C", &str])
-            .output()
-            .expect("failed to execute process")
-    } else {
-        Command::new("sh")
-            .arg("-c")
-            .arg("echo hello")
-            .output()
-            .expect("failed to execute process")
-    };
-    let str = String::from_utf8(output.stdout).expect("Returned output");
-    print!("{}", str);
-}
-
 // backend functionality for Project struct
 impl Project {
     // Helper function for printing both to logs and to built-in terminal
@@ -388,7 +371,7 @@ impl Project {
         // Create a repo to store code
         self.repo = match Repository::init(self.get_location()) {
             Ok(repo) => Some(repo),
-            Err(e) => panic!("Failed to init: {}", e),
+            Err(e) => return Err(ProjectIOError::NoProjectDirectory),
         };
 
         Ok(())

@@ -201,7 +201,8 @@ impl Project {
                 // Check if there are any changes or new files and save them in a vector
                 let mut changes: Vec<String> = Vec::new();
                 for entry in repo_statuses.unwrap().iter() {
-                    if entry.status().contains(git2::Status::WT_NEW) || entry.status().contains(git2::Status::WT_MODIFIED){
+                    if entry.status().contains(git2::Status::WT_NEW) || entry.status().contains(git2::Status::WT_MODIFIED)
+                    || entry.status().contains(git2::Status::INDEX_MODIFIED){
                         changes.push(entry.path().unwrap().to_string());
                     }
                 }
@@ -212,11 +213,12 @@ impl Project {
                     info!("{}", change);
                 }
 
+                let mut index = repo.index().unwrap();
                 for change in changes.iter() {
-                    let mut index = repo.index().unwrap();
-                    index.remove_all([change.clone()].iter(), None).unwrap();
-                    index.write().unwrap();
+                    info!("Removing {} from the index", change);
+                    index.remove_all([change.clone()].iter(), None).unwrap();   
                 }
+                index.write().unwrap();
 
                 // Open a window to choose the changes to commit
                 git_things.display = true;

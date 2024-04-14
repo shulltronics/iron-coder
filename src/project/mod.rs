@@ -9,10 +9,7 @@ use std::io;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use std::vec::Vec;
-
 use rfd::FileDialog;
-use toml;
 
 use serde::{Serialize, Deserialize};
 

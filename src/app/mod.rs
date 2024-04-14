@@ -8,10 +8,6 @@ use log::{error, warn, info};
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::fs::File;
-use std::io::Write;
-use std::io::Read;
-use std::string::String;
 use clap::Parser;
 use egui::{Vec2, RichText, Label, Color32, Key, Modifiers, KeyboardShortcut, Ui};
 use::egui_extras::install_image_loaders;
@@ -73,6 +69,12 @@ pub struct Git {
     pub repo : Option<git2::Repository>,
 }
 
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct Settings {
+    pub colorscheme: ColorScheme,
+    pub ui_scale: f32,
+}
+
 /// The current GUI mode
 #[non_exhaustive]
 #[derive(serde::Deserialize, serde::Serialize, PartialEq)]
@@ -92,13 +94,13 @@ pub struct IronCoderApp {
     // #[serde(skip)]
     // modal: Option<Modal>,
     mode: Mode,
-    colorscheme: ColorScheme,
     #[serde(skip)]
     boards: Vec<board::Board>,
     options: IronCoderOptions,
 
     warning_flags: Warnings,
     git_things: Git,
+    settings: Settings,
 }
 
 impl Default for IronCoderApp {
@@ -114,7 +116,6 @@ impl Default for IronCoderApp {
             // modal: None,
             mode: Mode::EditProject,
             boards: boards,
-            colorscheme: colorscheme::INDUSTRIAL_DARK,
             options: IronCoderOptions::default(),
             // Warning Flags
             warning_flags: Warnings {
@@ -132,6 +133,10 @@ impl Default for IronCoderApp {
                 commit_message: String::new(),
                 repo: None,
             },
+            settings: Settings {
+                colorscheme: colorscheme::INDUSTRIAL_DARK,
+                ui_scale: 1.0,
+            },
         }
     }
 }
@@ -145,7 +150,7 @@ impl IronCoderApp {
         install_image_loaders(&cc.egui_ctx);
         // Load previous app state if it exists and is specified.
         let mut app = IronCoderApp::default();
-        if options.persistence {
+        if !options.persistence {
             if let Some(storage) = cc.storage {
                 info!("loading former app state from storage...");
                 app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
@@ -166,7 +171,7 @@ impl IronCoderApp {
 
     /// Set the colorscheme for the app
     fn set_colorscheme(&self, ctx: &egui::Context) {
-        colorscheme::set_colorscheme(ctx, self.colorscheme.clone());
+        colorscheme::set_colorscheme(ctx, self.settings.colorscheme.clone());
     }
 
     /// Show the menu and app title
@@ -334,7 +339,10 @@ impl IronCoderApp {
     pub fn display_settings_window(&mut self, ctx: &egui::Context) {
         let Self {
             display_settings,
-            colorscheme,
+            settings: Settings{ 
+                colorscheme, 
+                ui_scale,
+            },
             ..
         } = self;
 
@@ -536,123 +544,137 @@ impl IronCoderApp {
 
         egui::Window::new("Commit")
         .open(&mut display_git)
-            .collapsible(false)
-            .resizable(true)
-            .movable(true)
-            .show(ctx, |ui| {
-                let repo = self.git_things.repo.as_mut().unwrap();
-                let mut index = repo.index().unwrap();
+        .collapsible(false)
+        .resizable(true)
+        .movable(true)
+        .show(ctx, |ui| {
+            let repo = self.git_things.repo.as_mut().unwrap();
+            let mut index = repo.index().unwrap();
 
-                egui::SidePanel::right("Unstaged Changes").show_inside(ui, |ui| {
-                    ui.label("Staged Changes -- Currently doesn't work");
-                    ui.separator();
-                    ui.vertical(|ui| {
-                        for (_i, change) in self.git_things.staged_changes.iter().enumerate() {
-                            if ui.button(change.clone()).clicked() {
-                                info!("Unstaging: {}", change.clone());
-                                unstaged_to_add.push(change.clone());
-                                staged_to_remove.push(change.clone());
-                                index.remove_all([change.clone()].iter(), None).unwrap();
-                                index.write().unwrap();
-                            }
+            egui::SidePanel::right("Unstaged Changes").show_inside(ui, |ui| {
+                ui.label("Staged Changes");
+                ui.separator();
+                ui.vertical(|ui| {
+                    for (_i, change) in self.git_things.staged_changes.iter().enumerate() {
+                        if ui.button(change.clone()).clicked() {
+                            info!("Unstaging: {}", change.clone());
+                            unstaged_to_add.push(change.clone());
+                            staged_to_remove.push(change.clone());
+                            index.remove_all([change.clone()].iter(), None).unwrap();
+                            index.write().unwrap();
                         }
-                        self.git_things.staged_changes.retain(|change| !staged_to_remove.contains(change));
-                    });
-                    ui.separator();
-                    ui.label("Unstaged Changes");
-                    // Display the files that have changed on the right side
-                    ui.separator();
-                    ui.vertical(|ui| {
-                        // Create a button for each unstaged change in git_things.changes
-                        for (_i, change) in self.git_things.changes.iter().enumerate() {
-                            if ui.button(change.clone()).clicked() {
-                                info!("Staging: {}", change.clone());
-                                staged_to_add.push(change.clone());
-                                unstaged_to_remove.push(change.clone());
-                                //index.add_path(Path::new(change)).unwrap();
-                                match index.add_path(Path::new(change)) {
-                                    Ok(_) => {
-                                        // add_path succeeded, do nothing
-                                    },
-                                    Err(_) => {
-                                        // add_path failed, try add_all
-                                        index.add_all([change.clone()].iter(), git2::IndexAddOption::DEFAULT, None).unwrap();
-                                    }
-                                }
-                                index.write().unwrap();
-                            }
-                        }
-                        self.git_things.changes.retain(|change| !unstaged_to_remove.contains(change));
-                    });
+                    }
+                    self.git_things.staged_changes.retain(|change| !staged_to_remove.contains(change));
                 });
-                self.git_things.staged_changes.append(&mut staged_to_add);
-                self.git_things.changes.append(&mut unstaged_to_add);
+                ui.separator();
+                ui.label("Unstaged Changes");
+                // Display the files that have changed on the right side
+                ui.separator();
+                ui.vertical(|ui| {
+                    // Create a button for each unstaged change in git_things.changes
+                    for (_i, change) in self.git_things.changes.iter().enumerate() {
+                        if ui.button(change.clone()).clicked() {
+                            info!("Staging: {}", change.clone());
+                            staged_to_add.push(change.clone());
+                            unstaged_to_remove.push(change.clone());
+                            //index.add_path(Path::new(change)).unwrap();
+                            match index.add_path(Path::new(change)) {
+                                Ok(_) => {
+                                    // add_path succeeded, do nothing
+                                },
+                                Err(_) => {
+                                    // add_path failed, try add_all
+                                    index.add_all([change.clone()].iter(), git2::IndexAddOption::DEFAULT, None).unwrap();
+                                }
+                            }
+                            index.write().unwrap();
+                        }
+                    }
+                    self.git_things.changes.retain(|change| !unstaged_to_remove.contains(change));
+                });
+            });
+            self.git_things.staged_changes.append(&mut staged_to_add);
+            self.git_things.changes.append(&mut unstaged_to_add);
 
-                egui::CentralPanel::default().show_inside(ui, |ui|{
-                    // Have a text box for the commit message
-                    // Have the text box take as much space as possible
-                    ui.label("Commit Message:");
-                    ui.text_edit_multiline(&mut self.git_things.commit_message);
-                    ui.label("Name");
-                    ui.text_edit_singleline(&mut self.git_things.commit_name);
-                    ui.label("Email Address");
-                    ui.text_edit_singleline(&mut self.git_things.commit_email);
+            egui::CentralPanel::default().show_inside(ui, |ui|{
+                // Have a text box for the commit message
+                // Have the text box take as much space as possible
+                ui.label("Commit Message:");
+                ui.text_edit_multiline(&mut self.git_things.commit_message);
+                ui.label("Name");
+                ui.text_edit_singleline(&mut self.git_things.commit_name);
+                ui.label("Email Address");
+                ui.text_edit_singleline(&mut self.git_things.commit_email);
 
+                
+
+                // Have a button to commit the changes
+                if ui.button("Commit").clicked() {
                     let name = self.git_things.commit_name.clone();
                     let email = self.git_things.commit_email.clone();
                     let commit_message = self.git_things.commit_message.clone();
+                    if name != "" && email != "" && commit_message != "" {
+                        info!("committing changes to git...");
+                        info!("{}", self.git_things.commit_message.clone());
 
-                    // Have a button to commit the changes
-                    if ui.button("Commit").clicked() {
-                        if name != "" && email != "" && commit_message != "" {
-                            info!("committing changes to git...");
-                            info!("{}", self.git_things.commit_message.clone());
-
-                            let signature = git2::Signature::now(&name, &email).unwrap();
-                            let oid = index.write_tree().unwrap();
-                            let tree = repo.find_tree(oid).unwrap();
-                            let head = repo.head().unwrap();
-                            let head_commit = repo.find_commit(head.target().unwrap()).unwrap();
-
-
-                            match repo.commit(
-                                // There is a problem with the head
-                                Some("HEAD"),
-                                &signature,
-                                &signature,
-                                &commit_message,
-                                &tree,
-                                &[&head_commit]
-                            ) {
-                                Ok(_) => {
-                                    info!("commit successful!");
-                                },
-                                Err(e) => {
-                                    error!("error committing changes to git: {:?}", e);
+                        let signature = git2::Signature::now(&name, &email).unwrap();
+                        let oid = index.write_tree().unwrap();
+                        let tree = repo.find_tree(oid).unwrap();
+                        // This line is the problem -- was called while doing initial commit, it shouldn't have been
+                        let head = repo.head().unwrap();
+                        let head_commit = repo.find_commit(head.target().unwrap()).unwrap();
+                        
+                        match repo.commit(
+                            // There is a problem with the head
+                            Some("HEAD"),
+                            &signature,
+                            &signature,
+                            &commit_message,
+                            &tree,
+                            &[]
+                        ) {
+                            Ok(_) => {
+                                info!("commit successful!");
+                            },
+                            Err(e) => {
+                                error!("error committing changes to git: {:?}", e);
+                                match repo.commit(
+                                    // There is a problem with the head
+                                    Some("HEAD"),
+                                    &signature,
+                                    &signature,
+                                    &commit_message,
+                                    &tree,
+                                    &[&head_commit]
+                                ) {
+                                    Ok(_) => {
+                                        info!("commit successful!");
+                                    },
+                                    Err(e) => {
+                                        error!("error committing changes to git: {:?}", e);
+                                    }
                                 }
                             }
-
-                            self.git_things.display = false;
-                            self.git_things.commit_message.clear();
-                            self.git_things.commit_name.clear();
-                            self.git_things.commit_email.clear();
-                        } else {
-                            self.warning_flags.display_git_warning = true;
                         }
-                    }
-                });
-            });
+                        
+                        
 
-            // Makes sure that both commit button and x button close the window
-            if self.git_things.display == false || display_git == false {
-                self.git_things.display = false;
-                display_git = false;
-                self.git_things.commit_message.clear();
-                self.git_things.commit_name.clear();
-                self.git_things.commit_email.clear();
-                self.git_things.changes.clear();
-                self.git_things.staged_changes.clear();
-            }
+                        self.git_things.display = false;
+                        self.git_things.commit_message.clear();
+                    } else {
+                        self.warning_flags.display_git_warning = true;
+                    }
+                }
+            });
+        });
+
+        // Makes sure that both commit button and x button close the window
+        if self.git_things.display == false || display_git == false {
+            self.git_things.display = false;
+            self.git_things.commit_message.clear();
+            self.git_things.changes.clear();
+            self.git_things.staged_changes.clear();
+        }
 
 
     }
@@ -662,7 +684,7 @@ impl eframe::App for IronCoderApp {
 
     // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        if self.options.persistence {
+        if !self.options.persistence {
             info!("saving program state.");
             eframe::set_value(storage, eframe::APP_KEY, self);
         }

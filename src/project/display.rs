@@ -4,7 +4,7 @@
 //! helper functions for drawing connections between pins on
 //! the system editor.
 
-use egui::Response;
+use egui::{Key, Response};
 use egui_extras::RetainedImage;
 use log::{info, warn};
 use std::collections::HashMap;
@@ -72,26 +72,27 @@ impl Project {
 
     /// show the terminal pane
     pub fn display_terminal(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
+        let send_string = "";
+
         // If there is an open channel, see if we can get some data from it
         if let Some(rx) = &self.receiver {
             while let Ok(s) = rx.try_recv() {
                 self.terminal_buffer += s.as_str();
             }
         }
+
         egui::CollapsingHeader::new("Terminal").show(ui, |ui| {
             egui::ScrollArea::both()
             .auto_shrink([false; 2])
             .stick_to_bottom(true)
             .show(ui, |ui| {
-                if ui.add(
+                ui.add(
                     egui::TextEdit::multiline(&mut self.terminal_buffer)
                     .code_editor()
                     .interactive(false)
                     .desired_width(f32::INFINITY)
                     .frame(false)
-                ).clicked() {
-                    self.terminal_buffer.clear();
-                }
+                )
             });
         });
     }

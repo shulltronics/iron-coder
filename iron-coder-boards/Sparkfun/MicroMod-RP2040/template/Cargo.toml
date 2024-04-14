@@ -1,0 +1,16 @@
+[package]
+name = "micromod-rp2040-blink"
+version = "0.2.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+panic-halt              = "0.2.0"
+cortex-m                = "0.7.7"
+cortex-m-rt             = "0.7.3"
+embedded-hal            = "1.0.0"
+sparkfun-micromod-rp2040 = "0.3.0"
+usbd-serial             = "0.2.1"
+usb-device              = "0.3.2"
+critical-section        = "1.1.2"

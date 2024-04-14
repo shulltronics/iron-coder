@@ -57,6 +57,7 @@ pub struct Warnings {
     pub display_mainboard_warning: bool,
     pub display_unnamed_project_warning: bool,
     pub display_git_warning: bool,
+    pub display_unsaved_tab_warning: bool
 }
 
 // The current git state
@@ -120,6 +121,7 @@ impl Default for IronCoderApp {
                 display_mainboard_warning: false,
                 display_unnamed_project_warning: false,
                 display_git_warning: false,
+                display_unsaved_tab_warning: false
             },
             git_things: Git {
                 display: false,
@@ -307,7 +309,7 @@ impl IronCoderApp {
                 project.display_project_toolbar(ctx, ui, &mut self.git_things);
             });
             egui::TopBottomPanel::top("editor_tabs").show(ctx, |ui| {
-                project.code_editor.display_editor_tabs(ctx, ui);
+                project.code_editor.display_editor_tabs(ctx, ui, &mut self.warning_flags);
             });
             let frame = egui::Frame::canvas(&ctx.style());
             egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
@@ -512,6 +514,16 @@ impl IronCoderApp {
         });
     }
 
+    pub fn display_unsaved_tab_warning(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Warning: Unsaved Work!")
+            .open(&mut self.warning_flags.display_unsaved_tab_warning)
+            .collapsible(false)
+            .resizable(false)
+            .movable(true)
+            .show(ctx,  |ui| {
+                ui.label("please save your changes before closing.");
+            });
+    }
     /// Displays the git changes window
     // Is called by the toolbar when the user clicks the commit button
     pub fn display_git_window(&mut self, ctx: &egui::Context) {
@@ -723,12 +735,13 @@ impl eframe::App for IronCoderApp {
         if ctx.input_mut(|i| i.consume_shortcut(&close_tab_shortcut)) {
             let curr_tab = self.project.code_editor.get_active_tab();
             if curr_tab.is_some() {
-                self.project.code_editor.close_tab(curr_tab.unwrap());
+                self.project.code_editor.close_tab(curr_tab.unwrap(), &mut self.warning_flags);
             }
         }
 
         self.display_git_window(ctx);
         self.display_git_warning(ctx);
+        self.display_unsaved_tab_warning(ctx);
     }
 }
 

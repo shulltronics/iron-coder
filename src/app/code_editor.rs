@@ -25,6 +25,7 @@ use std::io::{Read, Write, Seek};
 
 use std::sync::Arc;
 use crate::app::icons::IconSet;
+use crate::app::Warnings;
 // use crate::app::colorscheme::ColorScheme;
 
 /// This module contains functionality for the code editor.
@@ -267,8 +268,13 @@ impl CodeEditor {
     pub fn get_active_tab(&self) -> Option<usize> {
         return self.active_tab;
     }
-    pub fn close_tab(&mut self, i: usize) {
+    pub fn close_tab(&mut self, i: usize, warnings: &mut Warnings) {
         if self.tabs.len() == 0 {
+            return;
+        }
+
+        if !self.tabs[i].synced {
+            warnings.display_unnamed_project_warning = true;
             return;
         }
 
@@ -292,7 +298,7 @@ impl CodeEditor {
             }
         }
     }
-    pub fn display_editor_tabs(&mut self, ctx: &egui::Context, ui: &mut Ui) {
+    pub fn display_editor_tabs(&mut self, ctx: &egui::Context, ui: &mut Ui, warnings: &mut Warnings) {
         let icons_ref: Arc<IconSet> = ctx.data_mut(|data| {
             data.get_temp("icons".into()).expect("error loading shared icon map!")
         });
@@ -331,7 +337,7 @@ impl CodeEditor {
             }
 
             if idx_to_remove.is_some() {
-                self.close_tab(idx_to_remove.unwrap());
+                self.close_tab(idx_to_remove.unwrap(), warnings);
             }
         });
     }

@@ -1,0 +1,22 @@
+
+name = "MicroMod RP2040"
+manufacturer = "Sparkfun"
+is_main_board = true
+standard = "MicroMod"
+cpu = "Cortex-M0"
+ram = 264
+flash = 8000
+required_crates = ["sparkfun_micromod_rp2040", "embedded-hal", "embedded-time", "cortex-m-rt", "cortex-m", "panic-halt"]
+
+# Each element of the Pinout Vec should be prefaced with [[pinout]]
+[[pinout]]
+pins = ["rx", "tx"]
+interface = { iface_type = "UART", direction = "Bidirectional" }
+
+[[pinout]]
+pins = ["scl", "sda"]
+interface = { iface_type = "I2C", direction = "Output" }
+
+[[pinout]]
+pins = ["mosi", "miso", "sclk"]
+interface = { iface_type = "SPI", direction = "Output" }

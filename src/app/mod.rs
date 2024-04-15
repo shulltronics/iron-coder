@@ -53,6 +53,7 @@ pub struct Warnings {
     pub display_mainboard_warning: bool,
     pub display_unnamed_project_warning: bool,
     pub display_git_warning: bool,
+    pub display_invalid_name_warning: bool,
     pub display_unsaved_tab_warning: bool
 }
 
@@ -121,6 +122,7 @@ impl Default for IronCoderApp {
             warning_flags: Warnings {
                 display_mainboard_warning: false,
                 display_unnamed_project_warning: false,
+                display_invalid_name_warning: false,
                 display_git_warning: false,
                 display_unsaved_tab_warning: false
             },
@@ -229,6 +231,7 @@ impl IronCoderApp {
                             match project.open() {
                                 Ok(_) => {
                                     *mode = Mode::DevelopProject;
+                                    ui.close_menu();
                                 },
                                 Err(e) => {
                                     error!("error opening project: {:?}", e);
@@ -467,7 +470,7 @@ impl IronCoderApp {
                 to provide a fun environment for embedded development."
             );
             ui.separator();
-            ui.label("Developed by Shulltronics");
+            ui.label("Developed by Shulltronics, EpicMealNinja, perezandy, fredward36, aidanpine");
             ui.hyperlink_to("Iron Coder on Github", "https://github.com/shulltronics/iron-coder");
             ui.horizontal(|ui| {
                 egui::warn_if_debug_build(ui);
@@ -506,6 +509,17 @@ impl IronCoderApp {
         .movable(true)
         .show(ctx,  |ui| {
             ui.label("please name the project to proceed.");
+        });
+    }
+    // Displays the warning that the project name is invalid
+    pub fn display_invalid_name_warning(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Invalid name Warning")
+        .open(&mut self.warning_flags.display_invalid_name_warning)
+        .collapsible(false)
+        .resizable(false)
+        .movable(true)
+        .show(ctx,  |ui| {
+            ui.label("Please enter a project name with no whitespace.");
         });
     }
 
@@ -712,6 +726,7 @@ impl eframe::App for IronCoderApp {
         self.display_about_window(ctx);
         self.unselected_mainboard_warning(ctx);
         self.display_unnamed_project_warning(ctx);
+        self.display_invalid_name_warning(ctx);
 
         let save_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::S);
         let quit_shortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::Q);

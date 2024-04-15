@@ -274,7 +274,7 @@ impl CodeEditor {
         }
 
         if !self.tabs[i].synced {
-            warnings.display_unnamed_project_warning = true;
+            warnings.display_unsaved_tab_warning = true;
             return;
         }
 

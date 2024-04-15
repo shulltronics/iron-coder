@@ -623,31 +623,37 @@ impl Project {
         let mut cui = ui.child_ui(top_hud_rect, egui::Layout::right_to_left(egui::Align::Center));
         if cui.add(start_dev_button).clicked() {
             if self.has_main_board() {
-                match self.save() {
-                    Ok(()) => {
-                        ret = Some(Mode::DevelopProject);
-                    },
-                    Err(e) => {
-                        warn!("couldn't save project: {:?}", e);
-                    },
+                if  self.name == "" {
+                    warning_flags.display_unnamed_project_warning = true;
                 }
-                // generate template code on initialization of project
-                info!("generating project template");
-                    match self.generate_cargo_template(ctx) {
+                else if self.name.contains(char::is_whitespace) {
+                    warning_flags.display_invalid_name_warning = true;
+                    println!("Invalid name, remove whitespace!");
+                }
+                else {
+                    match self.save() {
                         Ok(()) => {
-                            info!("generate_cargo_template returned Ok(()).");
+                            ret = Some(Mode::DevelopProject);
                         },
                         Err(e) => {
-                            warn!("generate_cargo_template returned error: {:?}", e);
+                            warn!("couldn't save project: {:?}", e);
                         },
                     }
+                    // generate template code on initialization of project
+                    info!("generating project template");
+                        match self.generate_cargo_template(ctx) {
+                            Ok(()) => {
+                                info!("generate_cargo_template returned Ok(()).");
+                            },
+                            Err(e) => {
+                                warn!("generate_cargo_template returned error: {:?}", e);
+                            },
+                        }
+                }
             }
             else {
                 if !self.has_main_board() {
                     warning_flags.display_mainboard_warning = true;
-                }
-                if  self.name == "" {
-                    warning_flags.display_unnamed_project_warning = true;
                 }
             }
         }

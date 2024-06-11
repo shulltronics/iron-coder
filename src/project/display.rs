@@ -685,14 +685,23 @@ fn draw_connection(ctx: &egui::Context, ui: &mut egui::Ui, src_pos: egui::Pos2, 
 
     let mut connection_stroke = egui::Stroke { width: 3.0, color };
 
+    let mid_x = src_pos.x + (dst_pos.x - src_pos.x) / 2.0;
+    // let mid_y = src_pos.y + (dst_pos.y - src_pos.y) / 2.0;
+    let mid_pos1 = egui::Pos2::new(mid_x, src_pos.y);
+    let mid_pos2 = egui::Pos2::new(mid_x, dst_pos.y);
+
     let control_scale = ((dst_pos.x - src_pos.x) / 2.0).max(30.0);
     let src_control = src_pos + egui::Vec2::X * control_scale;
     let dst_control = dst_pos - egui::Vec2::X * control_scale;
 
-    let mut bezier = egui::epaint::CubicBezierShape::from_points_stroke(
-        [src_pos, src_control, dst_control, dst_pos],
-        false,
-        egui::Color32::TRANSPARENT,
+    // let mut bezier = egui::epaint::CubicBezierShape::from_points_stroke(
+    //     [src_pos, src_control, dst_control, dst_pos],
+    //     false,
+    //     egui::Color32::TRANSPARENT,
+    //     connection_stroke,
+    // );
+    let mut line = egui::epaint::PathShape::line(
+        Vec::from([src_pos, mid_pos1, mid_pos2, dst_pos]),
         connection_stroke,
     );
 
@@ -709,26 +718,31 @@ fn draw_connection(ctx: &egui::Context, ui: &mut egui::Ui, src_pos: egui::Pos2, 
         // if we are hovering over the line.
         const TOL: f32 = 0.01;
         const THRESH: f32 = 15.0;
-        bezier.for_each_flattened_with_t(TOL, &mut |pos, _| {
-            if pos.distance(cursor_pos) < THRESH {
-                response.hovered = true;
-                response.rect = egui::Rect::from_center_size(cursor_pos, egui::Vec2::new(THRESH, THRESH));
+        // bezier.for_each_flattened_with_t(TOL, &mut |pos, _| {
+        //     if pos.distance(cursor_pos) < THRESH {
+        //         response.hovered = true;
+        //         response.rect = egui::Rect::from_center_size(cursor_pos, egui::Vec2::new(THRESH, THRESH));
 
-            }
-        });
+        //     }
+        // });
     }
 
     if response.hovered() {
         connection_stroke.color = connection_stroke.color.gamma_multiply(0.5);
-        bezier = egui::epaint::CubicBezierShape::from_points_stroke(
-            [src_pos, src_control, dst_control, dst_pos],
-            false,
-            egui::Color32::TRANSPARENT,
+        // bezier = egui::epaint::CubicBezierShape::from_points_stroke(
+        //     [src_pos, src_control, dst_control, dst_pos],
+        //     false,
+        //     egui::Color32::TRANSPARENT,
+        //     connection_stroke,
+        // );
+        line = egui::epaint::PathShape::line(
+            Vec::from([src_pos, mid_pos1, mid_pos2, dst_pos]),
             connection_stroke,
         );
     }
 
-    painter.add(bezier);
+    // painter.add(bezier);
+    painter.add(line);
 
     response
 

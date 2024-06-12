@@ -554,6 +554,14 @@ impl Project {
             };
 
             let resp = draw_connection(ctx, ui, start_loc, end_loc, egui::Color32::RED);
+            if resp.clicked() {
+                info!("clicked by {}", connection.end_pin);
+            }
+            resp.context_menu(|ui| {
+                ui.label("connection details");
+                ui.label(format!("start board: {}", connection.start_board.get_name()));
+            });
+
             resp.on_hover_ui(|ui| {
                 ui.label("connection");
                 ui.label(connection.start_board.get_name().to_string() + ":" + connection.start_pin.as_str());
@@ -674,36 +682,37 @@ impl Project {
 
 
 
-/// Modified from egui_node_graph. Given a start and end position, draw a line representing the connection.
-/// Return a response (a bit hacky through egui api), that indicates if the pointer is nearby, i.e. hovering, over the line.
+/// Given a start and end position, draw a line representing the connection.
+/// Return a response that indicates if the pointer is nearby, i.e. hovering, over the line.
+/// Also handles click events.
 fn draw_connection(ctx: &egui::Context, ui: &mut egui::Ui, src_pos: egui::Pos2, dst_pos: egui::Pos2, color: egui::Color32) -> Response {
 
-    let mut response = ui.allocate_rect(egui::Rect::from_points(&[src_pos, dst_pos]), egui::Sense::hover());
+    let mut response = ui.allocate_rect(egui::Rect::from_points(&[src_pos, dst_pos]), egui::Sense::click());
     // these are public fields, but not exposed in egui documentation!
     response.hovered = false;
     response.clicked = [false; 5];
 
-    let mut connection_stroke = egui::Stroke { width: 3.0, color };
+    let mut connection_stroke = egui::Stroke { width: 2.0, color };
 
     let mid_x = src_pos.x + (dst_pos.x - src_pos.x) / 2.0;
     // let mid_y = src_pos.y + (dst_pos.y - src_pos.y) / 2.0;
-    let mid_pos1 = egui::Pos2::new(mid_x, src_pos.y);
-    let mid_pos2 = egui::Pos2::new(mid_x, dst_pos.y);
+    // let mid_pos1 = egui::Pos2::new(mid_x, src_pos.y);
+    // let mid_pos2 = egui::Pos2::new(mid_x, dst_pos.y);
 
     let control_scale = ((dst_pos.x - src_pos.x) / 2.0).max(30.0);
     let src_control = src_pos + egui::Vec2::X * control_scale;
     let dst_control = dst_pos - egui::Vec2::X * control_scale;
 
-    // let mut bezier = egui::epaint::CubicBezierShape::from_points_stroke(
-    //     [src_pos, src_control, dst_control, dst_pos],
-    //     false,
-    //     egui::Color32::TRANSPARENT,
-    //     connection_stroke,
-    // );
-    let mut line = egui::epaint::PathShape::line(
-        Vec::from([src_pos, mid_pos1, mid_pos2, dst_pos]),
+    let mut line = egui::epaint::CubicBezierShape::from_points_stroke(
+        [src_pos, src_control, dst_control, dst_pos],
+        false,
+        egui::Color32::TRANSPARENT,
         connection_stroke,
     );
+    // let mut line = egui::epaint::PathShape::line(
+    //     Vec::from([src_pos, mid_pos1, mid_pos2, dst_pos]),
+    //     connection_stroke,
+    // );
 
     // construct the painter *before* changing the response rectangle. In fact, expand the rect a bit
     // to avoid clipping the curve. This is done so that the layer order can be changed.
@@ -717,28 +726,30 @@ fn draw_connection(ctx: &egui::Context, ui: &mut egui::Ui, src_pos: egui::Pos2, 
         // it was determined experimentally, and used in conjunction with THRESH helps to detect
         // if we are hovering over the line.
         const TOL: f32 = 0.01;
-        const THRESH: f32 = 15.0;
-        // bezier.for_each_flattened_with_t(TOL, &mut |pos, _| {
-        //     if pos.distance(cursor_pos) < THRESH {
-        //         response.hovered = true;
-        //         response.rect = egui::Rect::from_center_size(cursor_pos, egui::Vec2::new(THRESH, THRESH));
-
-        //     }
-        // });
+        const THRESH: f32 = 12.0;
+        line.for_each_flattened_with_t(TOL, &mut |pos, _| {
+            if pos.distance(cursor_pos) < THRESH {
+                response.hovered = true;
+                if ctx.input(|i| i.pointer.primary_clicked()) == true {
+                    response.clicked = [true; 5];
+                }
+                response.rect = egui::Rect::from_center_size(cursor_pos, egui::Vec2::new(THRESH, THRESH));
+            }
+        });
     }
 
     if response.hovered() {
         connection_stroke.color = connection_stroke.color.gamma_multiply(0.5);
-        // bezier = egui::epaint::CubicBezierShape::from_points_stroke(
-        //     [src_pos, src_control, dst_control, dst_pos],
-        //     false,
-        //     egui::Color32::TRANSPARENT,
-        //     connection_stroke,
-        // );
-        line = egui::epaint::PathShape::line(
-            Vec::from([src_pos, mid_pos1, mid_pos2, dst_pos]),
+        line = egui::epaint::CubicBezierShape::from_points_stroke(
+            [src_pos, src_control, dst_control, dst_pos],
+            false,
+            egui::Color32::TRANSPARENT,
             connection_stroke,
         );
+        // line = egui::epaint::PathShape::line(
+        //     Vec::from([src_pos, mid_pos1, mid_pos2, dst_pos]),
+        //     connection_stroke,
+        // );
     }
 
     // painter.add(bezier);

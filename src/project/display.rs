@@ -456,6 +456,7 @@ impl Project {
                                     // let start_board = conn_start.unwrap().0;
                                     self.system.in_progress_connection_end = Some((board.clone(), pin_name.clone()));
                                     let c = super::system::Connection {
+                                        name: format!("connection_{}", self.system.connections.len()),
                                         start_board: conn_start.clone().unwrap().0,
                                         start_pin: conn_start.clone().unwrap().1.clone(),
                                         end_board: board.clone(),
@@ -542,7 +543,7 @@ impl Project {
         }
 
         // go through the system connections and see if this pin is a part of any of them
-        for connection in self.system.connections.iter() {
+        for connection in self.system.connections.iter_mut() {
             // get the start and end pin locations. If they're not in the map (which they should be...), just skip
             let start_loc: egui::Pos2 = match pin_locations.get(&(connection.start_board.clone(), connection.start_pin.clone())) {
                 Some(sl) => *sl,
@@ -558,14 +559,12 @@ impl Project {
                 info!("clicked by {}", connection.end_pin);
             }
             resp.context_menu(|ui| {
-                ui.label("connection details");
+                ui.text_edit_singleline(&mut connection.name);
                 ui.label(format!("start board: {}", connection.start_board.get_name()));
             });
 
             resp.on_hover_ui(|ui| {
-                ui.label("connection");
-                ui.label(connection.start_board.get_name().to_string() + ":" + connection.start_pin.as_str());
-                ui.label(connection.end_board.get_name().to_string() + ":" + connection.end_pin.as_str());
+                ui.label(format!("{}", connection.name));
             });
 
         }

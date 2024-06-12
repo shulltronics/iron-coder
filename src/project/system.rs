@@ -29,6 +29,9 @@ pub enum SystemError {
 /// network. 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Connection {
+    /// The name of the connection. Iron Coder will search for this name
+    /// in your source code to determine which variable is associated with this connection.
+    pub name: String,
     pub start_board: Board,
     pub start_pin: String,
     pub end_board: Board,

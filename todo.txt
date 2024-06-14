@@ -1,8 +1,21 @@
 todo
 
+* Improve consistency of error handling in src/project/mod.rs file saving/loading.
 * don't force a project to have a repository.
 * don't crash or hang if trying to reload a project that doesn't exist (work around by running with -p flag or deleting C:\Users\<user>\AppData\Roaming\Iron Coder\).
 * do some check about if the user has rust toolchain installed, along with proper targets for the current main board, and required cargo sub-commands.
+* Why has GIF image support broken after upgrading image crate? 
+* Rework connection logic to prevent deadlock after upgrading egui to 0.27.x
+
+testing:
+* Include SVG parsing test for all supported boards
+
+GUI:
+* Overhaul of rendering, including:
+  * More clear separation of logic from rendering.
+  * More granular rendering methods to manage complexity.
+  * Make boards editor more grid-like, enhance ability to zoom and scroll using mouse wheel.
+* Make keybindings more intuitive and evident to user.
 
 Release message: 
 

@@ -147,11 +147,6 @@ impl Project {
 
     /// Load a project from a specified directory, and sync the board assets.
     fn load_from(&mut self, project_directory: &Path) -> Result {
-        // check if a project is currently open and save and close all tabs
-        if self.location != None {
-            self.save().expect("Error saving project");
-        }
-
         let project_file = project_directory.join(PROJECT_FILE_NAME);
         let toml_str = match fs::read_to_string(project_file) {
             Ok(s) => s,
@@ -180,7 +175,10 @@ impl Project {
         // Open the repo in the project directory
         self.repo = match Repository::open(self.get_location()) {
             Ok(repo) => Some(repo),
-            Err(e) => panic!("Failed to open: {}", e),
+            Err(e) => {
+                info!("Could not open repo: {}", e);
+                None
+            },
         };
 
         Ok(())

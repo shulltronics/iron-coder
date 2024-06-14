@@ -310,7 +310,7 @@ impl IronCoderApp {
             project.display_project_sidebar(ctx, ui);
         });
 
-        egui::Area::new("editor area").show(ctx, |_ui| {
+        egui::Area::new(egui::Id::new("editor area")).show(ctx, |_ui| {
             egui::TopBottomPanel::bottom("terminal_panel").resizable(true).max_height(_ui.available_height()*0.75).show(ctx, |ui| {
                 project.display_terminal(ctx, ui);
             });

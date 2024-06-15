@@ -1,0 +1,36 @@
+todo
+
+* Improve consistency of error handling in src/project/mod.rs file saving/loading.
+* don't force a project to have a repository.
+* don't crash or hang if trying to reload a project that doesn't exist (work around by running with -p flag or deleting C:\Users\<user>\AppData\Roaming\Iron Coder\).
+* do some check about if the user has rust toolchain installed, along with proper targets for the current main board, and required cargo sub-commands.
+* Why has GIF image support broken after upgrading image crate? 
+* Rework connection logic to prevent deadlock after upgrading egui to 0.27.x
+
+testing:
+* Include SVG parsing test for all supported boards
+
+GUI:
+* Overhaul of rendering, including:
+  * More clear separation of logic from rendering.
+  * More granular rendering methods to manage complexity.
+  * Make boards editor more grid-like, enhance ability to zoom and scroll using mouse wheel.
+* Make keybindings more intuitive and evident to user.
+
+Release message: 
+
+This is a pre-alpha release of the Iron Coder embedded Rust IDE. The core feature set isn't complete yet, but the application is usable for simple examples. This also is the first version for which I successfully used the executable on a computer that it wasn't built on (i.e. no rust toolchain installed). Current features include:
+
+**Graphical Editor**
+* A minimal set of boards available in the "add board" menu. 
+* Ability to make simple connections between two pins in the graphical editor, and change the connection name via a context menu.
+* Loading and saving of projects.
+
+**Text Editor**
+* File explorer to browse project directory and select files for editing.
+* Multi-tab code editor with syntax highlighting and save-state indication.
+* Buttons to build code, load code, push to git, etc..
+
+**General**
+* Minimal set of keyboard shortcuts (needs documentation).
+* Incomplete and in-progress metaprogramming features, hinted at by "Gen Sys Mod" button

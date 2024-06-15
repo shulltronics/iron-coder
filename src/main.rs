@@ -6,7 +6,10 @@ use iron_coder::IronCoderOptions;
 
 fn main() -> eframe::Result<()> {
 
-    let app_options = IronCoderOptions::parse();
+    let mut app_options = IronCoderOptions::parse();
+    if app_options.persistence.is_none() {
+        app_options.persistence = Some(true);
+    }
 
     // Setup the subscriber with a logging level.
     let debug_level: tracing::Level = if let Some(verbosity) = app_options.clone().verbosity {

@@ -42,9 +42,9 @@ pub struct IronCoderOptions {
     /// An alternative path to look for the Boards directory.
     #[arg(short, long)]
     pub boards_directory: Option<PathBuf>,
-    /// Turn app persistence on or off. Default is off.
+    /// Turn app persistence on or off. Default is true.
     #[arg(short, long)]
-    pub persistence: bool,
+    pub persistence: Option<bool>,
 }
 
 // The current warning flags
@@ -150,9 +150,10 @@ impl IronCoderApp {
         // we mutate cc.egui_ctx (the context) to set the overall app style
         setup_fonts_and_style(&cc.egui_ctx);
         install_image_loaders(&cc.egui_ctx);
-        // Load previous app state if it exists and is specified.
+
         let mut app = IronCoderApp::default();
-        if !options.persistence {
+        // Load previous app state if it exists and is specified.
+        if let Some(true) = options.persistence {
             if let Some(storage) = cc.storage {
                 info!("loading former app state from storage...");
                 app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
@@ -160,7 +161,7 @@ impl IronCoderApp {
         }
 
         app.options = options;
-        info!("Reloading current project and assets...");
+        info!("Reloading last project and assets...");
         app.set_colorscheme(&cc.egui_ctx);
         app.project.known_boards = app.boards.clone();
         match app.project.reload() {
@@ -698,7 +699,7 @@ impl eframe::App for IronCoderApp {
 
     // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        if !self.options.persistence {
+        if let Some(true) = self.options.persistence {
             info!("saving program state.");
             eframe::set_value(storage, eframe::APP_KEY, self);
         }

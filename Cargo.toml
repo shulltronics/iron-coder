@@ -19,15 +19,15 @@ log = "0.4.19"
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }
 egui_extras = { version = "0.26.2", features = ["image", "all_loaders"] }
-image = { version = "0.24.6", features = ["jpeg", "png", "gif"] }
-toml = "0.7.4"
+image = { version = "0.25.1", features = ["jpeg", "png", "gif"] }
+toml = "0.8.14"
 syntect = "5.0.0"
-rfd = "0.11.4"
+rfd = "0.14.1"
 fs_extra = "1.3.0"
 duct = "0.13.6"
-enum-iterator = "1.4.1"
-ra_ap_rust-analyzer = "0.0.202"
-ra_ap_ide = "0.0.202"
+enum-iterator = "2.1.0"
+ra_ap_rust-analyzer = "0.0.220"
+ra_ap_ide = "0.0.220"
 syn = { version = "2.0.25", features = ["full", "extra-traits", "parsing", "visit"] }
 quote = "1.0.29"
 proc-macro2 = "1.0.64"
@@ -36,11 +36,9 @@ slotmap = "1.0.6"
 clap = { version = "4.3.19", features = ["derive"] }
 usvg = "0.35.0"
 generate = "1.5.0"
-cargo-generate = "0.19.0"
-iron-coder-feather-rp2040-bsp = { version = "0.1.0", path = "iron-coder-boards/Adafruit/Feather_RP2040/bsp" }
-savefile-derive = "0.16.4"
+savefile-derive = "0.17.4"
 k_board = "1.2.2"
-git2 = "0.18.2"
+git2 = "0.19.0"
 
 [profile.release]
 opt-level = 'z'

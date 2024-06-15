@@ -440,44 +440,50 @@ impl Project {
                             ui.label("a pin-level menu option");
                         });
 
-                        // see if a current connection is happening from this pin. If so,
-                        // of if the button was just clicked, update the start location.
-                        // This needs a rewrite due to egui's breaking changes in version 0.27.0
-                        // ctx.data_mut(|data| {
-                        //     // let this_project = &mut self;
-                        //     let id = egui::Id::new("connection_in_progress");
-                        //     if let Some((ref conn_board, ref pin)) = self.system.in_progress_connection_start {
-                        //         // if a connection is in progress, update the start location if this pin is the start pin
-                        //         if conn_board == board && pin == &pin_name {
-                        //             data.insert_temp(id, r.rect.center());
-                        //         // otherwise, if the current pin was clicked, it must be the end connection!
-                        //         } else if r.clicked() {
-                        //             data.remove::<egui::Pos2>(id);
-                        //             let conn_start = self.system.in_progress_connection_start.clone();
-                        //             // let start_board = conn_start.unwrap().0;
-                        //             self.system.in_progress_connection_end = Some((board.clone(), pin_name.clone()));
-                        //             let c = super::system::Connection {
-                        //                 start_board: conn_start.clone().unwrap().0,
-                        //                 start_pin: conn_start.clone().unwrap().1.clone(),
-                        //                 end_board: board.clone(),
-                        //                 end_pin: pin_name.clone(),
-                        //                 interface_mapping: board::pinout::InterfaceMapping::default(),
-                        //             };
-                        //             self.system.connections.push(c);
-                        //         }
-                        //     } else if r.clicked() {
-                        //         info!("inserting connection position data");
-                        //         data.insert_temp(id, r.rect.center());
-                        //         self.system.in_progress_connection_start = Some((board.clone(), pin_name.clone()));
-                        //     }
-                        // });
-
+                        // Check if a connection is in progress by checking the "connection_in_progress" Id from the ctx memory.
+                        // This is set to true if the user selects "add connection" from the parent container's context menu.
+                        let id = egui::Id::new("connection_in_progress");
+                        let mut connection_in_progress = ctx.data_mut(|data| {
+                            data.get_temp_mut_or(id, false).clone()
+                        });
+                        
+                        if connection_in_progress && r.clicked() {
+                            // check conditions for starting/ending a connection
+                            match self.system.in_progress_connection_start {
+                                None => {
+                                    info!("inserting connection position data");
+                                    ctx.data_mut(|data| {
+                                        data.insert_temp(egui::Id::new("connection_start_pos"), r.rect.center());
+                                    });
+                                    self.system.in_progress_connection_start = Some((board.clone(), pin_name.clone()));
+                                },
+                                Some((ref start_board, ref start_pin)) => {
+                                    // add the connection to the system struct
+                                    let c = super::system::Connection {
+                                        name: format!("connection_{}", self.system.connections.len()),
+                                        start_board: start_board.clone(),
+                                        start_pin: start_pin.clone(),
+                                        end_board: board.clone(),
+                                        end_pin: pin_name.clone(),
+                                        interface_mapping: board::pinout::InterfaceMapping::default(),
+                                    };
+                                    self.system.connections.push(c);
+                                    // clear the in_progress_connection fields
+                                    self.system.in_progress_connection_start = None;
+                                    self.system.in_progress_connection_end = None;
+                                    // and end the connection.
+                                    connection_in_progress = false;
+                                    ctx.data_mut(|data| {
+                                        data.insert_temp(id, connection_in_progress);
+                                        data.remove::<egui::Pos2>(egui::Id::new("connection_start_pos"));
+                                    });
+                                },
+                            }
+                        }
                     }
-
                 }
-
-                return pin_clicked;
-
+                // return value from this scope
+                pin_clicked
             });
 
             // extract response from board (i.e. the egui Area), and from pin
@@ -526,19 +532,25 @@ impl Project {
         }) {
             ctx.data_mut(|data| {
                 let id = egui::Id::new("connection_in_progress");
-                data.remove::<egui::Pos2>(id);
+                data.insert_temp(id, false);
+                data.remove::<egui::Pos2>(egui::Id::new("connection_start_pos"));
                 self.system.in_progress_connection_start = None;
             });
         }
 
         // check if a connection is in progress. Be sure to use the painter outside of the data
         // closure to avoid deadlock situation.
-        if let Some(sp) = ctx.data(|data| {
+        if let Some(true) = ctx.data(|data| {
             let id = egui::Id::new("connection_in_progress");
-            data.get_temp::<egui::Pos2>(id)
+            data.get_temp::<bool>(id)
         }) {
-            if let Some(ep) = ctx.pointer_latest_pos() {
-                draw_connection(ctx, ui, sp, ep, egui::Color32::GREEN);
+            if let Some(sp) = ctx.data(|data| {
+                let id = egui::Id::new("connection_start_pos");
+                data.get_temp::<egui::Pos2>(id)
+            }) {
+                if let Some(ep) = ctx.pointer_latest_pos() {
+                    draw_connection(ctx, ui, sp, ep, egui::Color32::GREEN);
+                }
             }
         }
 
@@ -553,18 +565,11 @@ impl Project {
                 Some(el) => *el,
                 None => continue,
             };
-
-            let resp = draw_connection(ctx, ui, start_loc, end_loc, egui::Color32::RED);
-            if resp.clicked() {
-                info!("clicked by {}", connection.end_pin);
-            }
+            // draw the connection and perform interactions.
+            let resp = draw_connection(ctx, ui, start_loc, end_loc, egui::Color32::WHITE);
             resp.context_menu(|ui| {
                 ui.text_edit_singleline(&mut connection.name);
                 ui.label(format!("start board: {}", connection.start_board.get_name()));
-            });
-
-            resp.on_hover_ui(|ui| {
-                ui.label(format!("{}", connection.name));
             });
 
         }
@@ -666,10 +671,10 @@ impl Project {
         }
 
         // Show some system stats
-        ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
-            ui.label(format!("number of connections: {}", self.system.connections.len()));
-            ui.label(format!("number of boards: {}", self.system.get_all_boards().len()));
-        });
+        // ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
+        //     ui.label(format!("number of connections: {}", self.system.connections.len()));
+        //     ui.label(format!("number of boards: {}", self.system.get_all_boards().len()));
+        // });
 
         // let painter = ui.painter();
         // let rect = ui.min_rect();
@@ -729,8 +734,9 @@ fn draw_connection(ctx: &egui::Context, ui: &mut egui::Ui, src_pos: egui::Pos2, 
         line.for_each_flattened_with_t(TOL, &mut |pos, _| {
             if pos.distance(cursor_pos) < THRESH {
                 response.hovered = true;
-                if ctx.input(|i| i.pointer.primary_clicked()) == true {
-                    response.clicked = [true; 5];
+                // using any_click allows clicks, context menu, etc to be handled.
+                if ctx.input(|i| i.pointer.any_click()) == true {
+                    response.clicked = true;
                 }
                 response.rect = egui::Rect::from_center_size(cursor_pos, egui::Vec2::new(THRESH, THRESH));
             }

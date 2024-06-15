@@ -329,14 +329,43 @@ impl IronCoderApp {
 
     /// Show the various parts of the project editor
     pub fn display_project_editor(&mut self, ctx: &egui::Context) {
-
-        egui::CentralPanel::default().show(ctx, |ui| {
+        // first render the top panel with project name, buttons, etc.
+        egui::TopBottomPanel::top("project_editor_top_panel").show(ctx, |ui| {
             if let Some(mode) = self.project.display_system_editor_hud(ctx, ui, &mut self.warning_flags) {
                 self.mode = mode;
             }
-            self.project.display_system_editor_boards(ctx, ui);
         });
-
+        // now render the central system editor panel
+        egui::CentralPanel::default().show(ctx, |ui| {
+            self.project.display_system_editor_boards(ctx, ui);
+        }).response.context_menu(|ui| {
+            let id = egui::Id::new("show_known_boards");
+            let mut should_show_boards_window = ctx.data_mut(|data| {
+                data.get_temp_mut_or(id, false).clone()
+            });
+            if ui.add(egui::Button::new("Add Board")).clicked() {
+                ui.close_menu();
+                should_show_boards_window = true;
+                ctx.data_mut(|data| {
+                    data.insert_temp(id, should_show_boards_window);
+                });
+                if let Some(b) = self.project.display_known_boards(ctx, &mut should_show_boards_window) {
+                    self.project.add_board(b);
+                }
+            };
+            let id = egui::Id::new("connection_in_progress");
+            let mut connection_in_progress = ctx.data_mut(|data| {
+                data.get_temp_mut_or(id, false).clone()
+            });
+            if ui.add(egui::Button::new("Add Connection")).clicked() {
+                ui.close_menu();
+                connection_in_progress = true;
+                ctx.data_mut(|data| {
+                    data.insert_temp(id, connection_in_progress);
+                });
+                // project::display::display_system_editor_boards now proceeds according to this value
+            };
+        });
     }
 
     /// show/hide the settings window and update the appropriate app state.

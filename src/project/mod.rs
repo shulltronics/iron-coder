@@ -25,7 +25,6 @@ mod system;
 mod test;
 
 use system::System;
-use std::process::Command;
 
 use git2::Repository;
 
@@ -369,7 +368,7 @@ impl Project {
         // Create a repo to store code
         self.repo = match Repository::init(self.get_location()) {
             Ok(repo) => Some(repo),
-            Err(e) => return Err(ProjectIOError::NoProjectDirectory),
+            Err(_e) => return Err(ProjectIOError::NoProjectDirectory),
         };
 
         Ok(())

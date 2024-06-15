@@ -384,7 +384,7 @@ impl Project {
         let mut pin_locations: HashMap<(Board, String), egui::Pos2> = HashMap::new();
 
         // iterate through the system boards and draw them on the screen
-        for (board_idx, board) in self.system.get_all_boards().iter_mut().enumerate() {
+        for board in self.system.get_all_boards().iter_mut() {
 
             let scale_id = egui::Id::new("system_editor_scale_factor");
             // set the editor scale factor in memory:
@@ -395,7 +395,6 @@ impl Project {
             // Get the response of the board/pin Ui
             let board_id = egui::Id::new(board.get_name());
             let response = egui::Area::new(board_id).show(ctx, |ui| {
-                info!("board_id is: {:#?}", board_id);
 
                 let mut pin_clicked: Option<String> = None;
 

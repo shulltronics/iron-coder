@@ -6,7 +6,6 @@ use std::sync::Arc;
 use crate::project::Project;
 use crate::app::icons::{
     IconSet,
-    DEFAULT_ICON_SIZE,
 };
 
 use egui::{

@@ -388,20 +388,14 @@ impl Project {
 
             let scale_id = egui::Id::new("system_editor_scale_factor");
             // set the editor scale factor in memory:
-            let mut scale = ctx.data_mut(|data| {
+            let scale = ctx.data_mut(|data| {
                 data.get_temp_mut_or(scale_id, 5.0).clone()
-            });
-            if ctx.input(|io| io.key_pressed(egui::Key::Q)) {
-                scale += 0.5;
-            } else if ctx.input(|io| io.key_pressed(egui::Key::W)) {
-                scale -= 0.5;
-            }
-            ctx.data_mut(|data| {
-                data.insert_temp(scale_id, scale);
             });
 
             // Get the response of the board/pin Ui
-            let response = egui::Area::new(egui::Id::new(board_idx.to_string())).show(ctx, |ui| {
+            let board_id = egui::Id::new(board.get_name());
+            let response = egui::Area::new(board_id).show(ctx, |ui| {
+                info!("board_id is: {:#?}", board_id);
 
                 let mut pin_clicked: Option<String> = None;
 

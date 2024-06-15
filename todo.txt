@@ -5,7 +5,7 @@ todo
 * don't crash or hang if trying to reload a project that doesn't exist (work around by running with -p flag or deleting C:\Users\<user>\AppData\Roaming\Iron Coder\).
 * do some check about if the user has rust toolchain installed, along with proper targets for the current main board, and required cargo sub-commands.
 * Why has GIF image support broken after upgrading image crate? 
-* Rework connection logic to prevent deadlock after upgrading egui to 0.27.x
+* Create a consistent list of `egui::Id`s that are used to track UI state; also figure out "double use of Id" in board editor.
 
 testing:
 * Include SVG parsing test for all supported boards

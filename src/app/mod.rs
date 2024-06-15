@@ -337,6 +337,21 @@ impl IronCoderApp {
         });
         // now render the central system editor panel
         egui::CentralPanel::default().show(ctx, |ui| {
+            // Adjust zoom level
+            let scale_id = egui::Id::new("system_editor_scale_factor");
+            let mut scale = ctx.data_mut(|data| {
+                data.get_temp_mut_or(scale_id, 5.0).clone()
+            });
+            const ZOOM_INCREMENT: f32 = 0.2;
+            scale += match ctx.input(|io| io.zoom_delta()) {
+                z if z<1.0 => { -ZOOM_INCREMENT },
+                z if z>1.0 => {  ZOOM_INCREMENT },
+                _          => {  0.0 },
+            };
+            ctx.data_mut(|data| {
+                data.insert_temp(scale_id, scale);
+            });
+            // Display the board editor
             self.project.display_system_editor_boards(ctx, ui);
         }).response.context_menu(|ui| {
             let id = egui::Id::new("show_known_boards");

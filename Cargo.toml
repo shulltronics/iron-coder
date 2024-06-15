@@ -19,7 +19,7 @@ log = "0.4.19"
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }
 egui_extras = { version = "0.27.2", features = ["image", "all_loaders"] }
-image = { version = "0.25.1", features = ["jpeg", "png", "gif"] }
+image = { version = "0.24.7", features = ["jpeg", "png", "gif"] }
 toml = "0.8.14"
 syntect = "5.0.0"
 rfd = "0.14.1"

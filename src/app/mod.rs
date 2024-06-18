@@ -331,7 +331,7 @@ impl IronCoderApp {
     pub fn display_project_editor(&mut self, ctx: &egui::Context) {
         // first render the top panel with project name, buttons, etc.
         egui::TopBottomPanel::top("project_editor_top_panel").show(ctx, |ui| {
-            if let Some(mode) = self.project.display_system_editor_hud(ctx, ui, &mut self.warning_flags) {
+            if let Some(mode) = self.project.display_system_editor_top_bar(ctx, ui, &mut self.warning_flags) {
                 self.mode = mode;
             }
         });
@@ -353,6 +353,15 @@ impl IronCoderApp {
             });
             // Display the board editor
             self.project.display_system_editor_boards(ctx, ui);
+            // Display help text for in-progress connections
+            if let Some(true) = ctx.data(|data| {
+                data.get_temp::<bool>(egui::Id::new("connection_in_progress"))
+            }) {
+                ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
+                    ui.label("Click the pins to form your connection... or use ESC to cancel.");
+                });
+            }
+        // Display a context menu on right-click.
         }).response.context_menu(|ui| {
             let id = egui::Id::new("show_known_boards");
             let mut should_show_boards_window = ctx.data_mut(|data| {

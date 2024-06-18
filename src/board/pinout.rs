@@ -21,7 +21,7 @@ impl fmt::Display for InterfaceDirection {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Sequence)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Sequence)]
 #[non_exhaustive]
 /// The various types of electrical interfaces we use with dev boards
 pub enum InterfaceType {
@@ -32,9 +32,6 @@ pub enum InterfaceType {
     UART,
     I2C,
     SPI,
-    PIO,
-    I2S,
-    USB,
 }
 
 impl fmt::Display for InterfaceType {

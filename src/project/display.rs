@@ -16,13 +16,16 @@ use egui::widgets::Button;
 
 use git2::{Repository, StatusOptions};
 
-use crate::board::Board;
-use crate::{project::Project, board};
+use crate::board;
+use crate::project::Project;
 use crate::app::icons::IconSet;
 use crate::app::{Mode, Warnings, Git};
 
+use enum_iterator;
 
 use serde::{Serialize, Deserialize};
+
+use super::system;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub enum ProjectViewType {
@@ -381,7 +384,7 @@ impl Project {
     /// Show the boards in egui "Area"s so we can move them around!
     pub fn display_system_editor_boards(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
 
-        let mut pin_locations: HashMap<(Board, String), egui::Pos2> = HashMap::new();
+        let mut pin_locations: HashMap<(board::Board, String), egui::Pos2> = HashMap::new();
 
         // iterate through the system boards and draw them on the screen
         for board in self.system.get_all_boards().iter_mut() {
@@ -439,6 +442,12 @@ impl Project {
                         let mut connection_in_progress = ctx.data_mut(|data| {
                             data.get_temp_mut_or(id, false).clone()
                         });
+
+                        if connection_in_progress {
+                            ctx.output_mut(|o| {
+                                o.cursor_icon = egui::CursorIcon::PointingHand;
+                            });
+                        }
                         
                         if connection_in_progress && r.clicked() {
                             // check conditions for starting/ending a connection
@@ -548,6 +557,7 @@ impl Project {
         }
 
         // go through the system connections and see if this pin is a part of any of them
+        let mut connection_to_remove: Option<system::Connection> = None;
         for connection in self.system.connections.iter_mut() {
             // get the start and end pin locations. If they're not in the map (which they should be...), just skip
             let start_loc: egui::Pos2 = match pin_locations.get(&(connection.start_board.clone(), connection.start_pin.clone())) {
@@ -559,19 +569,42 @@ impl Project {
                 None => continue,
             };
             // draw the connection and perform interactions.
-            let resp = draw_connection(ctx, ui, start_loc, end_loc, egui::Color32::WHITE);
+            let c = match connection.interface_mapping.interface.iface_type {
+                board::pinout::InterfaceType::I2C => egui::Color32::RED,
+                board::pinout::InterfaceType::UART => egui::Color32::BLUE,
+                board::pinout::InterfaceType::SPI => egui::Color32::YELLOW,
+                board::pinout::InterfaceType::NONE => egui::Color32::GREEN,
+                _ => egui::Color32::WHITE,
+            };
+            let resp = draw_connection(ctx, ui, start_loc, end_loc, c);
+            // Connection-level right click menu
             resp.context_menu(|ui| {
+                ui.label("connection name:");
                 ui.text_edit_singleline(&mut connection.name);
-                ui.label(format!("start board: {}", connection.start_board.get_name()));
+                ui.separator();
+                ui.label("connection type:");
+                for iface_type in enum_iterator::all::<board::pinout::InterfaceType>() {
+                    ui.selectable_value(&mut connection.interface_mapping.interface.iface_type, iface_type, format!("{:?}", iface_type));
+                }
+                ui.separator();
+                if ui.button("delete connection").clicked() {
+                    connection_to_remove = Some(connection.clone());
+                }
             });
+        }
 
+        // remove the connection if it was selected for deletion
+        if let Some(conn) = connection_to_remove {
+            self.system.connections.retain(|elem| {
+                elem.name != conn.name
+            });
         }
 
     }
 
     /// Show the project HUD with information about the current system. Return a "Mode" so that
     /// the calling module (app) can update the GUI accordingly.
-    pub fn display_system_editor_hud(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, warning_flags: &mut Warnings) -> Option<Mode> {
+    pub fn display_system_editor_top_bar(&mut self, ctx: &egui::Context, ui: &mut egui::Ui, warning_flags: &mut Warnings) -> Option<Mode> {
 
         // prepare the return value
         let mut ret: Option<Mode> = None;
@@ -590,6 +623,8 @@ impl Project {
         let top_hud_rect = ui.vertical_centered(|ui| {
             let te = egui::TextEdit::singleline(self.borrow_name())
                 .horizontal_align(egui::Align::Center)
+                // .desired_width(f32::INFINITY)
+                .clip_text(false)
                 .frame(false)
                 .hint_text("enter project name here")
                 .font(font);
@@ -663,6 +698,7 @@ impl Project {
             }
         }
 
+        // Below code should go into a "bottom_bar" display function
         // Show some system stats
         // ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
         //     ui.label(format!("number of connections: {}", self.system.connections.len()));

@@ -1,0 +1,10 @@
+C:\Users\julia\Documents\UF\Design 1\iron-coder\example-code\led_array\target\debug\deps\libversion_check-99f178406256644b.rmeta: C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\lib.rs C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\version.rs C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\channel.rs C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\date.rs
+
+C:\Users\julia\Documents\UF\Design 1\iron-coder\example-code\led_array\target\debug\deps\libversion_check-99f178406256644b.rlib: C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\lib.rs C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\version.rs C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\channel.rs C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\date.rs
+
+C:\Users\julia\Documents\UF\Design 1\iron-coder\example-code\led_array\target\debug\deps\version_check-99f178406256644b.d: C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\lib.rs C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\version.rs C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\channel.rs C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\date.rs
+
+C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\lib.rs:
+C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\version.rs:
+C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\channel.rs:
+C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\version_check-0.9.5\src\date.rs:

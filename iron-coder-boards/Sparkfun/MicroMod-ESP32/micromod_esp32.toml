@@ -1,7 +1,7 @@
 
 name = "MicroMod ESP32 Processor"
 manufacturer = "Sparkfun"
-is_main_board = true
+board_type = "Main"
 standard = "MicroMod"
 cpu = "ESP32"
 

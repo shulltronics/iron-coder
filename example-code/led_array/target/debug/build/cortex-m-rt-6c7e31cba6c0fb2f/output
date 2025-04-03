@@ -1,0 +1,8 @@
+cargo:rustc-check-cfg=cfg(armv6m)
+cargo:rustc-check-cfg=cfg(armv7m)
+cargo:rustc-check-cfg=cfg(armv8m)
+cargo:rustc-check-cfg=cfg(cortex_m)
+cargo:rustc-check-cfg=cfg(has_fpu)
+cargo:rustc-link-search=C:\Users\julia\Documents\UF\Design 1\iron-coder\example-code\led_array\target\debug\build\cortex-m-rt-6c7e31cba6c0fb2f\out
+cargo:rerun-if-changed=build.rs
+cargo:rerun-if-changed=link.x.in

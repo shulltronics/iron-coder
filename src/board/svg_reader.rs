@@ -13,7 +13,7 @@ use usvg::{
     NodeKind,
     ImageKind,
 };
-use std::io::Cursor;
+use std::io::{BufWriter, Cursor};
 use std::path::Path;
 use std::fs;
 use std::vec::Vec;
@@ -21,12 +21,15 @@ use std::vec::Vec;
 use std::borrow::Borrow;
 
 use image;
+use base64::{Engine as _, engine::general_purpose};
 use egui::{
     ColorImage,
     Pos2,
     Rect,
     Vec2,
 };
+use image::codecs::png::CompressionType;
+use image::codecs::png::FilterType::Adaptive;
 
 /// A struct that holds the decoded SVG for use in egui.
 #[derive(Default, Clone)]
@@ -41,15 +44,71 @@ pub struct SvgBoardInfo {
 
 impl SvgBoardInfo {
 
-    /// Parse an Iron Coder SVG Board image from the filesystem.
-    pub fn from_path(path: &Path) -> Result<SvgBoardInfo, Error> {
+    /// Create an SVG file from a PNG file, return SVG contents as a String
+    pub fn from_png(input_path: &Path) -> Result<String, Error> {
+        // Load the PNG image
+        let img = match image::open(input_path){
+            Ok(image) => image,
+            Err(e) => {return Err(Error::ImageError(e))}
+        };
 
-        let mut svg_board_info = SvgBoardInfo::default();
+        // Convert the image to a byte vector
+        let mut img_bytes = Vec::new();
+        let cursor = Cursor::new(&mut img_bytes);
+        let writer = BufWriter::new(cursor);
+        let encoder = image::codecs::png::PngEncoder::new_with_quality(writer, CompressionType::Fast, Adaptive);
+        match img.write_with_encoder(encoder){
+            Ok(_) => {}
+            Err(e) => {return Err(Error::ImageError(e))}
+        }
 
+        // Base64 encode the PNG bytes
+        let encoded_img = general_purpose::STANDARD_NO_PAD.encode(&img_bytes);
+
+        // Set the width and height, so it can be displayed in the editor
+        let mut image_width = img.width() as f64;
+        let mut image_height = img.height() as f64;
+        while image_width > 64.0 || image_height > 50.0 {
+            image_width = image_width / 2.0;
+            image_height = image_height / 2.0;
+        }
+
+        // Create the SVG content with the base64 encoded PNG image
+        let svg_content = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
+    <g
+     id="g1">
+        <image
+            x="0"
+            y="0"
+            id="image1"
+            width="{width}"
+            height="{height}"
+            href="data:image/png;base64,{encoded_img}" />
+    </g>
+</svg>"#,
+            width = image_width,
+            height = image_height,
+            encoded_img = encoded_img
+        );
+
+        Ok(svg_content)
+    }
+
+    /// Parse an Iron Coder SVG Board image from a string
+    pub fn from_path(path: &Path) -> Result<SvgBoardInfo, Error>{
         let svg_string = match fs::read_to_string(path) {
             Ok(string) => string,
             Err(e) => return Err(Error::FsError(e)),
         };
+
+        Self::from_string(svg_string)
+    }
+
+    /// Parse an Iron Coder SVG Board image from the filesystem.
+    pub fn from_string(svg_string: String) -> Result<SvgBoardInfo, Error> {
+
+        let mut svg_board_info = SvgBoardInfo::default();
         
         let options = Options::default();
         let tree = match Tree::from_str(&svg_string.as_str(), &options) {
@@ -86,6 +145,8 @@ impl SvgBoardInfo {
                             &image_bytes,
                         );
                         board_image = Some(color_image);
+                    } else {
+                        return Err(Error::ImageNotPNG);
                     }
                 },
                 NodeKind::Path(path) => {
@@ -120,8 +181,10 @@ impl SvgBoardInfo {
 #[derive(Debug)]
 pub enum Error {
     FsError(std::io::Error),
+    ImageError(image::error::ImageError),
     ImageDecodeError,
     ArcError,
     NoImage,
+    ImageNotPNG,
     OtherError,
 }

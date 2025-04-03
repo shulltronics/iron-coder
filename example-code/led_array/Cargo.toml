@@ -1,0 +1,28 @@
+[package]
+name = "led_matrix"
+version = "0.2.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+panic-halt              = "0.2.0"
+cortex-m                = "0.7.7"
+cortex-m-rt             = "0.7.3"
+embedded-hal            = "1.0.0"
+adafruit-feather-rp2040 = "0.8.0"
+critical-section        = "1.1.2"
+rp2040-boot2            = "0.3.0"
+rp2040-hal              = "0.10.0"
+fugit                   = "0.3.7"
+nb                      = "1.1"
+smart-leds              = "0.3.0"
+ws2812-pio              = "0.8.0"
+
+lis3dh                  = "0.4.2"
+
+usbd-serial             = "0.2.1"
+usb-device              = "0.3.1"
+
+[profile.dev]
+overflow-checks = false # Disable integer overflow checks

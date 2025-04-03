@@ -106,13 +106,28 @@ impl Project {
                 }
             },
             false => {
-                // don't duplicate a board
-                if self.system.peripheral_boards.contains(&board) {
-                    info!("project <{}> already contains board <{:?}>", self.name, board);
-                    self.terminal_buffer += "project already contains that board\n";
-                    return;
-                } else {
-                    self.system.peripheral_boards.push(board.clone());
+                match board.is_discrete(){
+                    true => {
+                        // TODO Can't display multiple discrete components right now -> logic at project/display.rs "display_system_editor_boards", also removing board finds first occurrence in list
+                        if self.system.discrete_components.contains(&board) {
+                            info!("project <{}> already contains board <{:?}>", self.name, board);
+                            self.terminal_buffer += "project already contains that component\n";
+                            return;
+                        } else {
+                            self.system.discrete_components.push(board.clone());
+                        }
+                    },
+                    false => {
+                        // don't duplicate a peripheral board
+                        if self.system.peripheral_boards.contains(&board) {
+                            info!("project <{}> already contains board <{:?}>", self.name, board);
+                            self.terminal_buffer += "project already contains that board\n";
+                            return;
+                        } else {
+                            self.system.peripheral_boards.push(board.clone());
+                        }
+                    },
+
                 }
             }
         }
@@ -145,7 +160,7 @@ impl Project {
     }
 
     /// Load a project from a specified directory, and sync the board assets.
-    fn load_from(&mut self, project_directory: &Path) -> Result {
+    pub fn load_from(&mut self, project_directory: &Path) -> Result {
         let project_file = project_directory.join(PROJECT_FILE_NAME);
         let toml_str = match fs::read_to_string(project_file) {
             Ok(s) => s,

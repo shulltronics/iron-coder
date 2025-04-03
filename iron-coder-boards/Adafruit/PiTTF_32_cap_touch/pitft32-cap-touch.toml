@@ -1,7 +1,7 @@
 
 name = "PiTFT 3.2 with Capacitive Touch Screen"
 manufacturer = "Adafruit"
-is_main_board = false
+board_type = "Peripheral"
 
 related_crates = ["ili9341", "embedded-graphics"]
 

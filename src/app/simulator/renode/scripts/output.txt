@@ -1,0 +1,5 @@
+13:30:04.5816 [INFO] cpu: Guessing VectorTableOffset value to be 0x8000000.
+13:30:04.5981 [INFO] cpu: Setting initial values: PC = 0x80001A9, SP = 0x20020000.
+13:30:04.6027 [INFO] machine-0: Machine started.
+13:30:04.6952 [WARNING] flash_controller: Unhandled write to offset 0x0. Unhandled bits: [8-10] when writing value 0x700. Tags: PRFTEN (0x1), ICEN (0x1), DCEN (0x1).
+13:30:04.7112 [WARNING] usart2: Unhandled write to offset 0x14, value 0x0.

@@ -6,9 +6,10 @@ use syn;
 use serde::{Serialize, Deserialize};
 use std::fmt;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Sequence)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Sequence, Default)]
 #[non_exhaustive]
 pub enum InterfaceDirection {
+    #[default]
     Unknown,
     Input,
     Output,
@@ -21,10 +22,11 @@ impl fmt::Display for InterfaceDirection {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Sequence)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Sequence, Default)]
 #[non_exhaustive]
 /// The various types of electrical interfaces we use with dev boards
 pub enum InterfaceType {
+    #[default]
     NONE,
     GPIO,
     ADC,

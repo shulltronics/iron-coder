@@ -1,7 +1,7 @@
 
 name = "Feather RP2040"
 manufacturer = "Adafruit"
-is_main_board = true
+board_type = "Main"
 standard = "Feather"
 cpu = "Cortex-M0"
 ram = 264

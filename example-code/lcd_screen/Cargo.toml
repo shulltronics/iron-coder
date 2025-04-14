@@ -1,0 +1,23 @@
+[package]
+name = "feather-rp2040-blink"
+version = "0.2.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+panic-halt              = "0.2.0"
+cortex-m                = "0.7.7"
+cortex-m-rt             = "0.7.3"
+embedded-hal            = "0.2.7"
+adafruit-feather-rp2040 = "0.7.0"
+usbd-serial             = "0.1.1"
+usb-device              = "0.2.9"
+critical-section        = "1.1.2"
+fugit   				= "0.3.7"
+sh1107 				 = "0.1.0"
+
+		
+	
+
+	

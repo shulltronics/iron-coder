@@ -1,0 +1,11 @@
+C:\Users\ethan\Documents\CEN3907\iron-coder\example-code\alarm_clock\target\avr-atmega328p\debug\deps\libarduino_hal-5f2bbde0fa59e10c.rmeta: C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\lib.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\clock.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\delay.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\port\mod.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\port\uno.rs
+
+C:\Users\ethan\Documents\CEN3907\iron-coder\example-code\alarm_clock\target\avr-atmega328p\debug\deps\libarduino_hal-5f2bbde0fa59e10c.rlib: C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\lib.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\clock.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\delay.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\port\mod.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\port\uno.rs
+
+C:\Users\ethan\Documents\CEN3907\iron-coder\example-code\alarm_clock\target\avr-atmega328p\debug\deps\arduino_hal-5f2bbde0fa59e10c.d: C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\lib.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\clock.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\delay.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\port\mod.rs C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\port\uno.rs
+
+C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\lib.rs:
+C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\clock.rs:
+C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\delay.rs:
+C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\port\mod.rs:
+C:\Users\ethan\.cargo\git\checkouts\avr-hal-f3855d5807fdfd57\3e36262\arduino-hal\src\port\uno.rs:

@@ -1,0 +1,20 @@
+[build]
+# Set the default target to match the Cortex-M4 in STM32F4
+target = "thumbv7em-none-eabihf"
+
+# Target specific options for STM32F4
+[target.thumbv7em-none-eabihf]
+linker = "rust-lld"  # or "arm-none-eabi-gcc" if you're using GCC
+
+# Path to the linker script
+rustflags = [
+    "-C", "link-arg=--nmagic",
+    "-C", "link-arg=-Tlink.x",
+    "-C", "inline-threshold=5",
+    "-C", "no-vectorize-loops",
+]
+
+# runner = "elf2uf2-rs -d"
+
+# No need for `runner` settings in Renode-based simulation, but if needed for flashing you can set it here
+# runner = "probe-run --chip STM32F4"

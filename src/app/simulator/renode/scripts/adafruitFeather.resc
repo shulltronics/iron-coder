@@ -1,0 +1,44 @@
+:name: Testing Custom Board
+:description: This script runs a local test program on an altered version of the STM32F4 board.
+
+using sysbus
+$name?="Custom Board"
+mach create
+
+machine LoadPlatformDescription $ORIGIN\..\boards\adafruitFeather.repl
+
+
+cpu PerformanceInMips 125
+
+macro reset
+"""
+    sysbus LoadELF @..\programs\RustLab\target\thumbv6m-none-eabi\release\RustLab
+
+"""
+
+runMacro $reset
+
+logFile $ORIGIN\..\logs\output.txt
+
+showAnalyzer sysbus.i2c0
+
+# run our simulation
+start
+
+# Saving the state
+# Can save the state by using
+# Save @statefile.save
+# The state file can be loaded using
+# load @statefile.sav
+# can be loaded immediately after renode
+
+sleep 3
+Save $ORIGIN\..\savedStates\saveFile.save
+
+# Loading the state 
+sleep 3
+Load $ORIGIN\..\savedStates\saveFile.save
+mach set 0
+showAnalyzer sysbus.usart2
+
+start

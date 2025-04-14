@@ -1,6 +1,6 @@
 //! Title: Iron Coder Poject Module - System
 //! Description: This  module represents a hardware system, i.e. a main board,
-//! a set of peripheral boards, and the connections between them.
+//! a set of peripheral boards, a set of discrete components, and the connections between them.
 
 use log::{info, warn};
 
@@ -46,6 +46,8 @@ pub struct System {
     pub main_board: Option<Board>,
     /// The list of peripheral boards in the system.
     pub peripheral_boards: Vec<Board>,
+    /// The list of discrete components in the system.
+    pub discrete_components: Vec<Board>,
     /// The list of connections between boards. This is what the template generator will use to create
     /// the system module.
     pub connections: Vec<Connection>,
@@ -75,6 +77,7 @@ impl System {
             boards.push(mb);
         }
         boards.append(&mut self.peripheral_boards.clone());
+        boards.append(&mut self.discrete_components.clone());
         return boards;
     }
 
@@ -86,6 +89,9 @@ impl System {
             boards.push(mb);
         }
         self.peripheral_boards.iter_mut().for_each(|board| {
+            boards.push(board);
+        });
+        self.discrete_components.iter_mut().for_each(|board| {
             boards.push(board);
         });
         return boards;
@@ -103,6 +109,11 @@ impl System {
         }
         if let Some(idx) = self.peripheral_boards.iter().position(|elem| *elem == board) {
             self.peripheral_boards.remove(idx);
+            self.remove_connections_involving_board(board);
+            return Ok(());
+        }
+        if let Some(idx) = self.discrete_components.iter().position(|elem| *elem == board) {
+            self.discrete_components.remove(idx);
             self.remove_connections_involving_board(board);
             return Ok(());
         }

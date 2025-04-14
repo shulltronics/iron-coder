@@ -1,0 +1,419 @@
+name = "AlarmClock"
+location = "example-code/alarm_clock"
+
+[system]
+peripheral_boards = []
+
+[system.main_board]
+name = "Arduino Uno"
+manufacturer = "Arduino"
+board_type = "Main"
+standard = "Arduino"
+cpu = "Microchip AVR"
+ram = 2
+flash = 32
+bsp = "iron-coder-uno-bsp"
+required_crates = ["avrdude", "avr-libc", "ravedude", "avr-gcc", "ufmt", "nb", "embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.main_board.pinout]]
+pins = ["rx", "tx"]
+
+[system.main_board.pinout.interface]
+iface_type = "UART"
+direction = "Bidirectional"
+
+[[system.main_board.pinout]]
+pins = ["scl", "sda"]
+
+[system.main_board.pinout.interface]
+iface_type = "I2C"
+direction = "Output"
+
+[[system.main_board.pinout]]
+pins = ["mosi", "miso", "sclk"]
+
+[system.main_board.pinout.interface]
+iface_type = "SPI"
+direction = "Output"
+
+[[system.discrete_components]]
+name = "Resistor 1000 Ohm"
+manufacturer = "Arduino"
+board_type = "Discrete"
+required_crates = ["embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.discrete_components.pinout]]
+pins = ["pin1", "pin2"]
+
+[system.discrete_components.pinout.interface]
+iface_type = "NONE"
+direction = "Bidirectional"
+
+[[system.discrete_components]]
+name = "Push Button"
+manufacturer = "Arduino"
+board_type = "Discrete"
+bsp = "iron-coder-push-button-bsp"
+required_crates = ["embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.discrete_components.pinout]]
+pins = ["pin1", "pin2", "pin3", "pin4"]
+
+[system.discrete_components.pinout.interface]
+iface_type = "NONE"
+direction = "Bidirectional"
+
+[[system.discrete_components]]
+name = "Piezo (Buzzer)"
+manufacturer = "Arduino"
+board_type = "Discrete"
+required_crates = ["embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.discrete_components.pinout]]
+pins = ["pin1", "pin2"]
+
+[system.discrete_components.pinout.interface]
+iface_type = "NONE"
+direction = "Bidirectional"
+
+[[system.connections]]
+name = "connection_0"
+start_pin = "pin1"
+end_pin = "gnd"
+
+[system.connections.start_board]
+name = "Resistor 1000 Ohm"
+manufacturer = "Arduino"
+board_type = "Discrete"
+required_crates = ["embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.start_board.pinout]]
+pins = ["pin1", "pin2"]
+
+[system.connections.start_board.pinout.interface]
+iface_type = "NONE"
+direction = "Bidirectional"
+
+[system.connections.end_board]
+name = "Arduino Uno"
+manufacturer = "Arduino"
+board_type = "Main"
+standard = "Arduino"
+cpu = "Microchip AVR"
+ram = 2
+flash = 32
+bsp = "iron-coder-uno-bsp"
+required_crates = ["avrdude", "avr-libc", "ravedude", "avr-gcc", "ufmt", "nb", "embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.end_board.pinout]]
+pins = ["rx", "tx"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "UART"
+direction = "Bidirectional"
+
+[[system.connections.end_board.pinout]]
+pins = ["scl", "sda"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "I2C"
+direction = "Output"
+
+[[system.connections.end_board.pinout]]
+pins = ["mosi", "miso", "sclk"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "SPI"
+direction = "Output"
+
+[system.connections.interface_mapping]
+pins = []
+
+[system.connections.interface_mapping.interface]
+iface_type = "NONE"
+direction = "Unknown"
+
+[[system.connections]]
+name = "connection_1"
+start_pin = "pin2"
+end_pin = "pin4"
+
+[system.connections.start_board]
+name = "Resistor 1000 Ohm"
+manufacturer = "Arduino"
+board_type = "Discrete"
+required_crates = ["embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.start_board.pinout]]
+pins = ["pin1", "pin2"]
+
+[system.connections.start_board.pinout.interface]
+iface_type = "NONE"
+direction = "Bidirectional"
+
+[system.connections.end_board]
+name = "Push Button"
+manufacturer = "Arduino"
+board_type = "Discrete"
+bsp = "iron-coder-push-button-bsp"
+required_crates = ["embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.end_board.pinout]]
+pins = ["pin1", "pin2", "pin3", "pin4"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "NONE"
+direction = "Bidirectional"
+
+[system.connections.interface_mapping]
+pins = []
+
+[system.connections.interface_mapping.interface]
+iface_type = "NONE"
+direction = "Unknown"
+
+[[system.connections]]
+name = "connection_2"
+start_pin = "pin3"
+end_pin = "5V"
+
+[system.connections.start_board]
+name = "Push Button"
+manufacturer = "Arduino"
+board_type = "Discrete"
+bsp = "iron-coder-push-button-bsp"
+required_crates = ["embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.start_board.pinout]]
+pins = ["pin1", "pin2", "pin3", "pin4"]
+
+[system.connections.start_board.pinout.interface]
+iface_type = "NONE"
+direction = "Bidirectional"
+
+[system.connections.end_board]
+name = "Arduino Uno"
+manufacturer = "Arduino"
+board_type = "Main"
+standard = "Arduino"
+cpu = "Microchip AVR"
+ram = 2
+flash = 32
+bsp = "iron-coder-uno-bsp"
+required_crates = ["avrdude", "avr-libc", "ravedude", "avr-gcc", "ufmt", "nb", "embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.end_board.pinout]]
+pins = ["rx", "tx"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "UART"
+direction = "Bidirectional"
+
+[[system.connections.end_board.pinout]]
+pins = ["scl", "sda"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "I2C"
+direction = "Output"
+
+[[system.connections.end_board.pinout]]
+pins = ["mosi", "miso", "sclk"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "SPI"
+direction = "Output"
+
+[system.connections.interface_mapping]
+pins = []
+
+[system.connections.interface_mapping.interface]
+iface_type = "NONE"
+direction = "Unknown"
+
+[[system.connections]]
+name = "connection_3"
+start_pin = "d2"
+end_pin = "pin4"
+
+[system.connections.start_board]
+name = "Arduino Uno"
+manufacturer = "Arduino"
+board_type = "Main"
+standard = "Arduino"
+cpu = "Microchip AVR"
+ram = 2
+flash = 32
+bsp = "iron-coder-uno-bsp"
+required_crates = ["avrdude", "avr-libc", "ravedude", "avr-gcc", "ufmt", "nb", "embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.start_board.pinout]]
+pins = ["rx", "tx"]
+
+[system.connections.start_board.pinout.interface]
+iface_type = "UART"
+direction = "Bidirectional"
+
+[[system.connections.start_board.pinout]]
+pins = ["scl", "sda"]
+
+[system.connections.start_board.pinout.interface]
+iface_type = "I2C"
+direction = "Output"
+
+[[system.connections.start_board.pinout]]
+pins = ["mosi", "miso", "sclk"]
+
+[system.connections.start_board.pinout.interface]
+iface_type = "SPI"
+direction = "Output"
+
+[system.connections.end_board]
+name = "Push Button"
+manufacturer = "Arduino"
+board_type = "Discrete"
+bsp = "iron-coder-push-button-bsp"
+required_crates = ["embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.end_board.pinout]]
+pins = ["pin1", "pin2", "pin3", "pin4"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "NONE"
+direction = "Bidirectional"
+
+[system.connections.interface_mapping]
+pins = []
+
+[system.connections.interface_mapping.interface]
+iface_type = "NONE"
+direction = "Unknown"
+
+[[system.connections]]
+name = "connection_4"
+start_pin = "pin1"
+end_pin = "gnd"
+
+[system.connections.start_board]
+name = "Piezo (Buzzer)"
+manufacturer = "Arduino"
+board_type = "Discrete"
+required_crates = ["embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.start_board.pinout]]
+pins = ["pin1", "pin2"]
+
+[system.connections.start_board.pinout.interface]
+iface_type = "NONE"
+direction = "Bidirectional"
+
+[system.connections.end_board]
+name = "Arduino Uno"
+manufacturer = "Arduino"
+board_type = "Main"
+standard = "Arduino"
+cpu = "Microchip AVR"
+ram = 2
+flash = 32
+bsp = "iron-coder-uno-bsp"
+required_crates = ["avrdude", "avr-libc", "ravedude", "avr-gcc", "ufmt", "nb", "embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.end_board.pinout]]
+pins = ["rx", "tx"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "UART"
+direction = "Bidirectional"
+
+[[system.connections.end_board.pinout]]
+pins = ["scl", "sda"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "I2C"
+direction = "Output"
+
+[[system.connections.end_board.pinout]]
+pins = ["mosi", "miso", "sclk"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "SPI"
+direction = "Output"
+
+[system.connections.interface_mapping]
+pins = []
+
+[system.connections.interface_mapping.interface]
+iface_type = "NONE"
+direction = "Unknown"
+
+[[system.connections]]
+name = "connection_5"
+start_pin = "pin2"
+end_pin = "d8"
+
+[system.connections.start_board]
+name = "Piezo (Buzzer)"
+manufacturer = "Arduino"
+board_type = "Discrete"
+required_crates = ["embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.start_board.pinout]]
+pins = ["pin1", "pin2"]
+
+[system.connections.start_board.pinout.interface]
+iface_type = "NONE"
+direction = "Bidirectional"
+
+[system.connections.end_board]
+name = "Arduino Uno"
+manufacturer = "Arduino"
+board_type = "Main"
+standard = "Arduino"
+cpu = "Microchip AVR"
+ram = 2
+flash = 32
+bsp = "iron-coder-uno-bsp"
+required_crates = ["avrdude", "avr-libc", "ravedude", "avr-gcc", "ufmt", "nb", "embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+[[system.connections.end_board.pinout]]
+pins = ["rx", "tx"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "UART"
+direction = "Bidirectional"
+
+[[system.connections.end_board.pinout]]
+pins = ["scl", "sda"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "I2C"
+direction = "Output"
+
+[[system.connections.end_board.pinout]]
+pins = ["mosi", "miso", "sclk"]
+
+[system.connections.end_board.pinout.interface]
+iface_type = "SPI"
+direction = "Output"
+
+[system.connections.interface_mapping]
+pins = []
+
+[system.connections.interface_mapping.interface]
+iface_type = "NONE"
+direction = "Unknown"

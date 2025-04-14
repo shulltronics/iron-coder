@@ -1,0 +1,36 @@
+name = "STM32F4"
+manufacturer = "STMicroelectronics"
+board_type = "Main"
+standard = "None"
+cpu = "CortexM"
+ram = 262
+flash = 131
+required_crates = ["embedded-hal", "panic-halt"]
+related_crates = ["smart-leds"]
+
+bsp = "iron-coder-STM32-bsp"
+
+[[pinout]]
+pins = ["GND", "5V", "3V", "VDD", "PH0", "PH1", "NRST", "BOOTO"]
+interface = { iface_type = "NONE", direction = "Unknown" }
+
+[[pinout]]
+pins = ["pa0", "pa1", "pa2", "pa3", "pa4", "pa5", "pa6", "pa7", "pa8", "pa9", "pa10", "pa13", "pa14", "pa15"]
+interface = { iface_type = "NONE", direction = "Bidirectional" }
+
+[[pinout]]
+pins = ["pc0", "pc1", "pc2", "pc3", "pc4", "pc5", "pc6", "pc7", "pc8", "pc9", "pc10", "pc11", "pc12", "pc13", "pc14", "pc15"]
+interface = { iface_type = "NONE", direction = "Bidirectional" }
+
+[[pinout]]
+pins = ["pb0", "pb1", "pb2", "pb3", "pb4", "pb5", "pb6", "pb7", "pb8", "pb9", "pb10", "pb11", "pb12", "pb13", "pb14", "pb15"]
+interface = { iface_type = "NONE", direction = "Bidirectional" }
+
+[[pinout]]
+pins = ["pd0", "pd1", "pd2", "pd3", "pd4", "pd5", "pd6", "pd7", "pd8", "pd9", "pd10", "pd11", "pd12", "pd13", "pd14", "pd15"]
+interface = { iface_type = "NONE", direction = "Bidirectional" }
+
+[[pinout]]
+pins = ["pe0", "pe1", "pe2", "pe3", "pe4", "pe5", "pe6", "pe7", "pe8", "pe9", "pe10", "pe11", "pe12", "pe13", "pe14", "pe15"]
+interface = { iface_type = "NONE", direction = "Bidirectional" }
+

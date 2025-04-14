@@ -1,0 +1,17 @@
+
+name = "NeoPixel 8x8"
+manufacturer = "Adafruit"
+board_type = "Peripheral"
+
+related_crates = ["ili9341", "embedded-graphics"]
+
+bsp = "iron-coder-neopixel-bsp"
+
+# Each element of the Pinout Vec should be prefaced with [[pinout]]
+[[pinout]]
+pins = ["din", "5V", "gnd"]
+interface = { iface_type = "NONE", direction = "Input" }
+
+[[pinout]]
+pins = ["gnd", "5V", "dout"]
+interface = { iface_type = "NONE", direction = "Output" }

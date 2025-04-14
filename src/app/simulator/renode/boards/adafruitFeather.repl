@@ -1,0 +1,8 @@
+cpu0: CPU.CortexM @ sysbus
+    cpuType: "cortex-m0+"
+    nvic: nvic0
+
+cpu1: CPU.CortexM @ sysbus
+    cpuType: "cortex-m0+"
+
+

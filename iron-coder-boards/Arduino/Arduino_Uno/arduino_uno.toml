@@ -1,0 +1,25 @@
+
+name = "Arduino Uno"
+manufacturer = "Arduino"
+board_type = "Main"
+standard = "Arduino"
+cpu = "Microchip AVR"
+ram = 2
+flash = 32
+required_crates = ["avrdude", "avr-libc", "ravedude", "avr-gcc", "ufmt", "nb", "embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+bsp = "iron-coder-uno-bsp"
+
+# Each element of the Pinout Vec should be prefaced with [[pinout]]
+[[pinout]]
+pins = ["rx", "tx"]
+interface = { iface_type = "UART", direction = "Bidirectional" }
+
+[[pinout]]
+pins = ["scl", "sda"]
+interface = { iface_type = "I2C", direction = "Output" }
+
+[[pinout]]
+pins = ["mosi", "miso", "sclk"]
+interface = { iface_type = "SPI", direction = "Output" }

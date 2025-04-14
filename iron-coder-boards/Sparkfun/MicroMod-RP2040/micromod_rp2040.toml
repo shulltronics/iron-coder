@@ -1,7 +1,7 @@
 
 name = "MicroMod RP2040"
 manufacturer = "Sparkfun"
-is_main_board = true
+board_type = "Main"
 standard = "MicroMod"
 cpu = "Cortex-M0"
 ram = 264

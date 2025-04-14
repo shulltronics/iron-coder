@@ -1,6 +1,8 @@
 //! Title: Iron Coder Project Module - Module
 //! Description: This module contains the Project struct and its associated functionality.
 
+use clap::Error;
+use egui::InputState;
 use log::{info, warn, debug};
 
 // use std::error::Error;
@@ -8,6 +10,11 @@ use std::io::BufRead;
 use std::io;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process;
+use std::process::Child;
+use std::process::ChildStdin;
+use std::process::ChildStdout;
+use std::sync::{Arc, Mutex};
 
 use rfd::FileDialog;
 
@@ -18,6 +25,8 @@ use crate::app::code_editor::CodeEditor;
 
 pub mod display;
 use display::ProjectViewType;
+use display::BottomPaneViewType;
+
 
 pub mod egui_helpers;
 
@@ -31,6 +40,20 @@ use git2::Repository;
 const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 
 pub type Result = core::result::Result<(), ProjectIOError>;
+
+// Simulator Imports
+pub mod simulator_helpers;
+use toml::de::from_str;
+use toml::Value;
+
+#[derive(Debug, Deserialize, Clone)]
+struct Package {
+    name: String,
+    version: Option<String>,
+    edition: Option<String>,
+}
+
+
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -56,13 +79,32 @@ pub struct Project {
     pub code_editor: CodeEditor,
     #[serde(skip)]
     terminal_buffer: String,
+    persistant_buffer: String,
+    output_buffer: String,
+    simulator_command_buffer: String,
+    pub update_directory: bool,
+    directory: String,
     #[serde(skip)]
     receiver: Option<std::sync::mpsc::Receiver<String>>,
     current_view: ProjectViewType,
     #[serde(skip)]
+    bottom_view: Option<BottomPaneViewType>,
+    #[serde(skip)]
     pub known_boards: Vec<Board>,
     #[serde(skip)]
     repo: Option<Repository>,
+    #[serde(skip)]
+    pub terminal_app: Option<Child>,
+    pub spawn_child: bool,
+    #[serde(skip)]
+    terminal_stdin: Option<ChildStdin>,
+    #[serde(skip)]
+    terminal_stdout: Option<ChildStdout>,
+    #[serde(skip)]
+    renode_process: Option<Child>,
+    renode_output: Arc<Mutex<String>>,
+    #[serde(skip)]
+    stdin: Option<Arc<Mutex<std::process::ChildStdin>>>,
 }
 
 // backend functionality for Project struct
@@ -71,7 +113,7 @@ impl Project {
     fn info_logger(&mut self, msg: &str) {
         info!("{}", msg);
         let msg = msg.to_owned() + "\n";
-        self.terminal_buffer += &msg;
+        self.output_buffer += &msg;
     }
 
     pub fn borrow_name(&mut self) -> &mut String {
@@ -106,13 +148,28 @@ impl Project {
                 }
             },
             false => {
-                // don't duplicate a board
-                if self.system.peripheral_boards.contains(&board) {
-                    info!("project <{}> already contains board <{:?}>", self.name, board);
-                    self.terminal_buffer += "project already contains that board\n";
-                    return;
-                } else {
-                    self.system.peripheral_boards.push(board.clone());
+                match board.is_discrete(){
+                    true => {
+                        // TODO Can't display multiple discrete components right now -> logic at project/display.rs "display_system_editor_boards", also removing board finds first occurrence in list
+                        if self.system.discrete_components.contains(&board) {
+                            info!("project <{}> already contains board <{:?}>", self.name, board);
+                            self.terminal_buffer += "project already contains that component\n";
+                            return;
+                        } else {
+                            self.system.discrete_components.push(board.clone());
+                        }
+                    },
+                    false => {
+                        // don't duplicate a peripheral board
+                        if self.system.peripheral_boards.contains(&board) {
+                            info!("project <{}> already contains board <{:?}>", self.name, board);
+                            self.output_buffer += "project already contains that board\n";
+                            return;
+                        } else {
+                            self.system.peripheral_boards.push(board.clone());
+                        }
+                    },
+
                 }
             }
         }
@@ -145,7 +202,7 @@ impl Project {
     }
 
     /// Load a project from a specified directory, and sync the board assets.
-    fn load_from(&mut self, project_directory: &Path) -> Result {
+    pub fn load_from(&mut self, project_directory: &Path) -> Result {
         let project_file = project_directory.join(PROJECT_FILE_NAME);
         let toml_str = match fs::read_to_string(project_file) {
             Ok(s) => s,
@@ -254,7 +311,7 @@ impl Project {
     }
 
     /// Build the code with Cargo
-    fn build(&mut self, ctx: &egui::Context) {
+    pub fn build(&mut self, ctx: &egui::Context) {
         // Make sure we have a valid path
         if let Some(path) = &self.location {
             info!("building project at {}", path.display().to_string());
@@ -277,6 +334,100 @@ impl Project {
         }
 
     }
+
+    // // this is used when the simulator is asked to load the program
+    // pub fn build_and_create_script(&mut self, ctx: &egui::Context) {
+    //     // Build the project
+    //     self.build(ctx);
+    
+    //     // Get the ELF file path
+    //     if let Some(elf_path) = self.get_elf_file_path(self.location.as_ref().expect("No project location found.")) {
+    //         let script_path = Path::new(".\\src\\app\\simulator\\renode\\scripts\\generated/currentScript.resc");
+    
+    //         // Create Renode script
+    //         if let Err(e) = simulator_helpers::create_renode_script(&elf_path, script_path) {
+    //             self.info_logger(&format!("Error creating Renode script: {}", e));
+    //         } else {
+    //             self.info_logger("Renode script created successfully.");
+    //         }
+    //     } else {
+    //         self.info_logger("No ELF file found.");
+    //     }
+    // }
+    
+    // // since different projects might have different names, we dynamically obtain them so we have the right file
+    // fn get_package_name_from_toml(&self, project_path: &Path) -> Option<String> {
+    //     // Load the Cargo.toml content
+    //     let toml_path = project_path.join("Cargo.toml");
+    //     let toml_content = fs::read_to_string(toml_path).ok()?;
+    
+    //     // Parse the TOML content
+    //     let parsed_toml: toml::Value = toml_content.parse().ok()?;
+    
+    //     // Extract the package name
+    //     parsed_toml
+    //         .get("package")
+    //         .and_then(|pkg| pkg.get("name"))
+    //         .and_then(|name| name.as_str())
+    //         .map(|s| s.to_string())
+    // }
+    
+    // // Get the path to the ELF file after building the project
+    // fn get_elf_file_path(&self, project_path: &Path) -> Option<PathBuf> {
+    //     let target = self.get_project_build_target(project_path)
+    //     .unwrap_or_else(|| "thumbv6m-none-eabi".to_string());
+
+    //     if let Some(package_name) = self.get_package_name_from_toml(project_path) {
+    //         let target_dir = project_path.join(format!("target/{}/debug", target));
+    //         let elf_file_path = target_dir.join(&package_name);
+    
+    //         // Try with and without an extension
+    //         if elf_file_path.exists() {
+    //             Some(elf_file_path)
+    //         } else {
+    //             // Try adding the .elf extension
+    //             let elf_with_extension = elf_file_path.with_extension("elf");
+    //             if elf_with_extension.exists() {
+    //                 Some(elf_with_extension)
+    //             } else {
+    //                 None
+    //             }
+    //         }
+    //     } else {
+    //         None
+    //     }
+    // }
+
+    // fn get_project_build_target(&self, project_path: &Path) -> Option<String> {
+    //     let cargo_config_path = project_path.join(".cargo/config.toml");
+        
+    //     if cargo_config_path.exists() {
+    //         let config_content = fs::read_to_string(&cargo_config_path).ok()?;
+    //         let parsed_toml: Value = config_content.parse().ok()?;
+
+    //         return parsed_toml.get("build")
+    //             .and_then(|build| build.get("target"))
+    //             .and_then(|target| target.as_str())
+    //             .map(|s| s.to_string());
+    //     }
+
+    //     // Fallback: If `.cargo/config.toml` doesn’t exist, check `Cargo.toml`
+    //     let cargo_toml_path = project_path.join("Cargo.toml");
+
+    //     if cargo_toml_path.exists() {
+    //         let cargo_content = fs::read_to_string(&cargo_toml_path).ok()?;
+    //         let parsed_toml: Value = cargo_content.parse().ok()?;
+
+    //         return parsed_toml.get("package")
+    //             .and_then(|pkg| pkg.get("metadata"))
+    //             .and_then(|metadata| metadata.get("build-target"))
+    //             .and_then(|target| target.as_str())
+    //             .map(|s| s.to_string());
+    //     }
+
+    //     None
+    // }
+
 
     pub fn new_file(&mut self) -> io::Result<()> {
         if self.location == None {

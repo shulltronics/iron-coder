@@ -1,0 +1,4 @@
+#  We stop the program right before we save and then save the current state of the Renode program
+
+sleep 1
+Save $ORIGIN\..\savedStates\saveFile.save

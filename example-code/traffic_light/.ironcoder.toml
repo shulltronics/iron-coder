@@ -1,0 +1,34 @@
+name = "USART_Traffic_Lights"
+location = 'C:\Users\kille\Desktop\Repos\CapstoneIronCoder\example-code\traffic_light'
+persistant_buffer = ""
+output_buffer = ""
+simulator_command_buffer = ""
+update_directory = true
+directory = ""
+current_view = "BoardsView"
+spawn_child = false
+renode_output = ""
+
+[system]
+peripheral_boards = []
+discrete_components = []
+connections = []
+
+[system.main_board]
+name = "STM32F4 Discovery"
+manufacturer = "STMicroelectronics"
+board_type = "Main"
+standard = "Feather"
+cpu = "ARM Cortex M4"
+ram = 550
+flash = 1000
+bsp = "iron-coder-STM32F4-Discovery-bsp"
+required_crates = ["crate1"]
+related_crates = ["crate2"]
+
+[[system.main_board.pinout]]
+pins = ["HEYA"]
+
+[system.main_board.pinout.interface]
+iface_type = "NONE"
+direction = "Unknown"

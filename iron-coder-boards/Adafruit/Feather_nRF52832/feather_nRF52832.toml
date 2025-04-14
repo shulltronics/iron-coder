@@ -1,7 +1,7 @@
 
 name = "Feather nRF52832"
 manufacturer = "Adafruit"
-is_main_board = true
+board_type = "Main"
 standard = "Feather"
 cpu = "Cortex-M4"
 ram = 64

@@ -12,3 +12,5 @@ projects/
 /Cargo.lock
 *.lock
 /settings.toml
+/target
+/src/app/simulator/programs/Test/target

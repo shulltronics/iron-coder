@@ -1,0 +1,13 @@
+name = "MY_LED"
+manufacturer = "Demo"
+board_type = "Discrete"
+standard = "None"
+required_crates = ["smart-leds"]
+related_crates = ["embedded-hal"]
+
+bsp = "iron-coder-MY_LED-bsp"
+
+[[pinout]]
+pins = ["pin1", "pin2"]
+interface = { iface_type = "NONE", direction = "Unknown" }
+

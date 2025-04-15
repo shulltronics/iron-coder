@@ -185,8 +185,14 @@ impl Widget for BoardSelectorWidget {
             .show(ui, |ui| {
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     // let label = egui::RichText::new(this_board.name).strong();
+                    let mut heading = "Peripheral: ";
+                    if(this_board.clone().is_main_board()){
+                        heading = "Main Board: ";
+                    } else if (this_board.clone() .is_discrete()){
+                        heading = "Discrete Component: "
+                    }
                     ui.label(make_field_widget_text(
-                        "Board: ",
+                        heading,
                         ui.style().visuals.warn_fg_color,
                         this_board.name.as_str(),
                         ui.style().visuals.window_stroke.color,

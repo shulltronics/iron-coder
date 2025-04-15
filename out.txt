@@ -1,0 +1,6 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+C:\Users\ethan\Documents\CEN3907\iron-coder [93m[[39m[96mmain-dev[39m[96m ð[39m[31m +7[39m[31m ~6[39m[31m -0[39m[31m ![39m[93m][39m> 

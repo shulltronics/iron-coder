@@ -1,0 +1,18 @@
+# Renode script for ELF file
+using sysbus
+mach create
+machine LoadPlatformDescription @platforms/boards/stm32f4_discovery-kit.repl
+cpu PerformanceInMips 125
+macro reset
+"""
+sysbus LoadELF "$CWD\example-code/traffic_light\target/thumbv7em-none-eabihf/debug\Test"
+"""
+runMacro $reset
+logFile $ORIGIN/output.txt
+showAnalyzer sysbus.usart2
+start
+# New Testing for obtaining peripherals
+logLevel -1 gpioPortD
+peripherals
+logFile $ORIGIN/../../logs/output.txt
+# Simulation ends

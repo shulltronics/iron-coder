@@ -1,0 +1,15 @@
+using "./stm32f4_discovery-kit.repl"
+
+gpioPortG: GPIOPort.STM32_GPIOPort @ sysbus <0x40021800, +0x400>
+    numberOfAFs: 16
+    [0-15] -> exti@[0-15]
+
+GreenLED: Miscellaneous.LED @ gpioPortG
+
+gpioPortG:
+    13 -> GreenLED@0
+
+RedLED: Miscellaneous.LED @ gpioPortG
+
+gpioPortG:
+    14 -> RedLED@0

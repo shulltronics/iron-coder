@@ -1,0 +1,11 @@
+
+name = "Resistor 1000 Ohm"
+manufacturer = "Arduino"
+board_type = "Discrete"
+required_crates = ["embedded-hal", "embedded-time", "panic-halt"]
+related_crates = ["smart-leds", "ws2812-pio"]
+
+# Each element of the Pinout Vec should be prefaced with [[pinout]]
+[[pinout]]
+pins = ["pin1", "pin2"]
+interface = { iface_type = "NONE", direction = "Bidirectional" }

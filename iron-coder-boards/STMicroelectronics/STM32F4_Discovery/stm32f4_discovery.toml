@@ -1,0 +1,16 @@
+name = "STM32F4 Discovery"
+manufacturer = "STMicroelectronics"
+board_type = "Main"
+standard = "Feather"
+cpu = "ARM Cortex M4"
+ram = 550
+flash = 1000
+required_crates = ["crate1"]
+related_crates = ["crate2"]
+
+bsp = "iron-coder-STM32F4-Discovery-bsp"
+
+[[pinout]]
+pins = ["HEYA"]
+interface = { iface_type = "NONE", direction = "Unknown" }
+

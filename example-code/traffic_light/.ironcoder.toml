@@ -1,0 +1,39 @@
+name = "USART_Traffic_Lights"
+location = "example-code/traffic_light"
+persistant_buffer = """
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+"""
+output_buffer = ""
+simulator_command_buffer = ""
+update_directory = false
+directory = 'C:\Users\ethan\Documents\CEN3907\iron-coder [main-dev ð +7 ~4 -0 !]> '
+current_view = "FileTree"
+spawn_child = true
+renode_output = ""
+
+[system]
+peripheral_boards = []
+discrete_components = []
+connections = []
+
+[system.main_board]
+name = "STM32F4 Discovery"
+manufacturer = "STMicroelectronics"
+board_type = "Main"
+standard = "Feather"
+cpu = "ARM Cortex M4"
+ram = 550
+flash = 1000
+bsp = "iron-coder-STM32F4-Discovery-bsp"
+required_crates = ["crate1"]
+related_crates = ["crate2"]
+
+[[system.main_board.pinout]]
+pins = ["HEYA"]
+
+[system.main_board.pinout.interface]
+iface_type = "NONE"
+direction = "Unknown"

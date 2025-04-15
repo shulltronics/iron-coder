@@ -1,0 +1,3 @@
+cargo:rustc-link-search=C:\Users\ethan\Documents\CEN3907\iron-coder\example-code\blink_leds\target\thumbv6m-none-eabi\debug\build\rp2040-pac-15b0bdfd2fa64821\out
+cargo:rerun-if-changed=device.x
+cargo:rerun-if-changed=build.rs

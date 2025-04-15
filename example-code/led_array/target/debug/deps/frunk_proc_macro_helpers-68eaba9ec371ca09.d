@@ -1,0 +1,7 @@
+C:\Users\julia\Documents\UF\Design 1\iron-coder\example-code\led_array\target\debug\deps\libfrunk_proc_macro_helpers-68eaba9ec371ca09.rmeta: C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\frunk_proc_macro_helpers-0.1.3\src\lib.rs
+
+C:\Users\julia\Documents\UF\Design 1\iron-coder\example-code\led_array\target\debug\deps\libfrunk_proc_macro_helpers-68eaba9ec371ca09.rlib: C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\frunk_proc_macro_helpers-0.1.3\src\lib.rs
+
+C:\Users\julia\Documents\UF\Design 1\iron-coder\example-code\led_array\target\debug\deps\frunk_proc_macro_helpers-68eaba9ec371ca09.d: C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\frunk_proc_macro_helpers-0.1.3\src\lib.rs
+
+C:\Users\julia\.cargo\registry\src\index.crates.io-6f17d22bba15001f\frunk_proc_macro_helpers-0.1.3\src\lib.rs:

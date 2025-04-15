@@ -38,7 +38,7 @@ mod board_tests {
         // Ensure boards have crates associated with them.
         let mut boards = board::get_boards(Path::new("./iron-coder-boards"));
         for board in boards {
-            assert!(board.related_crates().unwrap().is_empty() == FALSE);
+            assert!(!board.related_crates().unwrap().is_empty());
         }
     }
     #[test]
